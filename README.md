@@ -1,2 +1,2 @@
-# smartrecycle_rd
-Desarrollo de una aplicación tecnológica orientada a la promoción del reciclaje y la educación ambiental en la República Dominicana
+# GECOM
+Diseño de una plataforma web prototipo para la gestión municipal de denuncias a través de juntas de vecinos.
