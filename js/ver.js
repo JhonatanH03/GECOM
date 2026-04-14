@@ -1,5 +1,6 @@
 import app from "./firebase.js";
 import { doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { query, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 import {
 getFirestore,
@@ -7,44 +8,56 @@ collection,
 getDocs
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
+import { onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
 const db = getFirestore(app);
 
 async function cargarDenuncias() {
-const querySnapshot = await getDocs(collection(db, "denuncias"));
-const tabla = document.getElementById("tablaDenuncias");
+  const tabla = document.getElementById("tablaDenuncias");
+  const filtro = document.getElementById("filtroEstado").value;
 
-tabla.innerHTML = "";
+  tabla.innerHTML = "";
 
-querySnapshot.forEach((doc) => {
-const data = doc.data();
+  let q;
 
+  if (filtro === "Todos") {
+    q = collection(db, "denuncias");
+  } else {
+    q = query(
+      collection(db, "denuncias"),
+      where("estado", "==", filtro)
+    );
+  }
 
-const fila = document.createElement("tr");
+  const querySnapshot = await getDocs(q);
 
-fila.innerHTML = `
-  <td>${data.titulo || "Sin título"}</td>
-  <td>${data.descripcion || "Sin descripción"}</td>
+  querySnapshot.forEach((docSnap) => {
+    const data = docSnap.data();
 
-  <td>
-    <select class="form-select" data-id="${doc.id}">
-      <option ${data.estado === "Pendiente" ? "selected" : ""}>Pendiente</option>
-      <option ${data.estado === "En proceso" ? "selected" : ""}>En proceso</option>
-      <option ${data.estado === "Resuelta" ? "selected" : ""}>Resuelta</option>
-      <option ${data.estado === "Rechazada" ? "selected" : ""}>Rechazada</option>
-    </select>
-  </td>
+    const fila = document.createElement("tr");
 
-  <td>${
-    data.fecha
-      ? new Date(data.fecha.seconds * 1000).toLocaleString()
-      : "Sin fecha"
-  }</td>
-`;
+    fila.innerHTML = `
+      <td>${data.titulo || "Sin título"}</td>
+      <td>${data.descripcion || "Sin descripción"}</td>
 
-tabla.appendChild(fila);
+      <td>
+        <select class="form-select" data-id="${docSnap.id}">
+          <option ${data.estado === "Pendiente" ? "selected" : ""}>Pendiente</option>
+          <option ${data.estado === "En proceso" ? "selected" : ""}>En proceso</option>
+          <option ${data.estado === "Resuelta" ? "selected" : ""}>Resuelta</option>
+          <option ${data.estado === "Rechazada" ? "selected" : ""}>Rechazada</option>
+        </select>
+      </td>
 
+      <td>${
+        data.fecha
+          ? new Date(data.fecha.seconds * 1000).toLocaleString()
+          : "Sin fecha"
+      }</td>
+    `;
 
-});
+    tabla.appendChild(fila);
+  });
 }
 
 cargarDenuncias();
@@ -62,4 +75,8 @@ document.addEventListener("change", async (e) => {
 
     console.log("Estado actualizado");
   }
+});
+
+document.getElementById("filtroEstado").addEventListener("change", () => {
+  cargarDenuncias();
 });
