@@ -1,89 +1,115 @@
 import app from "./firebase.js";
-import {
-  doc,
-  updateDoc,
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-import {
-  query,
-  where,
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 import {
   getFirestore,
   collection,
-  getDocs,
+  query,
+  where,
+  onSnapshot,
+  doc,
+  updateDoc
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-import { onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const db = getFirestore(app);
 
-async function cargarDenuncias() {
+let unsubscribe = null; // para controlar el listener
+
+function cargarDenuncias() {
   const tabla = document.getElementById("tablaDenuncias");
   const filtro = document.getElementById("filtroEstado").value;
-  const rol = localStorage.getItem("rol");
+
   tabla.innerHTML = "";
 
+  //Construir query correctamente
   let q;
 
   if (filtro === "Todos") {
-    q = collection(db, "denuncias");
+    q = query(collection(db, "denuncias"));
   } else {
-    q = query(collection(db, "denuncias"), where("estado", "==", filtro));
+    q = query(
+      collection(db, "denuncias"),
+      where("estado", "==", filtro)
+    );
   }
 
-  const querySnapshot = await getDocs(q);
-
-  querySnapshot.forEach((docSnap) => {
-    const data = docSnap.data();
-
-    const fila = document.createElement("tr");
-
-    fila.innerHTML = `
-      <td>${data.titulo || "Sin título"}</td>
-      <td>${data.descripcion || "Sin descripción"}</td>
-
-<td>
-  ${
-    rol === "admin"
-      ? `<select data-id="${doc.id}">
-          <option ${data.estado === "Pendiente" ? "selected" : ""}>Pendiente</option>
-          <option ${data.estado === "En proceso" ? "selected" : ""}>En proceso</option>
-          <option ${data.estado === "Resuelta" ? "selected" : ""}>Resuelta</option>
-          <option ${data.estado === "Rechazada" ? "selected" : ""}>Rechazada</option>
-        </select>`
-      : `<span>${data.estado}</span>`
+  //Cancelar listener anterior (importante)
+  if (unsubscribe) {
+    unsubscribe();
   }
-</td>
 
-      <td>${
-        data.fecha
-          ? new Date(data.fecha.seconds * 1000).toLocaleString()
-          : "Sin fecha"
-      }</td>
-    `;
+  //Escuchar en tiempo real
+  unsubscribe = onSnapshot(q, (querySnapshot) => {
+    tabla.innerHTML = "";
 
-    tabla.appendChild(fila);
+    querySnapshot.forEach((docSnap) => {
+      const data = docSnap.data();
+
+      const fila = document.createElement("tr");
+
+      fila.innerHTML = `
+        <td>${data.titulo || "Sin título"}</td>
+        <td>${data.descripcion || "Sin descripción"}</td>
+
+        <td>
+          <select class="form-select" data-id="${docSnap.id}">
+            <option ${data.estado === "Pendiente" ? "selected" : ""}>Pendiente</option>
+            <option ${data.estado === "En proceso" ? "selected" : ""}>En proceso</option>
+            <option ${data.estado === "Resuelta" ? "selected" : ""}>Resuelta</option>
+            <option ${data.estado === "Rechazada" ? "selected" : ""}>Rechazada</option>
+          </select>
+        </td>
+
+        <td>${
+          data.fecha && data.fecha.seconds
+            ? new Date(data.fecha.seconds * 1000).toLocaleString()
+            : "Sin fecha"
+        }</td>
+      `;
+
+      tabla.appendChild(fila);
+    });
   });
 }
 
+//Cargar al inicio
 cargarDenuncias();
 
+//Cambiar estado (solo selects con data-id)
 document.addEventListener("change", async (e) => {
-  if (e.target.tagName === "SELECT") {
+  if (e.target.matches("select[data-id]")) {
     const id = e.target.getAttribute("data-id");
     const nuevoEstado = e.target.value;
 
-    const ref = doc(db, "denuncias", id);
+    try {
+      const ref = doc(db, "denuncias", id);
 
-    await updateDoc(ref, {
-      estado: nuevoEstado,
-    });
+      await updateDoc(ref, {
+        estado: nuevoEstado
+      });
 
-    console.log("Estado actualizado");
+      console.log("Estado actualizado");
+    } catch (error) {
+      console.error("Error al actualizar:", error);
+    }
   }
 });
 
+//Filtro
 document.getElementById("filtroEstado").addEventListener("change", () => {
   cargarDenuncias();
+});
+
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+const auth = getAuth(app);
+
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    console.log("Usuario autenticado:", user.uid);
+    cargarDenuncias(); // 🔥 SOLO carga si hay sesión
+  } else {
+    console.log("No hay usuario autenticado");
+    // opcional: redirigir al login
+    window.location.href = "login.html";
+  }
 });
