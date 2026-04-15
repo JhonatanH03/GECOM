@@ -3,7 +3,9 @@ import app from "./firebase.js";
 import {
   getFirestore,
   collection,
-  addDoc
+  addDoc,
+  getDoc,
+  doc
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const db = getFirestore(app);
@@ -23,13 +25,19 @@ window.crearDenuncia = async function () {
       return;
     }
 
+    // � Obtener datos del usuario (incluyendo comunidad)
+    const usuarioDoc = await getDoc(doc(db, "usuarios", uid));
+    const usuarioData = usuarioDoc.data();
+    const comunidad = usuarioData?.comunidad || "Sin comunidad";
+
     // 🔥 GUARDAR EN FIRESTORE
     await addDoc(collection(db, "denuncias"), {
       titulo: titulo,
       descripcion: descripcion,
       estado: "Pendiente",
       fecha: new Date(),
-      uid: uid
+      uid: uid,
+      comunidad: comunidad
     });
 
     alert("Denuncia creada correctamente");

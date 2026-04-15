@@ -11,12 +11,31 @@
 <input type="email" id="email" placeholder="Correo"><br>
 <input type="password" id="password" placeholder="Contraseña"><br>
 
-<select id="rol">
+<select id="rol" onchange="mostrarComunidad()">
   <option value="junta">Junta de vecinos</option>
   <option value="admin">Ayuntamiento</option>
 </select><br><br>
 
+<div id="comunidadDiv" style="display:none;">
+  <input type="text" id="comunidad" placeholder="Nombre de la comunidad"><br><br>
+</div>
+
 <button onclick="registrar()">Registrar</button>
+
+<script>
+  function mostrarComunidad() {
+    const rol = document.getElementById("rol").value;
+    const comunidadDiv = document.getElementById("comunidadDiv");
+    if (rol === "junta") {
+      comunidadDiv.style.display = "block";
+    } else {
+      comunidadDiv.style.display = "none";
+    }
+  }
+  
+  // Mostrar comunidad al cargar la página
+  mostrarComunidad();
+</script>
 
 <script type="module" src="js/auth.js"></script>
 
