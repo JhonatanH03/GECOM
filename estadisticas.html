@@ -16,7 +16,28 @@
 
   <h2 class="text-center mb-4">Estadísticas de Denuncias</h2>
 
-  <!-- 🔢 KPIs -->
+  <!-- � FILTROS -->
+  <div class="row mb-4">
+    <div class="col-md-3">
+      <label for="fechaDesde">Fecha desde:</label>
+      <input type="date" id="fechaDesde" class="form-control">
+    </div>
+    <div class="col-md-3">
+      <label for="fechaHasta">Fecha hasta:</label>
+      <input type="date" id="fechaHasta" class="form-control">
+    </div>
+    <div class="col-md-3">
+      <label for="usuarioFiltro">Usuario:</label>
+      <select id="usuarioFiltro" class="form-control">
+        <option value="">Todos</option>
+      </select>
+    </div>
+    <div class="col-md-3 d-flex align-items-end">
+      <button id="aplicarFiltros" class="btn btn-primary w-100">Aplicar Filtros</button>
+    </div>
+  </div>
+
+  <!-- �🔢 KPIs -->
   <div class="row text-center mb-4">
 
     <div class="col-md-3">
@@ -66,6 +87,23 @@
       </div>
     </div>
 
+  </div>
+
+  <!-- 📈 TENDENCIAS -->
+  <div class="row mt-4">
+    <div class="col-12">
+      <div class="card p-4 shadow">
+        <h5 class="text-center">Tendencias (Últimos 30 días)</h5>
+        <canvas id="graficoTendencias"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- 📤 EXPORTAR -->
+  <div class="row mt-4">
+    <div class="col-12 text-center">
+      <button id="exportarCSV" class="btn btn-success">Exportar a CSV</button>
+    </div>
   </div>
 
 </div>
