@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mis Denuncias - GECOM</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+  <style>
+    body {
+      background-color: #f8f9fa;
+      font-family: 'Roboto', sans-serif;
+    }
+
+    .app-bar {
+      background-color: #1a73e8;
+      color: white;
+      padding: 1rem;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .app-bar h1 {
+      font-size: 1.5rem;
+      margin: 0;
+    }
+
+    .filter-section {
+      background-color: white;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .denuncia-card {
+      background-color: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      margin-bottom: 1rem;
+      padding: 1rem;
+      transition: transform 0.2s;
+      cursor: pointer;
+    }
+
+    .denuncia-card:hover {
+      transform: translateY(-2px);
+    }
+
+    .estado-badge {
+      font-size: 0.8rem;
+      padding: 0.25rem 0.5rem;
+      border-radius: 12px;
+      font-weight: bold;
+    }
+
+    .estado-pendiente { background-color: #ffc107; color: #212529; }
+    .estado-proceso { background-color: #007bff; color: white; }
+    .estado-resuelta { background-color: #28a745; color: white; }
+    .estado-rechazada { background-color: #dc3545; color: white; }
+
+    .titulo-denuncia {
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 0.5rem;
+    }
+
+    .fecha-denuncia {
+      color: #666;
+      font-size: 0.9rem;
+    }
+
+    .descripcion-denuncia {
+      color: #555;
+      font-size: 0.9rem;
+      margin-top: 0.5rem;
+    }
+
+    .fab {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background-color: #1a73e8;
+      color: white;
+      border: none;
+      box-shadow: 0 4px 12px rgba(26, 115, 232, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      z-index: 1000;
+    }
+
+    .fab:hover {
+      background-color: #1557b0;
+    }
+
+    .container {
+      padding-bottom: 5rem;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- APP BAR -->
+  <header class="app-bar">
+    <h1>Mis Denuncias</h1>
+  </header>
+
+  <main class="container mt-3">
+
+    <!-- FILTRO -->
+    <section class="filter-section">
+      <label for="filtroEstado" class="form-label">Filtrar por estado</label>
+      <select id="filtroEstado" class="form-select">
+        <option value="">Todos</option>
+        <option value="Pendiente">Pendiente</option>
+        <option value="En proceso">En proceso</option>
+        <option value="Resuelta">Resuelta</option>
+        <option value="Rechazada">Rechazada</option>
+      </select>
+    </section>
+
+    <!-- LISTA DINÁMICA -->
+    <section id="listaDenuncias">
+      <!-- Render dinámico desde JS -->
+    </section>
+
+  </main>
+
+  <!-- FAB -->
+  <button
+    class="fab"
+    id="btnNuevaDenuncia"
+    aria-label="Crear nueva denuncia">
+    <i class="fas fa-plus"></i>
+  </button>
+
+  <!-- JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script type="module" src="js/ciudadano.js"></script>
+
+</body>
+</html>
