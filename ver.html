@@ -1,11 +1,8 @@
 <!DOCTYPE html>
-
 <html lang="es">
 <head>
   <meta charset="UTF-8">
   <title>GECOM - Denuncias</title>
-
-  <!-- Bootstrap -->
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
@@ -16,16 +13,17 @@
 
   <h2 class="text-center mb-4">Listado de Denuncias</h2>
 
+  <!-- FILTRO -->
   <div class="mb-3">
-  <label>Filtrar por estado:</label>
-  <select id="filtroEstado" class="form-select">
-    <option value="Todos">Todos</option>
-    <option value="Pendiente">Pendiente</option>
-    <option value="En proceso">En proceso</option>
-    <option value="Resuelta">Resuelta</option>
-    <option value="Rechazada">Rechazada</option>
-  </select>
-</div>
+    <label>Filtrar por estado:</label>
+    <select id="filtroEstado" class="form-select">
+      <option value="Todos">Todos</option>
+      <option value="Pendiente">Pendiente</option>
+      <option value="En proceso">En proceso</option>
+      <option value="Resuelta">Resuelta</option>
+      <option value="Rechazada">Rechazada</option>
+    </select>
+  </div>
 
   <table class="table table-bordered table-striped">
     <thead class="table-dark">
@@ -37,17 +35,10 @@
       </tr>
     </thead>
 
-
-<tbody id="tablaDenuncias">
-  <!-- Aquí se cargan los datos -->
-</tbody>
-
-
+    <tbody id="tablaDenuncias"></tbody>
   </table>
 
 </div>
-
-<!-- IMPORTANTE: conecta con tu JS -->
 
 <script type="module" src="js/ver.js"></script>
 
