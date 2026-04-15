@@ -39,6 +39,7 @@
       </div>
     </div>
 
+    <!-- Estadísticas (solo admin) -->
     <div class="col-md-4" id="cardAdmin" style="display:none;">
       <div class="card p-4 shadow text-center">
         <h5>Estadísticas</h5>
@@ -52,7 +53,29 @@
 
 </div>
 
-<script src="js/dashboard.js"></script>
+<!-- 🔥 SCRIPT CORRECTO -->
+<script>
+  function ir(pagina) {
+    window.location.href = pagina;
+  }
+
+  function logout() {
+    localStorage.clear();
+    window.location.href = "index.html";
+  }
+
+  // 🔐 Control de acceso por rol
+  const rol = localStorage.getItem("rol");
+
+  if (!rol) {
+    // si no hay sesión, lo sacamos
+    window.location.href = "index.html";
+  }
+
+  if (rol === "admin") {
+    document.getElementById("cardAdmin").style.display = "block";
+  }
+</script>
 
 </body>
 </html>
