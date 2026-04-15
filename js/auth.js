@@ -3,20 +3,20 @@ import app from "./firebase.js";
 import {
   getAuth,
   createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
+  signInWithEmailAndPassword
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 import {
   getFirestore,
   doc,
   setDoc,
-  getDoc,
+  getDoc
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// 🔐 REGISTRO (CORRECTO)
+// 🔐 REGISTRO
 window.registrar = async function () {
   try {
     const email = document.getElementById("email").value;
@@ -26,19 +26,26 @@ window.registrar = async function () {
     const userCredential = await createUserWithEmailAndPassword(
       auth,
       email,
-      password,
+      password
     );
+
     const uid = userCredential.user.uid;
 
-    // 🔥 Guardar en Firestore
+    // 🔥 Guardar usuario en Firestore
     await setDoc(doc(db, "usuarios", uid), {
       email: email,
-      rol: rol,
+      rol: rol
     });
 
     alert("Usuario registrado correctamente");
+
+    // limpiar campos
+    document.getElementById("email").value = "";
+    document.getElementById("password").value = "";
+
   } catch (error) {
     console.error("ERROR:", error.message);
+    alert(error.message);
   }
 };
 
@@ -51,17 +58,34 @@ window.login = async function () {
     const userCredential = await signInWithEmailAndPassword(
       auth,
       email,
-      password,
+      password
     );
+
     const uid = userCredential.user.uid;
 
+    // 🔍 Obtener rol desde Firestore
     const docSnap = await getDoc(doc(db, "usuarios", uid));
+
+    if (!docSnap.exists()) {
+      alert("Usuario sin rol asignado");
+      return;
+    }
+
     const rol = docSnap.data().rol;
 
-    localStorage.setItem("rol", rol);
+    // 💾 Guardar sesión
     localStorage.setItem("uid", uid);
+    localStorage.setItem("rol", rol);
+
+    // limpiar campos
+    document.getElementById("email").value = "";
+    document.getElementById("password").value = "";
+
+    // 🔁 Redirigir
     window.location.href = "dashboard.html";
+
   } catch (error) {
     console.error("ERROR:", error.message);
+    alert(error.message);
   }
 };

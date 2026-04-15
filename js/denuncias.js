@@ -1,40 +1,45 @@
 import app from "./firebase.js";
 
 import {
-getFirestore,
-collection,
-addDoc
+  getFirestore,
+  collection,
+  addDoc
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const db = getFirestore(app);
 
+// 🔥 CREAR DENUNCIA
 window.crearDenuncia = async function () {
-const titulo = document.getElementById("titulo").value;
-const descripcion = document.getElementById("descripcion").value;
+  try {
+    const titulo = document.getElementById("titulo").value;
+    const descripcion = document.getElementById("descripcion").value;
 
-if (!titulo || !descripcion) {
-document.getElementById("msg").innerText = "Todos los campos son obligatorios";
-return;
-}
+    const uid = localStorage.getItem("uid");
 
-try {
-const docRef = await addDoc(collection(db, "denuncias"), {
-titulo: titulo,
-descripcion: descripcion,
-estado: "Pendiente",
-fecha: new Date()
-});
+    // 🔒 VALIDAR SESIÓN
+    if (!uid) {
+      alert("Debes iniciar sesión");
+      window.location.href = "index.html";
+      return;
+    }
 
+    // 🔥 GUARDAR EN FIRESTORE
+    await addDoc(collection(db, "denuncias"), {
+      titulo: titulo,
+      descripcion: descripcion,
+      estado: "Pendiente",
+      fecha: new Date(),
+      uid: uid
+    });
 
-document.getElementById("msg").innerText = "Denuncia guardada correctamente";
+    alert("Denuncia creada correctamente");
 
-// Limpia el formulario (esto evita errores raros)
-document.getElementById("titulo").value = "";
-document.getElementById("descripcion").value = "";
+    // 🧹 LIMPIAR CAMPOS
+    document.getElementById("titulo").value = "";
+    document.getElementById("descripcion").value = "";
 
-
-} catch (error) {
-console.error(error);
-document.getElementById("msg").innerText = error.message;
-}
+  } catch (error) {
+    console.error("ERROR:", error.message);
+    alert(error.message);
+  }
 };

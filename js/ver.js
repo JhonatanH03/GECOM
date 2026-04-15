@@ -3,113 +3,99 @@ import app from "./firebase.js";
 import {
   getFirestore,
   collection,
+  getDocs,
   query,
   where,
-  onSnapshot,
   doc,
   updateDoc
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const db = getFirestore(app);
 
-let unsubscribe = null; // para controlar el listener
+const rol = localStorage.getItem("rol");
+const uid = localStorage.getItem("uid");
 
-function cargarDenuncias() {
-  const tabla = document.getElementById("tablaDenuncias");
+console.log("VER.JS CARGADO");
+
+// 🔥 CARGAR DENUNCIAS
+async function cargarDenuncias() {
+
   const filtro = document.getElementById("filtroEstado").value;
 
-  tabla.innerHTML = "";
-
-  //Construir query correctamente
   let q;
 
-  if (filtro === "Todos") {
-    q = query(collection(db, "denuncias"));
+  if (rol === "admin") {
+    q = collection(db, "denuncias");
   } else {
-    q = query(
-      collection(db, "denuncias"),
-      where("estado", "==", filtro)
-    );
+    q = query(collection(db, "denuncias"), where("uid", "==", uid));
   }
 
-  //Cancelar listener anterior (importante)
-  if (unsubscribe) {
-    unsubscribe();
-  }
+  const querySnapshot = await getDocs(q);
+  console.log("Cantidad de denuncias:", querySnapshot.size);
 
-  //Escuchar en tiempo real
-  unsubscribe = onSnapshot(q, (querySnapshot) => {
-    tabla.innerHTML = "";
+  const tabla = document.getElementById("tablaDenuncias");
+  tabla.innerHTML = "";
 
-    querySnapshot.forEach((docSnap) => {
-      const data = docSnap.data();
+  querySnapshot.forEach((docSnap) => {
+    const data = docSnap.data();
 
-      const fila = document.createElement("tr");
+    // 🔥 FILTRO POR ESTADO
+    if (filtro !== "Todos" && data.estado !== filtro) return;
 
-      fila.innerHTML = `
-        <td>${data.titulo || "Sin título"}</td>
-        <td>${data.descripcion || "Sin descripción"}</td>
+    const fila = document.createElement("tr");
 
-        <td>
-          <select class="form-select" data-id="${docSnap.id}">
-            <option ${data.estado === "Pendiente" ? "selected" : ""}>Pendiente</option>
-            <option ${data.estado === "En proceso" ? "selected" : ""}>En proceso</option>
-            <option ${data.estado === "Resuelta" ? "selected" : ""}>Resuelta</option>
-            <option ${data.estado === "Rechazada" ? "selected" : ""}>Rechazada</option>
-          </select>
-        </td>
+    fila.innerHTML = `
+      <td>${data.titulo || "Sin título"}</td>
+      <td>${data.descripcion || "Sin descripción"}</td>
 
-        <td>${
-          data.fecha && data.fecha.seconds
-            ? new Date(data.fecha.seconds * 1000).toLocaleString()
-            : "Sin fecha"
-        }</td>
-      `;
+      <td>
+        ${
+          rol === "admin"
+            ? `<select class="form-select" data-id="${docSnap.id}">
+                <option ${data.estado === "Pendiente" ? "selected" : ""}>Pendiente</option>
+                <option ${data.estado === "En proceso" ? "selected" : ""}>En proceso</option>
+                <option ${data.estado === "Resuelta" ? "selected" : ""}>Resuelta</option>
+                <option ${data.estado === "Rechazada" ? "selected" : ""}>Rechazada</option>
+              </select>`
+            : `<span>${data.estado}</span>`
+        }
+      </td>
 
-      tabla.appendChild(fila);
-    });
+      <td>${
+        data.fecha
+          ? new Date(data.fecha.seconds * 1000).toLocaleString()
+          : "Sin fecha"
+      }</td>
+    `;
+
+    tabla.appendChild(fila);
   });
 }
 
-//Cargar al inicio
+// 🔄 CARGA INICIAL
 cargarDenuncias();
 
-//Cambiar estado (solo selects con data-id)
-document.addEventListener("change", async (e) => {
-  if (e.target.matches("select[data-id]")) {
-    const id = e.target.getAttribute("data-id");
-    const nuevoEstado = e.target.value;
-
-    try {
-      const ref = doc(db, "denuncias", id);
-
-      await updateDoc(ref, {
-        estado: nuevoEstado
-      });
-
-      console.log("Estado actualizado");
-    } catch (error) {
-      console.error("Error al actualizar:", error);
-    }
-  }
-});
-
-//Filtro
+// 🔥 FILTRO DINÁMICO
 document.getElementById("filtroEstado").addEventListener("change", () => {
   cargarDenuncias();
 });
 
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+// ACTUALIZAR ESTADO (SOLO ADMIN)
+document.addEventListener("change", async (e) => {
+  if (
+    e.target.tagName === "SELECT" &&
+    e.target.hasAttribute("data-id") &&
+    rol === "admin"
+  ) {
+    const id = e.target.getAttribute("data-id");
+    const nuevoEstado = e.target.value;
 
-const auth = getAuth(app);
+    const ref = doc(db, "denuncias", id);
 
-onAuthStateChanged(auth, (user) => {
-  if (user) {
-    console.log("Usuario autenticado:", user.uid);
-    cargarDenuncias(); // 🔥 SOLO carga si hay sesión
-  } else {
-    console.log("No hay usuario autenticado");
-    // opcional: redirigir al login
-    window.location.href = "login.html";
+    await updateDoc(ref, {
+      estado: nuevoEstado
+    });
+
+    console.log("Estado actualizado");
   }
 });
