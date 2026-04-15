@@ -39,6 +39,16 @@
       </div>
     </div>
 
+    <!-- Panel Junta de Vecinos -->
+    <div class="col-md-4" id="cardJunta" style="display:none;">
+      <div class="card p-4 shadow text-center">
+        <h5>Panel Junta</h5>
+        <button onclick="ir('junta.html')" class="btn btn-info mt-3">
+          Ir
+        </button>
+      </div>
+    </div>
+
     <!-- Estadísticas (solo admin) -->
     <div class="col-md-4" id="cardAdmin" style="display:none;">
       <div class="card p-4 shadow text-center">
@@ -74,6 +84,10 @@
 
   if (rol === "admin") {
     document.getElementById("cardAdmin").style.display = "block";
+  }
+
+  if (rol === "junta") {
+    document.getElementById("cardJunta").style.display = "block";
   }
 </script>
 
