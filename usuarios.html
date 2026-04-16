@@ -62,27 +62,27 @@
       <form id="formCrearUsuario">
         <div class="modal-body">
           <div id="modalAlertContainer"></div>
-          <input type="hidden" id="usuarioId" value="">
+          <input type="hidden" id="usuarioId" name="usuarioId" value="">
           <div class="row g-3">
             <div class="col-md-6">
               <label class="form-label">Nombre</label>
-              <input type="text" class="form-control" id="nombre" required>
+              <input type="text" class="form-control" id="nombre" name="nombre" required>
             </div>
             <div class="col-md-6">
               <label class="form-label">Correo</label>
-              <input type="email" class="form-control" id="correo" required>
+              <input type="email" class="form-control" id="correo" name="correo" required>
             </div>
             <div class="col-md-6">
               <label class="form-label">Cédula</label>
-              <input type="text" class="form-control" id="cedula" placeholder="000-0000000-0" required>
+              <input type="text" class="form-control" id="cedula" name="cedula" placeholder="000-0000000-0" required>
             </div>
             <div class="col-md-6">
               <label class="form-label">Teléfono</label>
-              <input type="text" class="form-control" id="telefono" placeholder="1-000-000-0000" maxlength="14" required>
+              <input type="text" class="form-control" id="telefono" name="telefono" placeholder="1-000-000-0000" maxlength="14" required>
             </div>
             <div class="col-md-4">
               <label class="form-label">Provincia</label>
-              <select class="form-select" id="provincia" required>
+              <select class="form-select" id="provincia" name="provincia" required>
                 <option value="" selected>Seleccionar provincia</option>
                 <option value="Santo Domingo">Santo Domingo</option>
                 <option value="Santiago">Santiago</option>
@@ -98,27 +98,27 @@
             </div>
             <div class="col-md-4">
               <label class="form-label">Municipio</label>
-              <select class="form-select" id="municipio" required>
+              <select class="form-select" id="municipio" name="municipio" required>
                 <option value="" selected>Seleccionar municipio</option>
               </select>
             </div>
             <div class="col-md-4">
               <label class="form-label">Distrito municipal</label>
-              <select class="form-select" id="distrito_municipal" required>
+              <select class="form-select" id="distrito_municipal" name="distrito_municipal" required>
                 <option value="" selected>Seleccionar distrito</option>
               </select>
             </div>
             <div class="col-md-6">
               <label class="form-label">Sector</label>
-              <input type="text" class="form-control" id="sector" required>
+              <input type="text" class="form-control" id="sector" name="sector" required>
             </div>
             <div class="col-md-6">
               <label class="form-label">Institución</label>
-              <input type="text" class="form-control" id="institucion" placeholder="Junta de Vecinos El Vedado" required>
+              <input type="text" class="form-control" id="institucion" name="institucion" placeholder="Junta de Vecinos El Vedado" required>
             </div>
             <div class="col-md-12" id="passwordField">
               <label class="form-label">Contraseña</label>
-              <input type="password" class="form-control" id="contrasena" required>
+              <input type="password" class="form-control" id="contrasena" name="contrasena">
               <div id="passwordRequirements" class="mt-2 small">
                 <div id="reqLength" class="text-danger">✗ Al menos 6 caracteres</div>
                 <div id="reqUpper" class="text-danger">✗ Una letra mayúscula</div>

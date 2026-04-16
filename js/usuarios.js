@@ -51,12 +51,25 @@ window.addEventListener("DOMContentLoaded", async () => {
     console.error("Error al validar acceso:", error);
     window.location.href = "index.html";
   }
+
+  // Reiniciar formulario cuando se cierra el modal
+  modalElement.addEventListener('hide.bs.modal', () => {
+    form.reset();
+    usuarioIdInput.value = "";
+    modalTitle.textContent = "Crear Usuario - Junta de Vecinos";
+    submitBtn.textContent = "Guardar";
+    passwordField.style.display = "block";
+    clearModalAlert();
+  });
 });
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
   clearModalAlert();
 
+  const usuarioId = usuarioIdInput.value;
+  console.log("DEBUG - usuarioId:", usuarioId);
+  
   const nombre = document.getElementById("nombre").value.trim();
   const correo = document.getElementById("correo").value.trim();
   const cedula = document.getElementById("cedula").value.trim();
@@ -67,6 +80,8 @@ form.addEventListener("submit", async (event) => {
   const sector = document.getElementById("sector").value.trim();
   const institucion = document.getElementById("institucion").value.trim();
   const contrasena = document.getElementById("contrasena").value;
+
+  console.log("DEBUG - Datos:", { nombre, correo, cedula, usuarioId });
 
   if (
     !nombre ||
@@ -104,6 +119,7 @@ form.addEventListener("submit", async (event) => {
   try {
     if (usuarioId) {
       // Actualizar usuario
+      console.log("DEBUG - Actualizando usuario con ID:", usuarioId);
       const usuarioData = {
         nombre,
         correo,
@@ -116,10 +132,13 @@ form.addEventListener("submit", async (event) => {
         institucion
       };
 
+      console.log("DEBUG - Datos a actualizar:", usuarioData);
       await setDoc(doc(db, "usuarios", usuarioId), usuarioData, { merge: true });
+      console.log("DEBUG - ¡Actualización exitosa!");
       showAlert("Usuario actualizado correctamente.", "success");
     } else {
       // Crear usuario
+      console.log("DEBUG - Creando nuevo usuario");
       const credential = await createUserWithEmailAndPassword(auth, correo, contrasena);
       const nuevoUid = credential.user.uid;
 
@@ -139,17 +158,21 @@ form.addEventListener("submit", async (event) => {
       };
 
       await setDoc(doc(db, "usuarios", nuevoUid), usuarioData);
+      console.log("DEBUG - ¡Usuario creado exitosamente!");
       showAlert("Usuario creado correctamente.", "success");
     }
     form.reset();
+    usuarioIdInput.value = "";
     modal.hide();
     await cargarUsuarios();
   } catch (error) {
-    console.error("Error al crear usuario:", error);
+    console.error("ERROR - Error en la operación:", error);
+    console.error("ERROR - Código:", error.code);
+    console.error("ERROR - Mensaje:", error.message);
     if (error.code === "auth/email-already-in-use") {
       showModalAlert("El correo ya está en uso.", "danger");
     } else {
-      showModalAlert(error.message || "Ocurrió un error al crear el usuario.", "danger");
+      showModalAlert(error.message || "Ocurrió un error al actualizar el usuario.", "danger");
     }
   }
 });
@@ -299,16 +322,6 @@ window.eliminarUsuario = async function(id, nombre) {
     showAlert("Error al eliminar usuario.", "danger");
   }
 };
-
-// Reset modal cuando se cierra
-modalElement.addEventListener('hidden.bs.modal', function () {
-  form.reset();
-  usuarioIdInput.value = "";
-  modalTitle.textContent = "Crear Usuario - Junta de Vecinos";
-  submitBtn.textContent = "Guardar";
-  passwordField.style.display = "block";
-  clearModalAlert();
-});
 
 function escapeHtml(value) {
   return String(value)
