@@ -13,7 +13,8 @@ import {
   where,
   orderBy,
   getDocs,
-  serverTimestamp
+  serverTimestamp,
+  deleteDoc
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const auth = getAuth(app);
@@ -26,6 +27,10 @@ const usuariosBody = document.getElementById("usuariosBody");
 const form = document.getElementById("formCrearUsuario");
 const modalElement = document.getElementById("modalCrearUsuario");
 const modal = new bootstrap.Modal(modalElement);
+const modalTitle = document.getElementById("modalCrearUsuarioLabel");
+const submitBtn = document.getElementById("submitBtn");
+const usuarioIdInput = document.getElementById("usuarioId");
+const passwordField = document.getElementById("passwordField");
 
 window.addEventListener("DOMContentLoaded", async () => {
   if (!uid || !rolLocal) {
@@ -73,7 +78,7 @@ form.addEventListener("submit", async (event) => {
     !distrito_municipal ||
     !sector ||
     !institucion ||
-    !contrasena
+    (!usuarioId && !contrasena)
   ) {
     showModalAlert("Todos los campos son obligatorios.", "danger");
     return;
@@ -91,32 +96,51 @@ form.addEventListener("submit", async (event) => {
     return;
   }
 
-  if (contrasena.length < 6) {
+  if (!usuarioId && contrasena.length < 6) {
     showModalAlert("La contraseña debe tener al menos 6 caracteres.", "danger");
     return;
   }
 
   try {
-    const credential = await createUserWithEmailAndPassword(auth, correo, contrasena);
-    const nuevoUid = credential.user.uid;
+    if (usuarioId) {
+      // Actualizar usuario
+      const usuarioData = {
+        nombre,
+        correo,
+        cedula,
+        telefono,
+        provincia,
+        municipio,
+        distrito_municipal,
+        sector,
+        institucion
+      };
 
-    const usuarioData = {
-      nombre,
-      correo,
-      rol: "junta",
-      cedula,
-      telefono,
-      provincia,
-      municipio,
-      distrito_municipal,
-      sector,
-      institucion,
-      estado: true,
-      fecha_creacion: serverTimestamp()
-    };
+      await setDoc(doc(db, "usuarios", usuarioId), usuarioData, { merge: true });
+      showAlert("Usuario actualizado correctamente.", "success");
+    } else {
+      // Crear usuario
+      const credential = await createUserWithEmailAndPassword(auth, correo, contrasena);
+      const nuevoUid = credential.user.uid;
 
-    await setDoc(doc(db, "usuarios", nuevoUid), usuarioData);
-    showAlert("Usuario creado correctamente.", "success");
+      const usuarioData = {
+        nombre,
+        correo,
+        rol: "junta",
+        cedula,
+        telefono,
+        provincia,
+        municipio,
+        distrito_municipal,
+        sector,
+        institucion,
+        estado: true,
+        fecha_creacion: serverTimestamp()
+      };
+
+      await setDoc(doc(db, "usuarios", nuevoUid), usuarioData);
+      showAlert("Usuario creado correctamente.", "success");
+    }
     form.reset();
     modal.hide();
     await cargarUsuarios();
@@ -144,7 +168,9 @@ async function cargarUsuarios() {
 
     const usuarios = [];
     snapshot.forEach((docSnap) => {
-      usuarios.push(docSnap.data());
+      const data = docSnap.data();
+      data.id = docSnap.id;
+      usuarios.push(data);
     });
 
     usuarios.sort((a, b) => {
@@ -168,6 +194,14 @@ async function cargarUsuarios() {
           <td>${escapeHtml(ubicacion)}</td>
           <td>${escapeHtml(data.institucion)}</td>
           <td>${escapeHtml(estadoLabel)}</td>
+          <td class="text-center">
+            <button class="btn btn-sm btn-warning me-1 px-2" onclick="editarUsuario('${data.id}')" title="Editar">
+              <i class="bi bi-pencil"></i>
+            </button>
+            <button class="btn btn-sm btn-danger px-2" onclick="eliminarUsuario('${data.id}', '${escapeHtml(data.nombre)}')" title="Eliminar">
+              <i class="bi bi-trash"></i>
+            </button>
+          </td>
         </tr>
       `;
     });
@@ -202,6 +236,79 @@ function clearAlert() {
 function clearModalAlert() {
   modalAlertContainer.innerHTML = "";
 }
+
+// Funciones globales
+window.editarUsuario = async function(id) {
+  try {
+    const docSnap = await getDoc(doc(db, "usuarios", id));
+    if (!docSnap.exists()) {
+      showAlert("Usuario no encontrado.", "danger");
+      return;
+    }
+
+    const data = docSnap.data();
+
+    // Llenar formulario
+    usuarioIdInput.value = id;
+    document.getElementById("nombre").value = data.nombre || "";
+    document.getElementById("correo").value = data.correo || "";
+    document.getElementById("cedula").value = data.cedula || "";
+    document.getElementById("telefono").value = data.telefono || "";
+    document.getElementById("provincia").value = data.provincia || "";
+    document.getElementById("sector").value = data.sector || "";
+    document.getElementById("institucion").value = data.institucion || "";
+
+    // Trigger change para municipios
+    document.getElementById("provincia").dispatchEvent(new Event('change'));
+    setTimeout(() => {
+      document.getElementById("municipio").value = data.municipio || "";
+      document.getElementById("municipio").dispatchEvent(new Event('change'));
+      setTimeout(() => {
+        document.getElementById("distrito_municipal").value = data.distrito_municipal || "";
+      }, 100);
+    }, 100);
+
+    // Cambiar modal a modo edición
+    modalTitle.textContent = "Editar Usuario - Junta de Vecinos";
+    submitBtn.textContent = "Actualizar";
+    passwordField.style.display = "none";
+
+    modal.show();
+  } catch (error) {
+    console.error("Error al cargar usuario:", error);
+    showAlert("Error al cargar usuario.", "danger");
+  }
+};
+
+window.eliminarUsuario = async function(id, nombre) {
+  if (!confirm(`¿Estás seguro de que deseas eliminar al usuario "${nombre}"? Esta acción no se puede deshacer.`)) {
+    return;
+  }
+
+  try {
+    // Eliminar de Firestore
+    await deleteDoc(doc(db, "usuarios", id));
+
+    // Nota: Para eliminar de Auth, necesitarías ser admin o el propio usuario.
+    // Aquí solo eliminamos de Firestore.
+
+    showAlert("Usuario eliminado correctamente.", "success");
+    await cargarUsuarios();
+  } catch (error) {
+    console.error("Error al eliminar usuario:", error);
+    showAlert("Error al eliminar usuario.", "danger");
+  }
+};
+
+// Reset modal cuando se cierra
+modalElement.addEventListener('hidden.bs.modal', function () {
+  form.reset();
+  usuarioIdInput.value = "";
+  modalTitle.textContent = "Crear Usuario - Junta de Vecinos";
+  submitBtn.textContent = "Guardar";
+  passwordField.style.display = "block";
+  clearModalAlert();
+});
 
 function escapeHtml(value) {
   return String(value)
