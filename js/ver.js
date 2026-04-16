@@ -47,6 +47,7 @@ async function cargarDenuncias() {
     fila.innerHTML = `
       <td>${data.titulo || "Sin título"}</td>
       <td>${data.descripcion || "Sin descripción"}</td>
+      <td>${data.comunidad || "Sin comunidad"}</td>
 
       <td>
         ${
@@ -72,15 +73,12 @@ async function cargarDenuncias() {
   });
 }
 
-// 🔄 CARGA INICIAL
 cargarDenuncias();
 
-// 🔥 FILTRO DINÁMICO
 document.getElementById("filtroEstado").addEventListener("change", () => {
   cargarDenuncias();
 });
 
-// ACTUALIZAR ESTADO (SOLO ADMIN)
 document.addEventListener("change", async (e) => {
   if (
     e.target.tagName === "SELECT" &&
