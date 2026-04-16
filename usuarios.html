@@ -59,6 +59,7 @@
       </div>
       <form id="formCrearUsuario">
         <div class="modal-body">
+          <div id="modalAlertContainer"></div>
           <div class="row g-3">
             <div class="col-md-6">
               <label class="form-label">Nombre</label>
@@ -74,7 +75,7 @@
             </div>
             <div class="col-md-6">
               <label class="form-label">Teléfono</label>
-              <input type="text" class="form-control" id="telefono" required>
+              <input type="text" class="form-control" id="telefono" placeholder="1-000-000-0000" maxlength="14" required>
             </div>
             <div class="col-md-4">
               <label class="form-label">Provincia</label>
@@ -115,6 +116,12 @@
             <div class="col-md-12">
               <label class="form-label">Contraseña</label>
               <input type="password" class="form-control" id="contrasena" required>
+              <div id="passwordRequirements" class="mt-2 small">
+                <div id="reqLength" class="text-danger">✗ Al menos 6 caracteres</div>
+                <div id="reqUpper" class="text-danger">✗ Una letra mayúscula</div>
+                <div id="reqLower" class="text-danger">✗ Una letra minúscula</div>
+                <div id="reqNumber" class="text-danger">✗ Un número</div>
+              </div>
             </div>
           </div>
         </div>

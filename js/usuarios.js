@@ -21,6 +21,7 @@ const db = getFirestore(app);
 const uid = localStorage.getItem("uid");
 const rolLocal = localStorage.getItem("rol");
 const alertContainer = document.getElementById("alertContainer");
+const modalAlertContainer = document.getElementById("modalAlertContainer");
 const usuariosBody = document.getElementById("usuariosBody");
 const form = document.getElementById("formCrearUsuario");
 const modalElement = document.getElementById("modalCrearUsuario");
@@ -49,7 +50,7 @@ window.addEventListener("DOMContentLoaded", async () => {
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
-  clearAlert();
+  clearModalAlert();
 
   const nombre = document.getElementById("nombre").value.trim();
   const correo = document.getElementById("correo").value.trim();
@@ -74,18 +75,24 @@ form.addEventListener("submit", async (event) => {
     !institucion ||
     !contrasena
   ) {
-    showAlert("Todos los campos son obligatorios.", "danger");
+    showModalAlert("Todos los campos son obligatorios.", "danger");
     return;
   }
 
   const cedulaValida = /^\d{3}-\d{7}-\d{1}$/;
   if (!cedulaValida.test(cedula)) {
-    showAlert("La cédula debe tener el formato 000-0000000-0.", "danger");
+    showModalAlert("La cédula debe tener el formato 000-0000000-0.", "danger");
+    return;
+  }
+
+  const telefonoValido = /^1-\d{3}-\d{3}-\d{4}$/;
+  if (!telefonoValido.test(telefono)) {
+    showModalAlert("El teléfono debe tener el formato 1-000-000-0000.", "danger");
     return;
   }
 
   if (contrasena.length < 6) {
-    showAlert("La contraseña debe tener al menos 6 caracteres.", "danger");
+    showModalAlert("La contraseña debe tener al menos 6 caracteres.", "danger");
     return;
   }
 
@@ -116,9 +123,9 @@ form.addEventListener("submit", async (event) => {
   } catch (error) {
     console.error("Error al crear usuario:", error);
     if (error.code === "auth/email-already-in-use") {
-      showAlert("El correo ya está en uso.", "danger");
+      showModalAlert("El correo ya está en uso.", "danger");
     } else {
-      showAlert(error.message || "Ocurrió un error al crear el usuario.", "danger");
+      showModalAlert(error.message || "Ocurrió un error al crear el usuario.", "danger");
     }
   }
 });
@@ -179,8 +186,21 @@ function showAlert(message, type = "success") {
   `;
 }
 
+function showModalAlert(message, type = "danger") {
+  modalAlertContainer.innerHTML = `
+    <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+      ${escapeHtml(message)}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+    </div>
+  `;
+}
+
 function clearAlert() {
   alertContainer.innerHTML = "";
+}
+
+function clearModalAlert() {
+  modalAlertContainer.innerHTML = "";
 }
 
 function escapeHtml(value) {
@@ -191,6 +211,72 @@ function escapeHtml(value) {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 }
+
+// Validación en tiempo real de contraseña
+document.getElementById("contrasena").addEventListener("input", function(e) {
+  const password = e.target.value;
+  const reqLength = document.getElementById("reqLength");
+  const reqUpper = document.getElementById("reqUpper");
+  const reqLower = document.getElementById("reqLower");
+  const reqNumber = document.getElementById("reqNumber");
+
+  // Al menos 6 caracteres
+  if (password.length >= 6) {
+    reqLength.className = "text-success";
+    reqLength.innerHTML = "✓ Al menos 6 caracteres";
+  } else {
+    reqLength.className = "text-danger";
+    reqLength.innerHTML = "✗ Al menos 6 caracteres";
+  }
+
+  // Al menos una mayúscula
+  if (/[A-Z]/.test(password)) {
+    reqUpper.className = "text-success";
+    reqUpper.innerHTML = "✓ Una letra mayúscula";
+  } else {
+    reqUpper.className = "text-danger";
+    reqUpper.innerHTML = "✗ Una letra mayúscula";
+  }
+
+  // Al menos una minúscula
+  if (/[a-z]/.test(password)) {
+    reqLower.className = "text-success";
+    reqLower.innerHTML = "✓ Una letra minúscula";
+  } else {
+    reqLower.className = "text-danger";
+    reqLower.innerHTML = "✗ Una letra minúscula";
+  }
+
+  // Al menos un número
+  if (/\d/.test(password)) {
+    reqNumber.className = "text-success";
+    reqNumber.innerHTML = "✓ Un número";
+  } else {
+    reqNumber.className = "text-danger";
+    reqNumber.innerHTML = "✗ Un número";
+  }
+});
+
+// Formato automático para cédula
+document.getElementById("cedula").addEventListener("input", function(e) {
+  let digits = e.target.value.replace(/\D/g, ''); // Solo dígitos
+  if (digits.length > 11) digits = digits.slice(0, 11);
+  let formatted = '';
+  if (digits.length > 0) formatted += digits.slice(0, 3);
+  if (digits.length > 3) formatted += '-' + digits.slice(3, 10);
+  if (digits.length > 10) formatted += '-' + digits.slice(10);
+  e.target.value = formatted;
+});
+
+// Formato automático para teléfono
+document.getElementById("telefono").addEventListener("input", function(e) {
+  let value = e.target.value.replace(/\D/g, ''); // Solo dígitos
+  if (value.length > 13) value = value.slice(0, 13);
+  if (value.length > 1) value = value.slice(0, 1) + '-' + value.slice(1);
+  if (value.length > 5) value = value.slice(0, 5) + '-' + value.slice(5);
+  if (value.length > 9) value = value.slice(0, 9) + '-' + value.slice(9);
+  e.target.value = value;
+});
 
 // Actualizar municipios y distritos simples según provincia
 const provincias = {
