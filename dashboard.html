@@ -60,37 +60,21 @@
       </div>
     </div>
 
+    <!-- Gestión de Usuarios (solo ayuntamiento) -->
+    <div class="col-md-4" id="cardAyunt" style="display:none;">
+      <div class="card p-4 shadow text-center">
+        <h5>Gestión de Usuarios</h5>
+        <button onclick="ir('usuarios.html')" class="btn btn-secondary mt-3">
+          Ir
+        </button>
+      </div>
+    </div>
+
   </div>
 
 </div>
 
-<!-- 🔥 SCRIPT CORRECTO -->
-<script>
-  function ir(pagina) {
-    window.location.href = pagina;
-  }
-
-  function logout() {
-    localStorage.clear();
-    window.location.href = "index.html";
-  }
-
-  // 🔐 Control de acceso por rol
-  const rol = localStorage.getItem("rol");
-
-  if (!rol) {
-    // si no hay sesión, lo sacamos
-    window.location.href = "index.html";
-  }
-
-  if (rol === "admin") {
-    document.getElementById("cardAdmin").style.display = "block";
-  }
-
-  if (rol === "junta") {
-    document.getElementById("cardJunta").style.display = "block";
-  }
-</script>
+<script type="module" src="js/dashboard.js"></script>
 
 </body>
 </html>
