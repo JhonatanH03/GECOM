@@ -22,7 +22,6 @@ window.registrar = async function () {
     const email = document.getElementById("email").value;
     const password = document.getElementById("password").value;
     const rol = document.getElementById("rol").value;
-    const comunidad = document.getElementById("comunidad").value;
 
     const userCredential = await createUserWithEmailAndPassword(
       auth,
@@ -38,11 +37,6 @@ window.registrar = async function () {
       rol: rol
     };
 
-    // Agregar comunidad si es junta de vecinos
-    if (rol === "junta") {
-      userData.comunidad = comunidad;
-    }
-
     await setDoc(doc(db, "usuarios", uid), userData);
 
     alert("Usuario registrado correctamente");
@@ -50,7 +44,6 @@ window.registrar = async function () {
     // limpiar campos
     document.getElementById("email").value = "";
     document.getElementById("password").value = "";
-    document.getElementById("comunidad").value = "";
 
   } catch (error) {
     console.error("ERROR:", error.message);
