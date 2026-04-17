@@ -6,8 +6,10 @@
   <title>GECOM - Login</title>
 
   <!-- Bootstrap -->
-
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  
+  <!-- Estilos Personalizados -->
+  <link rel="stylesheet" href="css/styles.css">
 </head>
 
 <body class="bg-light">
@@ -33,14 +35,23 @@
   Ingresar
 </button>
 
-<p id="error" class="text-danger mt-2 text-center"></p>
+<!-- Mensaje de Error -->
+<div id="errorAlert" class="alert alert-danger alert-dismissible fade show mt-3" role="alert" style="display: none;">
+  <svg class="bi flex-shrink-0 me-2" width="24" height="24" viewBox="0 0 16 16" fill="currentColor" role="img" aria-label="Error:">
+    <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0l-5.708 9.7a1.13 1.13 0 0 0 .98 1.734h11.436a1.13 1.13 0 0 0 .98-1.734L8.982 1.566ZM8 5c.535 0 .954.462.95.999l-.003.086a.5.5 0 0 1-1 0l-.003-.086c-.004-.537.415-.999.95-.999Zm.002 6a.5.5 0 1 1 0-1 .5.5 0 0 1 0 1Z"/>
+  </svg>
+  <div id="errorMessage"></div>
+  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
 
   </div>
 </div>
 
 <!-- JS -->
-
 <script type="module" src="js/auth.js"></script>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 </body>
 </html>
