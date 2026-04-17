@@ -12,42 +12,126 @@
 
 <div class="container mt-5">
 
-  <div class="mb-3">
+  <div class="mb-3 d-flex justify-content-between align-items-center">
     <a href="dashboard.html" class="btn btn-secondary">
       <i class="bi bi-arrow-left"></i> Volver al Dashboard
     </a>
+    <div class="w-50">
+      <label class="form-label">Filtrar por estado:</label>
+      <select id="filtroEstado" class="form-select">
+        <option value="Todos">Todos</option>
+        <option value="Pendiente">Pendiente</option>
+        <option value="En proceso">En proceso</option>
+        <option value="Resuelta">Resuelta</option>
+        <option value="Rechazada">Rechazada</option>
+      </select>
+    </div>
   </div>
 
   <h2 class="text-center mb-4">Listado de Denuncias</h2>
 
-  <!-- FILTRO -->
-  <div class="mb-3">
-    <label>Filtrar por estado:</label>
-    <select id="filtroEstado" class="form-select">
-      <option value="Todos">Todos</option>
-      <option value="Pendiente">Pendiente</option>
-      <option value="En proceso">En proceso</option>
-      <option value="Resuelta">Resuelta</option>
-      <option value="Rechazada">Rechazada</option>
-    </select>
+  <div class="table-responsive">
+    <table class="table table-bordered table-striped">
+      <thead class="table-dark">
+        <tr>
+          <th>Título</th>
+          <th>Descripción</th>
+          <th>Comunidad</th>
+          <th>Estado</th>
+          <th>Fecha</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="tablaDenuncias"></tbody>
+    </table>
   </div>
-
-  <table class="table table-bordered table-striped">
-    <thead class="table-dark">
-      <tr>
-        <th>Título</th>
-        <th>Descripción</th>
-        <th>Comunidad</th>
-        <th>Estado</th>
-        <th>Fecha</th>
-      </tr>
-    </thead>
-
-    <tbody id="tablaDenuncias"></tbody>
-  </table>
-
 </div>
 
+<!-- Modal Detalle de Denuncia -->
+<div class="modal fade" id="detalleModal" tabindex="-1" aria-labelledby="detalleModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="detalleModalLabel">Detalle de Denuncia</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <div id="modalFeedback"></div>
+        <div class="row gy-3">
+          <div class="col-lg-6">
+            <div class="card mb-3">
+              <div class="card-body">
+                <h5 class="card-title" id="detalleTitulo"></h5>
+                <p class="mb-1"><strong>Tipo:</strong> <span id="detalleTipo"></span></p>
+                <p class="mb-1"><strong>Estado:</strong> <span id="detalleEstado"></span></p>
+                <p class="mb-1"><strong>Comunidad:</strong> <span id="detalleComunidad"></span></p>
+                <p class="mb-1"><strong>Ubicación:</strong> <span id="detalleUbicacion"></span></p>
+                <p class="mb-1"><strong>Fecha incidente:</strong> <span id="detalleFechaIncidente"></span></p>
+                <p class="mb-1"><strong>Fecha de registro:</strong> <span id="detalleFechaRegistro"></span></p>
+                <hr>
+                <p class="mb-1"><strong>Descripción:</strong></p>
+                <p id="detalleDescripcion"></p>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-body">
+                <h6>Evidencia</h6>
+                <div id="detalleEvidencia" class="text-center"></div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-6">
+            <div class="card mb-3">
+              <div class="card-body">
+                <h5 class="card-title">Respuesta del Ayuntamiento</h5>
+                <p class="mb-2"><strong>Estado oficial:</strong> <span id="detalleEstadoActual"></span></p>
+                <p class="mb-2"><strong>Tiempo estimado:</strong> <span id="detallePlazo"></span></p>
+                <p class="mb-2"><strong>Presupuesto:</strong> <span id="detallePresupuesto"></span></p>
+                <p class="mb-2"><strong>Respuesta:</strong></p>
+                <p id="detalleRespuesta"></p>
+              </div>
+            </div>
+            <div id="ayuntamientoResponseSection" class="card d-none">
+              <div class="card-body">
+                <h5 class="card-title">Responder denuncia</h5>
+                <form id="detalleForm">
+                  <input type="hidden" id="detalleId">
+                  <div class="mb-3">
+                    <label class="form-label">Estado</label>
+                    <select id="respuestaEstado" class="form-select" required>
+                      <option value="Pendiente">Pendiente</option>
+                      <option value="En proceso">En proceso</option>
+                      <option value="Resuelta">Resuelta</option>
+                      <option value="Rechazada">Rechazada</option>
+                    </select>
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label">Tiempo estimado</label>
+                    <input type="text" id="respuestaPlazo" class="form-control" placeholder="Ej. 7 días" required>
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label">Presupuesto estimado</label>
+                    <input type="text" id="respuestaPresupuesto" class="form-control" placeholder="Ej. RD$ 12,000" required>
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label">Respuesta oficial</label>
+                    <textarea id="respuestaTexto" class="form-control" rows="4" placeholder="Describe cómo se atenderá la denuncia" required></textarea>
+                  </div>
+                  <button type="submit" class="btn btn-primary w-100">Guardar respuesta</button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="modalCerrar">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script type="module" src="js/ver.js"></script>
 
 </body>
