@@ -38,6 +38,7 @@ if (!uid || !rolLocal) {
       }
 
       if (userData.rol === "junta") {
+        document.getElementById("cardCrearDenuncia").style.display = "block";
         document.getElementById("cardJunta").style.display = "block";
       }
 

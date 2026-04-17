@@ -1,0 +1,69 @@
+{
+  "provincia": [
+    {
+      "nombre": "Santo Domingo",
+      "municipios": [
+        {
+          "nombre": "Santo Domingo Este",
+          "distritos": ["Los Mina", "Invivienda", "Villa Carmen"]
+        },
+        {
+          "nombre": "Santo Domingo Norte",
+          "distritos": ["Villa Mella", "Sabana Perdida", "Los Guaricanos"]
+        },
+        {
+          "nombre": "Santo Domingo Oeste",
+          "distritos": ["Puesta del Sol", "Las Caobas", "Hato Nuevo"]
+        }
+      ]
+    },
+    {
+      "nombre": "Santiago",
+      "municipios": [
+        {
+          "nombre": "Santiago",
+          "distritos": ["Centro", "Cienfuegos", "La Joya"]
+        },
+        {
+          "nombre": "Licey al Medio",
+          "distritos": ["Palmar Arriba", "Piedra Blanca"]
+        }
+      ]
+    },
+    {
+      "nombre": "La Vega",
+      "municipios": [
+        {
+          "nombre": "La Vega",
+          "distritos": ["Centro", "Río Verde", "La Otra Banda"]
+        },
+        {
+          "nombre": "Constanza",
+          "distritos": ["Guayabal", "Tireo"]
+        }
+      ]
+    },
+    {
+      "nombre": "Puerto Plata",
+      "municipios": [
+        {
+          "nombre": "Puerto Plata",
+          "distritos": ["Centro", "Sosúa", "Cabarete"]
+        }
+      ]
+    },
+    {
+      "nombre": "San Cristóbal",
+      "municipios": [
+        {
+          "nombre": "San Cristóbal",
+          "distritos": ["Centro", "Haina"]
+        },
+        {
+          "nombre": "Baní",
+          "distritos": ["Centro", "Paya"]
+        }
+      ]
+    }
+  ]
+}

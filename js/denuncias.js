@@ -17,6 +17,7 @@ import {
 
 const db = getFirestore(app);
 const storage = getStorage(app);
+const rol = localStorage.getItem("rol");
 
 // 🔥 CREAR DENUNCIA
 window.crearDenuncia = async function () {
@@ -46,14 +47,20 @@ window.crearDenuncia = async function () {
       return;
     }
 
-    // � Obtener datos del usuario
+    // Solo las juntas pueden registrar denuncias
+    if (rol !== "junta") {
+      alert("Solo las juntas de vecinos pueden registrar denuncias.");
+      window.location.href = "index.html";
+      return;
+    }
+
+    // Obtener datos del usuario
     const usuarioDoc = await getDoc(doc(db, "usuarios", uid));
     const usuarioData = usuarioDoc.data();
     const comunidad = usuarioData?.comunidad || "Sin comunidad";
 
     let evidenciaURL = "";
     if (evidenciaFile) {
-      // Subir imagen a Firebase Storage
       const storageRef = ref(storage, `evidencias/${uid}/${Date.now()}_${evidenciaFile.name}`);
       await uploadBytes(storageRef, evidenciaFile);
       evidenciaURL = await getDownloadURL(storageRef);
@@ -61,26 +68,25 @@ window.crearDenuncia = async function () {
 
     // 🔥 GUARDAR EN FIRESTORE
     await addDoc(collection(db, "denuncias"), {
-      titulo: titulo,
-      tipo: tipo,
-      descripcion: descripcion,
-      provincia: provincia,
-      municipio: municipio,
-      distrito_municipal: distrito_municipal,
-      sector: sector,
+      titulo,
+      tipo,
+      descripcion,
+      provincia,
+      municipio,
+      distrito_municipal,
+      sector,
       fecha_incidente: fecha_incidente ? new Date(fecha_incidente) : null,
       evidencia: evidenciaURL,
       estado: "Pendiente",
       fecha: new Date(),
-      uid: uid,
-      comunidad: comunidad
+      uid,
+      rol_creador: "junta",
+      junta_id: uid,
+      comunidad
     });
 
     alert("Denuncia creada correctamente");
-
-    // 🧹 LIMPIAR CAMPOS
     document.getElementById("formDenuncia").reset();
-
   } catch (error) {
     console.error("ERROR:", error.message);
     alert("Error al crear denuncia: " + error.message);
