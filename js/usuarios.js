@@ -32,6 +32,8 @@ const submitBtn = document.getElementById("submitBtn");
 const usuarioIdInput = document.getElementById("usuarioId");
 const passwordField = document.getElementById("passwordField");
 
+let municipioAyuntamiento = "";
+
 window.addEventListener("DOMContentLoaded", async () => {
   if (!uid || !rolLocal) {
     window.location.href = "index.html";
@@ -46,6 +48,7 @@ window.addEventListener("DOMContentLoaded", async () => {
       return;
     }
 
+    municipioAyuntamiento = usuarioDoc.data().municipio || "";
     await cargarUsuarios();
   } catch (error) {
     console.error("Error al validar acceso:", error);
@@ -75,7 +78,7 @@ form.addEventListener("submit", async (event) => {
   const cedula = document.getElementById("cedula").value.trim();
   const telefono = document.getElementById("telefono").value.trim();
   const provincia = document.getElementById("provincia").value;
-  const municipio = document.getElementById("municipio").value;
+  const municipio = municipioAyuntamiento; // Forzar municipio del ayuntamiento
   const distrito_municipal = document.getElementById("distrito_municipal").value;
   const sector = document.getElementById("sector").value.trim();
   const institucion = document.getElementById("institucion").value.trim();
@@ -89,7 +92,6 @@ form.addEventListener("submit", async (event) => {
     !cedula ||
     !telefono ||
     !provincia ||
-    !municipio ||
     !distrito_municipal ||
     !sector ||
     !institucion ||
@@ -181,7 +183,12 @@ async function cargarUsuarios() {
   usuariosBody.innerHTML = `<tr><td colspan="7" class="text-center py-5">Cargando usuarios...</td></tr>`;
 
   try {
-    const usuariosQuery = query(collection(db, "usuarios"), where("rol", "==", "junta"));
+    let usuariosQuery;
+    if (municipioAyuntamiento) {
+      usuariosQuery = query(collection(db, "usuarios"), where("rol", "==", "junta"), where("municipio", "==", municipioAyuntamiento));
+    } else {
+      usuariosQuery = query(collection(db, "usuarios"), where("rol", "==", "junta"));
+    }
     const snapshot = await getDocs(usuariosQuery);
 
     if (snapshot.empty) {
@@ -441,3 +448,99 @@ municipiosSelect.addEventListener("change", () => {
     distritoSelect.appendChild(option);
   }
 });
+
+// Función para poblar usuarios de ejemplo
+window.populateUsers = async function() {
+  const usuariosEjemplo = [
+    // Ayuntamientos
+    {
+      nombre: "Ayuntamiento Santo Domingo",
+      correo: "ayuntamiento@santodomingo.gob.do",
+      rol: "ayuntamiento",
+      cedula: "001-0000000-1",
+      telefono: "1-809-000-0000",
+      provincia: "Santo Domingo",
+      municipio: "Santo Domingo Este",
+      distrito_municipal: "Santo Domingo Este",
+      sector: "Centro",
+      institucion: "Ayuntamiento de Santo Domingo Este",
+      estado: true,
+      contrasena: "Admin123"
+    },
+    {
+      nombre: "Ayuntamiento Santiago",
+      correo: "ayuntamiento@santiago.gob.do",
+      rol: "ayuntamiento",
+      cedula: "002-0000000-2",
+      telefono: "1-809-111-1111",
+      provincia: "Santiago",
+      municipio: "Santiago",
+      distrito_municipal: "Santiago",
+      sector: "Centro",
+      institucion: "Ayuntamiento de Santiago",
+      estado: true,
+      contrasena: "Admin123"
+    },
+    // Juntas
+    {
+      nombre: "Junta Vecinos El Vedado",
+      correo: "junta@elvedado.com",
+      rol: "junta",
+      cedula: "003-0000000-3",
+      telefono: "1-809-222-2222",
+      provincia: "Santo Domingo",
+      municipio: "Santo Domingo Este",
+      distrito_municipal: "Santo Domingo Este",
+      sector: "El Vedado",
+      institucion: "Junta de Vecinos El Vedado",
+      estado: true,
+      contrasena: "Junta123"
+    },
+    {
+      nombre: "Junta Vecinos Licey",
+      correo: "junta@licey.com",
+      rol: "junta",
+      cedula: "004-0000000-4",
+      telefono: "1-809-333-3333",
+      provincia: "Santiago",
+      municipio: "Santiago",
+      distrito_municipal: "Santiago",
+      sector: "Licey al Medio",
+      institucion: "Junta de Vecinos Licey",
+      estado: true,
+      contrasena: "Junta123"
+    },
+    {
+      nombre: "Junta Vecinos La Vega",
+      correo: "junta@lavega.com",
+      rol: "junta",
+      cedula: "005-0000000-5",
+      telefono: "1-809-444-4444",
+      provincia: "La Vega",
+      municipio: "La Vega",
+      distrito_municipal: "La Vega",
+      sector: "Centro",
+      institucion: "Junta de Vecinos La Vega",
+      estado: true,
+      contrasena: "Junta123"
+    }
+  ];
+
+  try {
+    for (const usuario of usuariosEjemplo) {
+      // Crear usuario en Auth
+      const credential = await createUserWithEmailAndPassword(auth, usuario.correo, usuario.contrasena);
+      const uid = credential.user.uid;
+
+      // Agregar a Firestore
+      const { contrasena, ...usuarioData } = usuario; // Excluir contraseña de Firestore
+      await setDoc(doc(db, "usuarios", uid), usuarioData);
+
+      console.log(`Usuario ${usuario.nombre} agregado con UID: ${uid}`);
+    }
+    alert("Usuarios de ejemplo agregados correctamente");
+  } catch (error) {
+    console.error("Error al poblar usuarios:", error);
+    alert("Error al agregar usuarios: " + error.message);
+  }
+};

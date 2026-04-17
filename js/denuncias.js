@@ -8,13 +8,34 @@ import {
   doc
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
+import {
+  getStorage,
+  ref,
+  uploadBytes,
+  getDownloadURL
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
+
 const db = getFirestore(app);
+const storage = getStorage(app);
 
 // 🔥 CREAR DENUNCIA
 window.crearDenuncia = async function () {
   try {
-    const titulo = document.getElementById("titulo").value;
-    const descripcion = document.getElementById("descripcion").value;
+    const titulo = document.getElementById("titulo").value.trim();
+    const tipo = document.getElementById("tipo").value;
+    const descripcion = document.getElementById("descripcion").value.trim();
+    const provincia = document.getElementById("provincia").value;
+    const municipio = document.getElementById("municipio").value;
+    const distrito_municipal = document.getElementById("distrito_municipal").value;
+    const sector = document.getElementById("sector").value.trim();
+    const fecha_incidente = document.getElementById("fecha_incidente").value;
+    const evidenciaFile = document.getElementById("evidencia").files[0];
+
+    // Validar campos obligatorios
+    if (!titulo || !tipo || !descripcion || !provincia || !municipio || !distrito_municipal || !sector) {
+      alert("Todos los campos son obligatorios.");
+      return;
+    }
 
     const uid = localStorage.getItem("uid");
 
@@ -25,15 +46,30 @@ window.crearDenuncia = async function () {
       return;
     }
 
-    // � Obtener datos del usuario (incluyendo comunidad)
+    // � Obtener datos del usuario
     const usuarioDoc = await getDoc(doc(db, "usuarios", uid));
     const usuarioData = usuarioDoc.data();
     const comunidad = usuarioData?.comunidad || "Sin comunidad";
 
+    let evidenciaURL = "";
+    if (evidenciaFile) {
+      // Subir imagen a Firebase Storage
+      const storageRef = ref(storage, `evidencias/${uid}/${Date.now()}_${evidenciaFile.name}`);
+      await uploadBytes(storageRef, evidenciaFile);
+      evidenciaURL = await getDownloadURL(storageRef);
+    }
+
     // 🔥 GUARDAR EN FIRESTORE
     await addDoc(collection(db, "denuncias"), {
       titulo: titulo,
+      tipo: tipo,
       descripcion: descripcion,
+      provincia: provincia,
+      municipio: municipio,
+      distrito_municipal: distrito_municipal,
+      sector: sector,
+      fecha_incidente: fecha_incidente ? new Date(fecha_incidente) : null,
+      evidencia: evidenciaURL,
       estado: "Pendiente",
       fecha: new Date(),
       uid: uid,
@@ -43,11 +79,10 @@ window.crearDenuncia = async function () {
     alert("Denuncia creada correctamente");
 
     // 🧹 LIMPIAR CAMPOS
-    document.getElementById("titulo").value = "";
-    document.getElementById("descripcion").value = "";
+    document.getElementById("formDenuncia").reset();
 
   } catch (error) {
     console.error("ERROR:", error.message);
-    alert(error.message);
+    alert("Error al crear denuncia: " + error.message);
   }
 };

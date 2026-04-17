@@ -21,28 +21,135 @@
   <div class="card p-4 shadow">
     <h3>Registrar Denuncia</h3>
 
+    <form id="formDenuncia" class="mt-4">
+      <div class="row g-3 mb-4">
+        <div class="col-md-6">
+          <label class="form-label fw-bold">Título</label>
+          <input type="text" id="titulo" class="form-control" required>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-bold">Tipo de Denuncia</label>
+          <select id="tipo" class="form-select" required>
+            <option value="" selected>Seleccionar tipo</option>
+            <option value="Infraestructura">Infraestructura</option>
+            <option value="Salud">Salud</option>
+            <option value="Seguridad">Seguridad</option>
+            <option value="Medio Ambiente">Medio Ambiente</option>
+            <option value="Servicios Públicos">Servicios Públicos</option>
+            <option value="Otro">Otro</option>
+          </select>
+        </div>
+      </div>
 
-<div class="mb-3">
-  <label>Título</label>
-  <input type="text" id="titulo" class="form-control">
-</div>
+      <div class="mb-4">
+        <label class="form-label fw-bold">Descripción</label>
+        <textarea id="descripcion" class="form-control" rows="4" required></textarea>
+      </div>
 
-<div class="mb-3">
-  <label>Descripción</label>
-  <textarea id="descripcion" class="form-control"></textarea>
-</div>
+      <div class="row g-3 mb-4">
+        <div class="col-md-3">
+          <label class="form-label fw-bold">Provincia</label>
+          <select class="form-select" id="provincia" required>
+            <option value="" selected>Seleccionar provincia</option>
+            <option value="Santo Domingo">Santo Domingo</option>
+            <option value="Santiago">Santiago</option>
+            <option value="La Vega">La Vega</option>
+            <option value="Puerto Plata">Puerto Plata</option>
+            <option value="San Cristóbal">San Cristóbal</option>
+            <option value="San Pedro de Macorís">San Pedro de Macorís</option>
+            <option value="La Romana">La Romana</option>
+            <option value="Bonao">Bonao</option>
+            <option value="Higüey">Higüey</option>
+            <option value="Barahona">Barahona</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label fw-bold">Municipio</label>
+          <select class="form-select" id="municipio" required>
+            <option value="" selected>Seleccionar municipio</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label fw-bold">Distrito Municipal</label>
+          <select class="form-select" id="distrito_municipal" required>
+            <option value="" selected>Seleccionar distrito</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label fw-bold">Sector</label>
+          <input type="text" id="sector" class="form-control" required>
+        </div>
+      </div>
 
-<button onclick="crearDenuncia()" class="btn btn-success">
-  Guardar
-</button>
+      <div class="row g-3 mb-4">
+        <div class="col-md-6">
+          <label class="form-label fw-bold">Fecha del Incidente</label>
+          <input type="date" id="fecha_incidente" class="form-control">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-bold">Evidencia (Imagen)</label>
+          <input type="file" id="evidencia" class="form-control" accept="image/*">
+        </div>
+      </div>
 
-<p id="msg" class="mt-2"></p>
+      <button type="submit" class="btn btn-success btn-lg w-100 mt-3">
+        Guardar Denuncia
+      </button>
+    </form>
 
+    <p id="msg" class="mt-3"></p>
 
   </div>
 </div>
 
 <script type="module" src="js/denuncias.js"></script>
+<script>
+// Lógica para selects dependientes
+const provincias = {
+  "Santo Domingo": ["Distrito Nacional", "Santo Domingo Este", "Santo Domingo Norte", "Santo Domingo Oeste", "Boca Chica", "San Antonio de Guerra", "Los Alcarrizos"],
+  "Santiago": ["Santiago de los Caballeros", "Tamboril", "Villa González", "Jánico", "Sabana Iglesia"],
+  "La Vega": ["Concepción de La Vega", "Constanza", "Jarabacoa", "Jima Abajo"],
+  "Puerto Plata": ["San Felipe de Puerto Plata", "Altamira", "Guananico", "Imbert", "Los Hidalgos", "Luperón", "Sosúa", "Villa Isabela", "Villa Montellano"],
+  "San Cristóbal": ["San Cristóbal", "Bajos de Haina", "Cambita Garabitos", "Sabana Grande de Palenque", "Yaguate"],
+  "San Pedro de Macorís": ["San Pedro de Macorís", "Consuelo", "Guayacanes", "Quisqueya", "Ramón Santana"],
+  "La Romana": ["La Romana", "Guaymate", "Villa Hermosa"],
+  "Bonao": ["Bonao", "Maimón", "Piedra Blanca"],
+  "Higüey": ["Higüey", "Miches", "El Seibo", "Hato Mayor"],
+  "Barahona": ["Santa Cruz de Barahona", "Cabral", "El Peñón", "Enriquillo", "Fundación", "Jaquimeyes", "La Ciénaga", "Las Salinas", "Paraíso", "Polo", "Vicente Noble"]
+};
+
+const distritos = {
+  // Ejemplo, agregar más si es necesario
+  "Distrito Nacional": ["Distrito Nacional"],
+  "Santo Domingo Este": ["Santo Domingo Este"],
+  // Agregar más mappings
+};
+
+document.getElementById("provincia").addEventListener("change", function() {
+  const provincia = this.value;
+  const municipiosSelect = document.getElementById("municipio");
+  municipiosSelect.innerHTML = `<option value="" selected>Seleccionar municipio</option>`;
+  if (provincias[provincia]) {
+    provincias[provincia].forEach(municipio => {
+      municipiosSelect.innerHTML += `<option value="${municipio}">${municipio}</option>`;
+    });
+  }
+});
+
+document.getElementById("municipio").addEventListener("change", function() {
+  const municipio = this.value;
+  const distritosSelect = document.getElementById("distrito_municipal");
+  distritosSelect.innerHTML = `<option value="" selected>Seleccionar distrito</option>`;
+  // Simplificar: usar el mismo valor o agregar lógica
+  distritosSelect.innerHTML += `<option value="${municipio}">${municipio}</option>`;
+});
+
+// Manejar el submit del form
+document.getElementById("formDenuncia").addEventListener("submit", function(event) {
+  event.preventDefault();
+  crearDenuncia();
+});
+</script>
 
 </body>
 </html>
