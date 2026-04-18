@@ -28,6 +28,7 @@ window.addEventListener("DOMContentLoaded", async () => {
       window.location.href = "dashboard.html";
       return;
     }
+    await cargarProvincias();
     await cargarJuntas();
   } catch (error) {
     console.error("Error al validar acceso:", error);
@@ -262,18 +263,33 @@ if (telefonoInput) {
   });
 }
 
-const provincias = {
-  "Santo Domingo": ["Distrito Nacional", "Santo Domingo Este", "Santo Domingo Norte", "Santo Domingo Oeste", "Boca Chica", "San Antonio de Guerra", "Los Alcarrizos"],
-  "Santiago": ["Santiago de los Caballeros", "Tamboril", "Villa González", "Jánico", "Sabana Iglesia"],
-  "La Vega": ["Concepción de La Vega", "Constanza", "Jarabacoa", "Jima Abajo"],
-  "Puerto Plata": ["San Felipe de Puerto Plata", "Altamira", "Guananico", "Imbert", "Los Hidalgos", "Luperón", "Sosúa", "Villa Isabela", "Villa Montellano"],
-  "San Cristóbal": ["San Cristóbal", "Bajos de Haina", "Cambita Garabitos", "Sabana Grande de Palenque", "Yaguate"],
-  "San Pedro de Macorís": ["San Pedro de Macorís", "Consuelo", "Guayacanes", "Quisqueya", "Ramón Santana"],
-  "La Romana": ["La Romana", "Guaymate", "Villa Hermosa"],
-  "Bonao": ["Bonao", "Maimón", "Piedra Blanca"],
-  "Higüey": ["Higüey", "Miches", "El Seibo", "Hato Mayor"],
-  "Barahona": ["Santa Cruz de Barahona", "Cabral", "El Peñón", "Enriquillo", "Fundación", "Jaquimeyes", "La Ciénaga", "Las Salinas", "Paraíso", "Polo", "Vicente Noble"]
-};
+let provincias = {};
+
+async function cargarProvincias() {
+  try {
+    const querySnapshot = await getDocs(collection(db, "provincias"));
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      provincias[doc.id] = data.municipios || [];
+    });
+    console.log("Provincias cargadas:", provincias);
+  } catch (error) {
+    console.error("Error cargando provincias:", error);
+    // Fallback a datos locales si falla
+    provincias = {
+      "Santo Domingo": ["Distrito Nacional", "Santo Domingo Este", "Santo Domingo Norte", "Santo Domingo Oeste", "Boca Chica", "San Antonio de Guerra", "Los Alcarrizos"],
+      "Santiago": ["Santiago de los Caballeros", "Tamboril", "Villa González", "Jánico", "Sabana Iglesia"],
+      "La Vega": ["Concepción de La Vega", "Constanza", "Jarabacoa", "Jima Abajo"],
+      "Puerto Plata": ["San Felipe de Puerto Plata", "Altamira", "Guananico", "Imbert", "Los Hidalgos", "Luperón", "Sosúa", "Villa Isabela", "Villa Montellano"],
+      "San Cristóbal": ["San Cristóbal", "Bajos de Haina", "Cambita Garabitos", "Sabana Grande de Palenque", "Yaguate"],
+      "San Pedro de Macorís": ["San Pedro de Macorís", "Consuelo", "Guayacanes", "Quisqueya", "Ramón Santana"],
+      "La Romana": ["La Romana", "Guaymate", "Villa Hermosa"],
+      "Bonao": ["Bonao", "Maimón", "Piedra Blanca"],
+      "Higüey": ["Higüey", "Miches", "El Seibo", "Hato Mayor"],
+      "Barahona": ["Santa Cruz de Barahona", "Cabral", "El Peñón", "Enriquillo", "Fundación", "Jaquimeyes", "La Ciénaga", "Las Salinas", "Paraíso", "Polo", "Vicente Noble"]
+    };
+  }
+}
 
 const municipiosSelect = document.getElementById("municipio");
 const provinciaSelect = document.getElementById("provincia");
