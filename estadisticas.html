@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Estadísticas - GECOM</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="js/guard.js"></script>
+</head>
+
+<body class="bg-light">
+
+<div class="container mt-5">
+
+  <div class="mb-3">
+    <a href="dashboard.html" class="btn btn-secondary">
+      <i class="bi bi-arrow-left"></i> Volver al Dashboard
+    </a>
+  </div>
+
+  <h2 class="text-center mb-4">Estadísticas de Denuncias</h2>
+
+  <!-- � FILTROS -->
+  <div class="row mb-4">
+    <div class="col-md-3">
+      <label for="fechaDesde">Fecha desde:</label>
+      <input type="date" id="fechaDesde" class="form-control">
+    </div>
+    <div class="col-md-3">
+      <label for="fechaHasta">Fecha hasta:</label>
+      <input type="date" id="fechaHasta" class="form-control">
+    </div>
+    <div class="col-md-3">
+      <label for="usuarioFiltro">Usuario:</label>
+      <select id="usuarioFiltro" class="form-control">
+        <option value="">Todos</option>
+      </select>
+    </div>
+    <div class="col-md-3 d-flex align-items-end">
+      <button id="aplicarFiltros" class="btn btn-primary w-100">Aplicar Filtros</button>
+    </div>
+  </div>
+
+  <!-- �🔢 KPIs -->
+  <div class="row text-center mb-4">
+
+    <div class="col-md-3">
+      <div class="card p-3 shadow">
+        <h6>Pendientes</h6>
+        <h3 id="pendiente">0</h3>
+      </div>
+    </div>
+
+    <div class="col-md-3">
+      <div class="card p-3 shadow">
+        <h6>En proceso</h6>
+        <h3 id="proceso">0</h3>
+      </div>
+    </div>
+
+    <div class="col-md-3">
+      <div class="card p-3 shadow">
+        <h6>Resueltas</h6>
+        <h3 id="resuelta">0</h3>
+      </div>
+    </div>
+
+    <div class="col-md-3">
+      <div class="card p-3 shadow">
+        <h6>Rechazadas</h6>
+        <h3 id="rechazada">0</h3>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 📊 GRÁFICOS -->
+  <div class="row">
+
+    <div class="col-md-6">
+      <div class="card p-4 shadow">
+        <h5 class="text-center">Gráfico de Barras</h5>
+        <canvas id="graficoBarras"></canvas>
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <div class="card p-4 shadow">
+        <h5 class="text-center">Gráfico Circular</h5>
+        <canvas id="graficoPastel"></canvas>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 📈 TENDENCIAS -->
+  <div class="row mt-4">
+    <div class="col-12">
+      <div class="card p-4 shadow">
+        <h5 class="text-center">Tendencias (Últimos 30 días)</h5>
+        <canvas id="graficoTendencias"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- 📤 EXPORTAR -->
+  <div class="row mt-4">
+    <div class="col-12 text-center">
+      <button id="exportarCSV" class="btn btn-success">Exportar a CSV</button>
+    </div>
+  </div>
+
+</div>
+
+<script type="module" src="js/estadisticas.js"></script>
+
+</body>
+</html>
