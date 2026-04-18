@@ -47,9 +47,9 @@ window.crearDenuncia = async function () {
       return;
     }
 
-    // Solo las juntas pueden registrar denuncias
-    if (rol !== "junta") {
-      alert("Solo las juntas de vecinos pueden registrar denuncias.");
+    // Las juntas y ayuntamientos pueden registrar denuncias
+    if (rol !== "junta" && rol !== "ayuntamiento") {
+      alert("Solo las juntas de vecinos y el ayuntamiento pueden registrar denuncias.");
       window.location.href = "index.html";
       return;
     }
