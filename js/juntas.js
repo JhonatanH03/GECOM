@@ -263,16 +263,16 @@ if (telefonoInput) {
 }
 
 const provincias = {
-  "Santo Domingo": ["Santo Domingo Este", "Santo Domingo Norte", "Santo Domingo Oeste", "Boca Chica"],
-  "Santiago": ["Santiago", "Licey al Medio", "Bonao"],
-  "La Vega": ["La Vega", "Constanza"],
-  "Puerto Plata": ["Puerto Plata", "Sosúa"],
-  "San Cristóbal": ["San Cristóbal", "Baní"],
-  "San Pedro de Macorís": ["San Pedro de Macorís", "Consuelo"],
-  "La Romana": ["La Romana", "Villa Hermosa"],
-  "Bonao": ["Bonao"],
-  "Higüey": ["Higüey"],
-  "Barahona": ["Barahona"]
+  "Santo Domingo": ["Distrito Nacional", "Santo Domingo Este", "Santo Domingo Norte", "Santo Domingo Oeste", "Boca Chica", "San Antonio de Guerra", "Los Alcarrizos"],
+  "Santiago": ["Santiago de los Caballeros", "Tamboril", "Villa González", "Jánico", "Sabana Iglesia"],
+  "La Vega": ["Concepción de La Vega", "Constanza", "Jarabacoa", "Jima Abajo"],
+  "Puerto Plata": ["San Felipe de Puerto Plata", "Altamira", "Guananico", "Imbert", "Los Hidalgos", "Luperón", "Sosúa", "Villa Isabela", "Villa Montellano"],
+  "San Cristóbal": ["San Cristóbal", "Bajos de Haina", "Cambita Garabitos", "Sabana Grande de Palenque", "Yaguate"],
+  "San Pedro de Macorís": ["San Pedro de Macorís", "Consuelo", "Guayacanes", "Quisqueya", "Ramón Santana"],
+  "La Romana": ["La Romana", "Guaymate", "Villa Hermosa"],
+  "Bonao": ["Bonao", "Maimón", "Piedra Blanca"],
+  "Higüey": ["Higüey", "Miches", "El Seibo", "Hato Mayor"],
+  "Barahona": ["Santa Cruz de Barahona", "Cabral", "El Peñón", "Enriquillo", "Fundación", "Jaquimeyes", "La Ciénaga", "Las Salinas", "Paraíso", "Polo", "Vicente Noble"]
 };
 
 const municipiosSelect = document.getElementById("municipio");

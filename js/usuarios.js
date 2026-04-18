@@ -77,6 +77,17 @@ const contrasenaInput = document.getElementById("contrasena");if (contrasenaInpu
 
 const telefonoInput = document.getElementById("telefono");if (telefonoInput) {telefonoInput.addEventListener("input", (e) => {let v = e.target.value.replace(/\D/g, "");if (v.length > 13) v = v.slice(0, 13);if (v.length > 1) v = v[0] + "-" + v.slice(1);if (v.length > 5) v = v.slice(0, 5) + "-" + v.slice(5);if (v.length > 9) v = v.slice(0, 9) + "-" + v.slice(9);e.target.value = v;});}
 
-const provincias = {"Santo Domingo": ["Santo Domingo Este", "Santo Domingo Norte", "Santo Domingo Oeste", "Boca Chica"], "Santiago": ["Santiago", "Licey al Medio", "Bonao"], "La Vega": ["La Vega", "Constanza"], "Puerto Plata": ["Puerto Plata", "Sosúa"], "San Cristóbal": ["San Cristóbal", "Baní"], "San Pedro de Macorís": ["San Pedro de Macorís", "Consuelo"], "La Romana": ["La Romana", "Villa Hermosa"], "Bonao": ["Bonao"], "Higüey": ["Higüey"], "Barahona": ["Barahona"]};
+const provincias = {
+  "Santo Domingo": ["Distrito Nacional", "Santo Domingo Este", "Santo Domingo Norte", "Santo Domingo Oeste", "Boca Chica", "San Antonio de Guerra", "Los Alcarrizos"],
+  "Santiago": ["Santiago de los Caballeros", "Tamboril", "Villa González", "Jánico", "Sabana Iglesia"],
+  "La Vega": ["Concepción de La Vega", "Constanza", "Jarabacoa", "Jima Abajo"],
+  "Puerto Plata": ["San Felipe de Puerto Plata", "Altamira", "Guananico", "Imbert", "Los Hidalgos", "Luperón", "Sosúa", "Villa Isabela", "Villa Montellano"],
+  "San Cristóbal": ["San Cristóbal", "Bajos de Haina", "Cambita Garabitos", "Sabana Grande de Palenque", "Yaguate"],
+  "San Pedro de Macorís": ["San Pedro de Macorís", "Consuelo", "Guayacanes", "Quisqueya", "Ramón Santana"],
+  "La Romana": ["La Romana", "Guaymate", "Villa Hermosa"],
+  "Bonao": ["Bonao", "Maimón", "Piedra Blanca"],
+  "Higüey": ["Higüey", "Miches", "El Seibo", "Hato Mayor"],
+  "Barahona": ["Santa Cruz de Barahona", "Cabral", "El Peñón", "Enriquillo", "Fundación", "Jaquimeyes", "La Ciénaga", "Las Salinas", "Paraíso", "Polo", "Vicente Noble"]
+};
 const municipiosSelect = document.getElementById("municipio");const provinciaSelect = document.getElementById("provincia");
 if (provinciaSelect) {provinciaSelect.addEventListener("change", () => {const prov = provinciaSelect.value;const munis = provincias[prov] || [];if (municipiosSelect) {municipiosSelect.innerHTML = "";munis.forEach(m => {const opt = document.createElement("option");opt.value = m;opt.textContent = m;municipiosSelect.appendChild(opt);});}});}
