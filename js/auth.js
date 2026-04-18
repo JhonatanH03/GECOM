@@ -160,8 +160,15 @@ function mostrarExito(mensaje) {
     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
   `;
   
-  const container = document.querySelector(".card");
-  container.insertBefore(successAlert, container.querySelector("button"));
+  const alertContainer = document.getElementById("alertContainer");
+  if (alertContainer) {
+    alertContainer.appendChild(successAlert);
+  } else {
+    const container = document.querySelector(".card");
+    if (container) {
+      container.insertAdjacentHTML("afterbegin", successAlert.outerHTML);
+    }
+  }
   
   // Auto cerrar después de 3 segundos
   setTimeout(() => {
