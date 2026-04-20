@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 
-<html lang="es">
+<html lang="es" id="htmlRoot">
 <head>
   <meta charset="UTF-8">
   <title>GECOM - Login</title>
@@ -12,7 +12,20 @@
   <link rel="stylesheet" href="css/styles.css">
 </head>
 
-<body class="bg-light">
+<body id="bodyRoot" class="bg-light">
+
+<button id="btnModoOscuro" class="btn btn-outline-dark btn-sm position-absolute" style="top: 20px; right: 20px; z-index: 1050;">
+
+<div class="dropdown position-absolute" style="top: 20px; right: 20px; z-index: 1050;">
+  <button id="btnPaletaTema" class="btn btn-outline-dark btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Elegir tema">
+    🎨
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end" id="menuTema">
+    <li><a class="dropdown-item" href="#" data-tema="claro">☀️ Claro</a></li>
+    <li><a class="dropdown-item" href="#" data-tema="oscuro">🌙 Oscuro</a></li>
+    <li><a class="dropdown-item" href="#" data-tema="sistema">💻 Sistema</a></li>
+  </ul>
+</div>
 
 <div class="container d-flex justify-content-center align-items-center vh-100">
   <div class="card p-4 shadow" style="width: 350px;">
@@ -165,6 +178,52 @@ window.mostrarRegistro = function() {
 
 <!-- JS -->
 <script type="module" src="js/auth.js"></script>
+<script>
+// Selector de tema con menú tipo paleta
+const html = document.getElementById('htmlRoot');
+const body = document.getElementById('bodyRoot');
+const menuTema = document.getElementById('menuTema');
+function aplicarTema() {
+  const tema = localStorage.getItem('tema') || 'sistema';
+  let temaFinal = tema;
+  if (tema === 'sistema') {
+    // Detectar preferencia del sistema
+    if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      temaFinal = 'oscuro';
+    } else {
+      temaFinal = 'claro';
+    }
+  }
+  if (temaFinal === 'oscuro') {
+    html.setAttribute('data-bs-theme', 'dark');
+    body.classList.remove('bg-light');
+    body.classList.add('bg-dark');
+  } else {
+    html.setAttribute('data-bs-theme', 'light');
+    body.classList.remove('bg-dark');
+    body.classList.add('bg-light');
+  }
+  // Marcar opción activa
+  menuTema.querySelectorAll('a').forEach(a => {
+    a.classList.remove('active');
+    if (a.dataset.tema === tema) a.classList.add('active');
+  });
+}
+aplicarTema();
+menuTema.querySelectorAll('a').forEach(a => {
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    localStorage.setItem('tema', a.dataset.tema);
+    aplicarTema();
+  });
+});
+// Escuchar cambios del sistema en tiempo real
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+  if ((localStorage.getItem('tema') || 'sistema') === 'sistema') {
+    aplicarTema();
+  }
+});
+</script>
 
 
 

@@ -13,7 +13,7 @@
   <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
       <h2>Gestión de Usuarios</h2>
-      <p class="mb-0 text-muted">Crear usuarios con rol Ayuntamiento.</p>
+      <p class="mb-0 text-muted">Solo los Ayuntamientos pueden crear, editar o eliminar Juntas de Vecinos.</p>
     </div>
     <div>
       <button class="btn btn-secondary me-2" onclick="window.location.href='dashboard.html'">Volver</button>
@@ -30,19 +30,20 @@
         <table class="table table-striped table-bordered align-middle" id="usuariosTable">
           <thead class="table-light">
             <tr>
-              <th>Nombre</th>
+              <th>Nombre de la Junta</th>
               <th>Correo</th>
               <th>Cédula</th>
               <th>Teléfono</th>
-              <th>Ubicación</th>
-              <th>Institución</th>
+              <th>Provincia</th>
+              <th>Municipio</th>
+              <th>Sector</th>
               <th>Estado</th>
               <th>Acciones</th>
             </tr>
           </thead>
           <tbody id="usuariosBody">
             <tr>
-              <td colspan="8" class="text-center py-5">Cargando usuarios...</td>
+              <td colspan="9" class="text-center py-5">Cargando usuarios...</td>
             </tr>
           </tbody>
         </table>
@@ -56,7 +57,7 @@
   <div class="modal-dialog modal-lg modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="modalCrearUsuarioLabel">Crear Usuario - Ayuntamiento</h5>
+        <h5 class="modal-title" id="modalCrearUsuarioLabel">Registrar Junta de Vecinos</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
       </div>
       <form id="formCrearUsuario">
@@ -65,16 +66,20 @@
           <input type="hidden" id="usuarioId" name="usuarioId" value="">
           <div class="row g-3">
             <div class="col-md-6">
-              <label class="form-label">Nombre</label>
+              <label class="form-label">Nombre de la Junta</label>
               <input type="text" class="form-control" id="nombre" name="nombre" required>
             </div>
             <div class="col-md-6">
-              <label class="form-label">Correo</label>
+              <label class="form-label">Correo institucional</label>
               <input type="email" class="form-control" id="correo" name="correo" required>
             </div>
             <div class="col-md-6">
-              <label class="form-label">Teléfono</label>
+              <label class="form-label">Teléfono encargado</label>
               <input type="text" class="form-control" id="telefono" name="telefono" placeholder="1-000-000-0000" maxlength="14" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Nombre del encargado</label>
+              <input type="text" class="form-control" id="nombreEncargado" name="nombreEncargado" required>
             </div>
             <div class="col-md-6">
               <label class="form-label">Provincia</label>
@@ -87,6 +92,10 @@
               <select class="form-select" id="municipio" name="municipio" required>
                 <option value="" selected>Seleccionar municipio</option>
               </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Sector</label>
+              <input type="text" class="form-control" id="sector" name="sector" required>
             </div>
             <div class="col-md-12" id="passwordField">
               <label class="form-label">Contraseña</label>

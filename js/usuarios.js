@@ -18,9 +18,14 @@ const usuarioIdInput = document.getElementById("usuarioId");
 const passwordField = document.getElementById("passwordField");
 
 window.addEventListener("DOMContentLoaded", async () => {
-  if (!uid || !rolLocal) {window.location.href = "index.html";return;}
-  try {const usuarioDoc = await getDoc(doc(db, "usuarios", uid));
-    if (!usuarioDoc.exists() || usuarioDoc.data().rol !== "admin") {window.location.href = "dashboard.html";return;}
+  if (!uid || !rolLocal) {
+    window.location.href = "index.html";
+    return;
+  }
+
+  try {
+    // Validar que el usuario sea ayuntamiento (puedes ajustar esta lógica si lo necesitas)
+    // Aquí solo cargamos las juntas de vecinos
     await cargarUsuarios();
   } catch (error) {console.error("Error al validar acceso:", error);window.location.href = "index.html";}
   modalElement.addEventListener("hide.bs.modal", () => {form.reset();usuarioIdInput.value = "";modalTitle.textContent = "Crear Usuario - Ayuntamiento";submitBtn.textContent = "Guardar";passwordField.style.display = "block";clearModalAlert();});
@@ -34,6 +39,9 @@ form.addEventListener("submit", async (event) => {
   const telefono = document.getElementById("telefono").value.trim();
   const provincia = document.getElementById("provincia").value;
   const municipio = document.getElementById("municipio").value;
+  const distrito_municipal = document.getElementById("distrito_municipal").value;
+  const sector = document.getElementById("sector").value.trim();
+  const institucion = document.getElementById("institucion").value.trim();
   const contrasena = document.getElementById("contrasena").value;
   if (!nombre || !correo || !telefono || !provincia || !municipio || (!usuarioId && !contrasena)) {showModalAlert("Todos los campos son obligatorios.", "danger");return;}
   const telefonoValido = /^1-\d{3}-\d{3}-\d{4}$/;
@@ -96,12 +104,8 @@ const telefonoInput = document.getElementById("telefono");if (telefonoInput) {te
           </td>
         </tr>
       `;
-    });
-  } catch (error) {
-    console.error("Error al cargar usuarios:", error);
-    usuariosBody.innerHTML = `<tr><td colspan="7" class="text-center py-5 text-danger">No se pudo cargar la lista.</td></tr>`;
-  }
-}
+  ;
+
 
 function showAlert(message, type = "success") {
   alertContainer.innerHTML = `
@@ -132,7 +136,7 @@ function clearModalAlert() {
 // Funciones globales
 window.editarUsuario = async function(id) {
   try {
-    const docSnap = await getDoc(doc(db, "usuarios", id));
+    const docSnap = await getDoc(doc(db, "JuntasDeVecinos", id));
     if (!docSnap.exists()) {
       showAlert("Usuario no encontrado.", "danger");
       return;
@@ -179,7 +183,7 @@ window.eliminarUsuario = async function(id, nombre) {
 
   try {
     // Eliminar de Firestore
-    await deleteDoc(doc(db, "usuarios", id));
+    await deleteDoc(doc(db, "JuntasDeVecinos", id));
 
     // Nota: Para eliminar de Auth, necesitarías ser admin o el propio usuario.
     // Aquí solo eliminamos de Firestore.
