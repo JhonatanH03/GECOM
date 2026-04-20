@@ -21,6 +21,7 @@
 <h3 class="text-center mb-3">GECOM</h3>
 <p class="text-center text-muted">Iniciar sesión</p>
 
+
 <div class="mb-3">
   <label>Correo</label>
   <input type="email" id="email" class="form-control">
@@ -31,15 +32,102 @@
   <input type="password" id="password" class="form-control">
 </div>
 
-<button onclick="login()" class="btn btn-primary w-100">
-  Ingresar
-</button>
+
+
+<div class="d-flex justify-content-between">
+  <button onclick="login()" class="btn btn-primary w-100" id="btnLogin">Ingresar</button>
+  <button onclick="mostrarRegistro()" class="btn btn-success w-100 mt-2" id="btnRegistrar" style="display:none">Registrar usuario</button>
+</div>
+
+<!-- Modal de registro solo para admins -->
+<div class="modal fade" id="modalRegistro" tabindex="-1" aria-labelledby="modalRegistroLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalRegistroLabel">Registrar usuario</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label>Correo</label>
+          <input type="email" id="reg_email" class="form-control">
+        </div>
+        <div class="mb-3">
+          <label>Contraseña</label>
+          <input type="password" id="reg_password" class="form-control">
+        </div>
+        <div class="mb-3">
+          <label>Rol</label>
+          <select id="reg_rol" class="form-control" onchange="mostrarCamposPorRolRegistro()">
+            <option value="junta">Junta de Vecinos</option>
+            <option value="ayuntamiento">Ayuntamiento</option>
+          </select>
+        </div>
+        <div id="reg_camposJunta" style="display:none">
+          <div class="mb-3">
+            <label>Nombre de la Junta</label>
+            <input type="text" id="reg_nombreJunta" class="form-control">
+          </div>
+          <div class="mb-3">
+            <label>Comunidad</label>
+            <input type="text" id="reg_comunidad" class="form-control">
+          </div>
+          <div class="mb-3">
+            <label>Teléfono</label>
+            <input type="text" id="reg_telefonoJunta" class="form-control">
+          </div>
+        </div>
+        <div id="reg_camposAyuntamiento" style="display:none">
+          <div class="mb-3">
+            <label>Nombre del Ayuntamiento</label>
+            <input type="text" id="reg_nombreAyuntamiento" class="form-control">
+          </div>
+          <div class="mb-3">
+            <label>Municipio</label>
+            <input type="text" id="reg_municipio" class="form-control">
+          </div>
+          <div class="mb-3">
+            <label>Departamento</label>
+            <input type="text" id="reg_departamento" class="form-control">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-success" onclick="registrarDesdeAdmin()">Registrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+// Mostrar campos por rol en el registro normal (si se usa en otro lado)
+function mostrarCamposPorRol() {
+  const rol = document.getElementById('rol')?.value;
+  if (!rol) return;
+  document.getElementById('camposJunta').style.display = rol === 'junta' ? 'block' : 'none';
+  document.getElementById('camposAyuntamiento').style.display = rol === 'ayuntamiento' ? 'block' : 'none';
+  document.getElementById('camposAdmin').style.display = rol === 'admin' ? 'block' : 'none';
+}
+document.addEventListener('DOMContentLoaded', mostrarCamposPorRol);
+
+// Mostrar campos por rol en el modal de registro
+function mostrarCamposPorRolRegistro() {
+  const rol = document.getElementById('reg_rol').value;
+  document.getElementById('reg_camposJunta').style.display = rol === 'junta' ? 'block' : 'none';
+  document.getElementById('reg_camposAyuntamiento').style.display = rol === 'ayuntamiento' ? 'block' : 'none';
+}
+
+// Mostrar modal de registro solo si es admin
+window.mostrarRegistro = function() {
+  const modal = new bootstrap.Modal(document.getElementById('modalRegistro'));
+  modal.show();
+}
+</script>
+
+
 
 <!-- Mensaje de Error -->
 <div id="errorAlert" class="alert alert-danger alert-dismissible fade show mt-3" role="alert" style="display: none;">
-  <svg class="bi flex-shrink-0 me-2" width="24" height="24" viewBox="0 0 16 16" fill="currentColor" role="img" aria-label="Error:">
-    <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0l-5.708 9.7a1.13 1.13 0 0 0 .98 1.734h11.436a1.13 1.13 0 0 0 .98-1.734L8.982 1.566ZM8 5c.535 0 .954.462.95.999l-.003.086a.5.5 0 0 1-1 0l-.003-.086c-.004-.537.415-.999.95-.999Zm.002 6a.5.5 0 1 1 0-1 .5.5 0 0 1 0 1Z"/>
-  </svg>
   <div id="errorMessage"></div>
   <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
 </div>
@@ -49,6 +137,7 @@
 
 <!-- JS -->
 <script type="module" src="js/auth.js"></script>
+
 
 <!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
