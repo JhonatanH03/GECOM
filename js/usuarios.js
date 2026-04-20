@@ -278,6 +278,7 @@ if (telefonoInput) {
 }
 
 // Actualizar municipios y distritos simples según provincia
+const provincias = {};
 
 // Cargar provincias y municipios desde provincias.json
 // Cargar provincias y municipios solo cuando el modal se abre

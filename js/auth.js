@@ -74,77 +74,19 @@ document.addEventListener("DOMContentLoaded", function () {
 // Registro desde el panel de admin
 window.registrarDesdeAdmin = async function () {
   try {
-    const email = document.getElementById("reg_email").value.trim();
+    const email = document.getElementById("reg_email").value;
     const password = document.getElementById("reg_password").value;
     const rol = document.getElementById("reg_rol").value;
 
     let userData = { email, rol };
-    let collectionName = "";
-    let camposFaltantes = [];
-
     if (rol === "junta") {
-      // JuntasDeVecinos
-      collectionName = "JuntasDeVecinos";
-      userData.nombreJunta = document.getElementById("reg_nombreJunta")?.value.trim() || "";
-      userData.emailJunta = email;
-      userData.direccion = document.getElementById("reg_direccionJunta")?.value.trim() || "";
-      userData.sector = document.getElementById("reg_sectorJunta")?.value.trim() || "";
-      userData.municipio = document.getElementById("reg_municipioJunta")?.value.trim() || "";
-      userData.provincia = document.getElementById("reg_provinciaJunta")?.value.trim() || "";
-      userData.nombreEncargado = document.getElementById("reg_nombreEncargado")?.value.trim() || "";
-      userData.telefonoEncargado = document.getElementById("reg_telefonoEncargado")?.value.trim() || "";
-      userData.creadoEn = new Date();
-      // Validar campos obligatorios
-      [
-        [userData.nombreJunta, "Nombre de la Junta"],
-        [userData.emailJunta, "Correo"],
-        [userData.direccion, "Dirección"],
-        [userData.sector, "Sector"],
-        [userData.municipio, "Municipio"],
-        [userData.provincia, "Provincia"],
-        [userData.nombreEncargado, "Nombre del encargado"],
-        [userData.telefonoEncargado, "Teléfono"]
-      ].forEach(([val, label]) => { if (!val) camposFaltantes.push(label); });
+      userData.nombre = document.getElementById("reg_nombreJunta").value;
+      userData.comunidad = document.getElementById("reg_comunidad").value;
+      userData.telefono = document.getElementById("reg_telefonoJunta").value;
     } else if (rol === "ayuntamiento") {
-      // Ayuntamientos
-      collectionName = "Ayuntamientos";
-      userData.nombre = document.getElementById("reg_nombreAyuntamiento")?.value.trim() || "";
-      userData.email = email;
-      userData.telefono = document.getElementById("reg_telefonoAyuntamiento")?.value.trim() || "";
-      userData.direccion = document.getElementById("reg_direccionAyuntamiento")?.value.trim() || "";
-      userData.municipio = document.getElementById("reg_municipioAyuntamiento")?.value.trim() || "";
-      userData.provincia = document.getElementById("reg_provinciaAyuntamiento")?.value.trim() || "";
-      userData.creadoEn = new Date();
-      [
-        [userData.nombre, "Nombre del Ayuntamiento"],
-        [userData.email, "Correo"],
-        [userData.telefono, "Teléfono"],
-        [userData.direccion, "Dirección"],
-        [userData.municipio, "Municipio"],
-        [userData.provincia, "Provincia"]
-      ].forEach(([val, label]) => { if (!val) camposFaltantes.push(label); });
-    } else if (rol === "admin") {
-      // Administradores
-      collectionName = "Administradores";
-      userData.nombre = document.getElementById("reg_nombreAdmin")?.value.trim() || "";
-      userData.email = email;
-      userData.telefono = document.getElementById("reg_telefonoAdmin")?.value.trim() || "";
-      userData.creadoEn = new Date();
-      [
-        [userData.nombre, "Nombre"],
-        [userData.email, "Correo"],
-        [userData.telefono, "Teléfono"]
-      ].forEach(([val, label]) => { if (!val) camposFaltantes.push(label); });
-    }
-
-    if (!email || !password || !rol) {
-      mostrarError("Correo, contraseña y rol son obligatorios.");
-      return;
-    }
-    if (camposFaltantes.length > 0) {
-      mostrarError("Faltan campos obligatorios: " + camposFaltantes.join(", "));
-
-      return;
+      userData.nombre = document.getElementById("reg_nombreAyuntamiento").value;
+      userData.municipio = document.getElementById("reg_municipio").value;
+      userData.departamento = document.getElementById("reg_departamento").value;
     }
 
     const userCredential = await createUserWithEmailAndPassword(
@@ -154,21 +96,12 @@ window.registrarDesdeAdmin = async function () {
     );
 
     const uid = userCredential.user.uid;
-    if (collectionName) {
-      await setDoc(doc(db, collectionName, uid), userData);
-    } else {
-      throw new Error("Rol no válido");
-    }
+    await setDoc(doc(db, "usuarios", uid), userData);
 
     mostrarExito("Usuario registrado correctamente");
 
     // limpiar campos
-    [
-      "reg_email","reg_password",
-      "reg_nombreJunta","reg_direccionJunta","reg_sectorJunta","reg_municipioJunta","reg_provinciaJunta","reg_nombreEncargado","reg_telefonoEncargado",
-      "reg_nombreAyuntamiento","reg_telefonoAyuntamiento","reg_direccionAyuntamiento","reg_municipioAyuntamiento","reg_provinciaAyuntamiento",
-      "reg_nombreAdmin","reg_telefonoAdmin"
-    ].forEach(id => {
+    ["reg_email","reg_password","reg_nombreJunta","reg_comunidad","reg_telefonoJunta","reg_nombreAyuntamiento","reg_municipio","reg_departamento"].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.value = "";
     });
@@ -210,26 +143,15 @@ window.login = async function () {
 
     const uid = userCredential.user.uid;
 
-    // Buscar el usuario en las tres colecciones
-    const colecciones = [
-      { nombre: "Administradores", rol: "admin" },
-      { nombre: "Ayuntamientos", rol: "ayuntamiento" },
-      { nombre: "JuntasDeVecinos", rol: "junta" }
-    ];
-    let userDoc = null;
-    let rol = null;
-    for (const col of colecciones) {
-      const docSnap = await getDoc(doc(db, col.nombre, uid));
-      if (docSnap.exists()) {
-        userDoc = docSnap.data();
-        rol = userDoc.rol || col.rol;
-        break;
-      }
-    }
-    if (!userDoc) {
-      mostrarError("Tu usuario no tiene rol asignado. Contacta al administrador.");
+    // Obtener rol desde Firestore
+    const docSnap = await getDoc(doc(db, "usuarios", uid));
+
+    if (!docSnap.exists()) {
+      mostrarError("Usuario sin rol asignado");
       return;
     }
+
+    const rol = docSnap.data().rol;
 
     // Guardar sesión
     localStorage.setItem("uid", uid);
@@ -239,25 +161,43 @@ window.login = async function () {
     document.getElementById("email").value = "";
     document.getElementById("password").value = "";
 
-    mostrarExito("Inicio de sesión exitoso. Redirigiendo...");
-    setTimeout(() => {
-      window.location.href = "dashboard.html";
-    }, 800);
+    // Redirigir
+    window.location.href = "dashboard.html";
+
   } catch (error) {
-    console.error("ERROR LOGIN:", error);
-    let mensaje = "Error al iniciar sesión";
+    console.error("ERROR:", error.message);
+    
+    // Mapear mensajes de error de Firebase
+    let mensajeError = "Error de autenticación";
     if (error.code === "auth/user-not-found") {
-      mensaje = "Usuario no encontrado";
+      mensajeError = "Usuario no encontrado";
     } else if (error.code === "auth/wrong-password") {
-      mensaje = "Contraseña incorrecta";
+      mensajeError = "Contraseña incorrecta";
     } else if (error.code === "auth/invalid-email") {
-      mensaje = "Correo inválido";
+      mensajeError = "Correo inválido";
     } else if (error.code === "auth/user-disabled") {
-      mensaje = "Usuario deshabilitado";
+      mensajeError = "Usuario deshabilitado";
     } else if (error.code === "auth/too-many-requests") {
-      mensaje = "Demasiados intentos. Intenta más tarde.";
+      mensajeError = "Demasiados intentos. Intente más tarde";
     }
-    mostrarError(mensaje);
+    mostrarError(mensajeError);
   }
 }
-// ...existing code...
+
+// Función para mostrar éxito
+function mostrarExito(mensaje) {
+  // Crear un alert temporal de éxito
+  const successAlert = document.createElement("div");
+  successAlert.className = "alert alert-success alert-dismissible fade show";
+  successAlert.setAttribute("role", "alert");
+  successAlert.innerHTML = `
+    <strong>${mensaje}</strong>
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  `;
+  const container = document.querySelector(".card");
+  container.insertBefore(successAlert, container.querySelector("button"));
+  // Auto cerrar después de 3 segundos
+  setTimeout(() => {
+    successAlert.remove();
+  }, 3000);
+}
