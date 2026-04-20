@@ -251,57 +251,84 @@ document.getElementById("contrasena").addEventListener("input", function(e) {
 });
 
 // Formato automático para cédula
-document.getElementById("cedula").addEventListener("input", function(e) {
-  let digits = e.target.value.replace(/\D/g, ''); // Solo dígitos
-  if (digits.length > 11) digits = digits.slice(0, 11);
-  let formatted = '';
-  if (digits.length > 0) formatted += digits.slice(0, 3);
-  if (digits.length > 3) formatted += '-' + digits.slice(3, 10);
-  if (digits.length > 10) formatted += '-' + digits.slice(10);
-  e.target.value = formatted;
-});
+const cedulaInput = document.getElementById("cedula");
+if (cedulaInput) {
+  cedulaInput.addEventListener("input", function(e) {
+    let digits = e.target.value.replace(/\D/g, ''); // Solo dígitos
+    if (digits.length > 11) digits = digits.slice(0, 11);
+    let formatted = '';
+    if (digits.length > 0) formatted += digits.slice(0, 3);
+    if (digits.length > 3) formatted += '-' + digits.slice(3, 10);
+    if (digits.length > 10) formatted += '-' + digits.slice(10);
+    e.target.value = formatted;
+  });
+}
 
 // Formato automático para teléfono
-document.getElementById("telefono").addEventListener("input", function(e) {
-  let value = e.target.value.replace(/\D/g, ''); // Solo dígitos
-  if (value.length > 13) value = value.slice(0, 13);
-  if (value.length > 1) value = value.slice(0, 1) + '-' + value.slice(1);
-  if (value.length > 5) value = value.slice(0, 5) + '-' + value.slice(5);
-  if (value.length > 9) value = value.slice(0, 9) + '-' + value.slice(9);
-  e.target.value = value;
-});
+const telefonoInput = document.getElementById("telefono");
+if (telefonoInput) {
+  telefonoInput.addEventListener("input", function(e) {
+    let value = e.target.value.replace(/\D/g, ''); // Solo dígitos
+    if (value.length > 13) value = value.slice(0, 13);
+    if (value.length > 1) value = value.slice(0, 1) + '-' + value.slice(1);
+    if (value.length > 5) value = value.slice(0, 5) + '-' + value.slice(5);
+    if (value.length > 9) value = value.slice(0, 9) + '-' + value.slice(9);
+    e.target.value = value;
+  });
+}
 
 // Actualizar municipios y distritos simples según provincia
+
+// Cargar provincias y municipios desde provincias.json
+// Cargar provincias y municipios solo cuando el modal se abre
 const provincias = {};
 
-const municipiosSelect = document.getElementById("municipio");
-const distritoSelect = document.getElementById("distrito_municipal");
-const provinciaSelect = document.getElementById("provincia");
+modalElement.addEventListener('show.bs.modal', () => {
+  const provinciaSelect = document.getElementById("provincia");
+  const municipiosSelect = document.getElementById("municipio");
+  const distritoSelect = document.getElementById("distrito_municipal");
 
-provinciaSelect.addEventListener("change", () => {
-  const provincia = provinciaSelect.value;
-  const municipios = provincias[provincia] || [];
-  municipiosSelect.innerHTML = `<option value="" selected>Seleccionar municipio</option>`;
-  distritoSelect.innerHTML = `<option value="" selected>Seleccionar distrito</option>`;
+  // Limpiar selects
+  provinciaSelect.innerHTML = '<option value="" selected>Seleccionar provincia</option>';
+  municipiosSelect.innerHTML = '<option value="" selected>Seleccionar municipio</option>';
+  if (distritoSelect) distritoSelect.innerHTML = '<option value="" selected>Seleccionar distrito</option>';
 
-  municipios.forEach((nombre) => {
-    const option = document.createElement("option");
-    option.value = nombre;
-    option.textContent = nombre;
-    municipiosSelect.appendChild(option);
-  });
-});
+  fetch("js/provincias.json")
+    .then(res => res.json())
+    .then(data => {
+      data.forEach(p => {
+        provincias[p.nombre] = p.municipios;
+        const option = document.createElement("option");
+        option.value = p.nombre;
+        option.textContent = p.nombre;
+        provinciaSelect.appendChild(option);
+      });
+    });
 
-municipiosSelect.addEventListener("change", () => {
-  const municipio = municipiosSelect.value;
-  distritoSelect.innerHTML = `<option value="" selected>Seleccionar distrito</option>`;
+  provinciaSelect.onchange = () => {
+    const provincia = provinciaSelect.value;
+    const municipios = provincias[provincia] || [];
+    municipiosSelect.innerHTML = '<option value="" selected>Seleccionar municipio</option>';
+    if (distritoSelect) distritoSelect.innerHTML = '<option value="" selected>Seleccionar distrito</option>';
+    municipios.forEach((nombre) => {
+      const option = document.createElement("option");
+      option.value = nombre;
+      option.textContent = nombre;
+      municipiosSelect.appendChild(option);
+    });
+  };
 
-  if (municipio) {
-    const option = document.createElement("option");
-    option.value = municipio;
-    option.textContent = `${municipio} Distrito`; 
-    distritoSelect.appendChild(option);
-  }
+  municipiosSelect.onchange = () => {
+    if (!distritoSelect) return;
+    const municipio = municipiosSelect.value;
+    distritoSelect.innerHTML = '<option value="" selected>Seleccionar distrito</option>';
+    if (municipio) {
+      const option = document.createElement("option");
+      option.value = municipio;
+      option.textContent = `${municipio} Distrito`;
+      distritoSelect.appendChild(option);
+    }
+  };
 });
 
 // Función para poblar usuarios de ejemplo
