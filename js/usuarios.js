@@ -45,15 +45,75 @@ form.addEventListener("submit", async (event) => {
   const contrasena = document.getElementById("contrasena").value;
   if (!nombre || !correo || !telefono || !provincia || !municipio || (!usuarioId && !contrasena)) {showModalAlert("Todos los campos son obligatorios.", "danger");return;}
   const telefonoValido = /^1-\d{3}-\d{3}-\d{4}$/;
-  if (!telefonoValido.test(telefono)) {showModalAlert("El teléfono debe tener el formato 1-000-000-0000.", "danger");return;}
-  if (!usuarioId && contrasena.length < 6) {showModalAlert("La contraseña debe tener al menos 6 caracteres.", "danger");return;}
-  try {if (usuarioId) {const usuarioData = {nombre, correo, telefono, provincia, municipio};
-      await setDoc(doc(db, "usuarios", usuarioId), usuarioData, {merge:true});showAlert("Usuario actualizado correctamente.", "success");
-    } else {const credential = await createUserWithEmailAndPassword(auth, correo, contrasena);const nuevoUid = credential.user.uid;
-      const usuarioData = {nombre, correo, rol: "ayuntamiento", telefono, provincia, municipio, estado:true, fecha_creacion: serverTimestamp()};
-      await setDoc(doc(db, "usuarios", nuevoUid), usuarioData);showAlert("Usuario creado correctamente.", "success");
-    }form.reset();usuarioIdInput.value = "";modal.hide();await cargarUsuarios();
-  } catch (error) {console.error("ERROR:", error);if (error.code === "auth/email-already-in-use") {showModalAlert("El correo ya está en uso.", "danger");} else {showModalAlert(error.message || "Ocurrió un error.", "danger");}}
+  if (!telefonoValido.test(telefono)) {
+    showModalAlert("El teléfono debe tener el formato 1-000-000-0000.", "danger");
+    return;
+  }
+
+  if (!usuarioId && contrasena.length < 6) {
+    showModalAlert("La contraseña debe tener al menos 6 caracteres.", "danger");
+    return;
+  }
+
+  try {
+    if (usuarioId) {
+      // Actualizar usuario
+      console.log("DEBUG - Actualizando usuario con ID:", usuarioId);
+      const usuarioData = {
+        nombre,
+        correo,
+        cedula,
+        telefono,
+        provincia,
+        municipio,
+        distrito_municipal,
+        sector,
+        institucion
+      };
+
+      console.log("DEBUG - Datos a actualizar:", usuarioData);
+      await setDoc(doc(db, "JuntasDeVecinos", usuarioId), usuarioData, { merge: true });
+      console.log("DEBUG - ¡Actualización exitosa!");
+      showAlert("Usuario actualizado correctamente.", "success");
+    } else {
+      // Crear usuario
+      console.log("DEBUG - Creando nuevo usuario");
+      const credential = await createUserWithEmailAndPassword(auth, correo, contrasena);
+      const nuevoUid = credential.user.uid;
+
+      const usuarioData = {
+        nombre,
+        correo,
+        rol: "junta",
+        cedula,
+        telefono,
+        provincia,
+        municipio,
+        distrito_municipal,
+        sector,
+        institucion,
+        estado: true,
+        fecha_creacion: serverTimestamp()
+      };
+
+      await setDoc(doc(db, "JuntasDeVecinos", nuevoUid), usuarioData);
+      console.log("DEBUG - ¡Usuario creado exitosamente!");
+      showAlert("Usuario creado correctamente.", "success");
+    }
+    form.reset();
+    usuarioIdInput.value = "";
+    modal.hide();
+    await cargarUsuarios();
+  } catch (error) {
+    console.error("ERROR - Error en la operación:", error);
+    console.error("ERROR - Código:", error.code);
+    console.error("ERROR - Mensaje:", error.message);
+    if (error.code === "auth/email-already-in-use") {
+      showModalAlert("El correo ya está en uso.", "danger");
+    } else {
+      showModalAlert(error.message || "Ocurrió un error al actualizar el usuario.", "danger");
+    }
+  }
 });
 
 async function cargarUsuarios() {usuariosBody.innerHTML = "";try {const q = query(collection(db, "usuarios"), where("rol", "==", "ayuntamiento"));const snapshot = await getDocs(q);if (snapshot.empty) {usuariosBody.innerHTML = "<tr><td colspan=\"8\" class=\"text-center\">No hay usuarios</td></tr>";return;}
@@ -63,10 +123,10 @@ async function cargarUsuarios() {usuariosBody.innerHTML = "";try {const q = quer
     usuariosBody.innerHTML += "<tr><td>" + escapeHtml(data.nombre) + "</td><td>" + escapeHtml(data.correo) + "</td><td>" + escapeHtml(data.telefono||"") + "</td><td>" + escapeHtml((data.provincia||"") + " / " + (data.municipio||"")) + "</td><td>" + escapeHtml(data.provincia||"") + "</td><td colspan=\"2\">" + escapeHtml(label) + "</td><td class=\"text-center\"><button class=\"btn btn-sm btn-warning me-1 px-2\" onclick=\"editarUsuario('" + data.id + "')\"><i class=\"bi bi-pencil\"></i></button><button class=\"btn btn-sm btn-danger px-2\" onclick=\"eliminarUsuario('" + data.id + "', '" + escapeHtml(data.nombre) + "')\"><i class=\"bi bi-trash\"></i></button></td></tr>";
   });} catch (error) {console.error("Error al cargar usuarios:", error);usuariosBody.innerHTML = "<tr><td colspan=\"8\" class=\"text-center text-danger\">Error</td></tr>";}}
 
-function showAlert(msg, type="success") {alertContainer.innerHTML = "<div class=\"alert alert-" + type + " alert-dismissible fade show\"><strong>" + escapeHtml(msg) + "</strong><button type=\"button\" class=\"btn-close\" data-bs-dismiss=\"alert\"></button></div>";}
-function showModalAlert(msg, type="danger") {modalAlertContainer.innerHTML = "<div class=\"alert alert-" + type + " alert-dismissible fade show\"><strong>" + escapeHtml(msg) + "</strong><button type=\"button\" class=\"btn-close\" data-bs-dismiss=\"alert\"></button></div>";}
-function clearAlert() {alertContainer.innerHTML = "";}
-function clearModalAlert() {modalAlertContainer.innerHTML = "";}
+  try {
+    // Cargar todas las juntas de vecinos
+    const snapshot = await getDocs(collection(db, "JuntasDeVecinos"));
+  } catch (error) {console.error("Error al cargar usuarios:", error);usuariosBody.innerHTML = "<tr><td colspan=\"8\" class=\"text-center text-danger\">Error al cargar usuarios</td></tr>";}
 
 window.editarUsuario = async function(id) {try {const docSnap = await getDoc(doc(db, "usuarios", id));if (!docSnap.exists()) {showAlert("Usuario no encontrado.", "danger");return;}
   const data = docSnap.data();usuarioIdInput.value = id;document.getElementById("nombre").value = data.nombre || "";document.getElementById("correo").value = data.correo || "";document.getElementById("telefono").value = data.telefono || "";document.getElementById("provincia").value = data.provincia || "";document.getElementById("provincia").dispatchEvent(new Event("change"));
