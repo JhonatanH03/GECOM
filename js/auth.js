@@ -1,3 +1,23 @@
+// Limpieza de colecciones antiguas (solo admin)
+import {
+  collection,
+  getDocs,
+  deleteDoc
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+window.limpiarFirebase = async function () {
+  if (!confirm("¿Seguro que deseas borrar todas las colecciones antiguas y usuarios? Esta acción no se puede deshacer.")) return;
+  const colecciones = ["provincias", "municipios", "sectores", "ayuntamientos", "juntas", "usuarios"];
+  let total = 0;
+  for (const col of colecciones) {
+    const snapshot = await getDocs(collection(db, col));
+    for (const docu of snapshot.docs) {
+      await deleteDoc(docu.ref);
+      total++;
+    }
+  }
+  mostrarExito(`Limpieza completada. Documentos eliminados: ${total}`);
+};
 import app from "./firebase.js";
 
 import {
@@ -38,15 +58,38 @@ window.registrarDesdeAdmin = async function () {
     const password = document.getElementById("reg_password").value;
     const rol = document.getElementById("reg_rol").value;
 
-    let userData = { email, rol };
+    let userData = { email };
+    let collectionName = "";
     if (rol === "junta") {
-      userData.nombre = document.getElementById("reg_nombreJunta").value;
-      userData.comunidad = document.getElementById("reg_comunidad").value;
-      userData.telefono = document.getElementById("reg_telefonoJunta").value;
+      // JuntasDeVecinos
+      collectionName = "JuntasDeVecinos";
+      userData.nombreJunta = document.getElementById("reg_nombreJunta")?.value || "";
+      userData.emailJunta = email;
+      userData.direccion = document.getElementById("reg_direccionJunta")?.value || "";
+      userData.sector = document.getElementById("reg_sectorJunta")?.value || "";
+      userData.municipio = document.getElementById("reg_municipioJunta")?.value || "";
+      userData.provincia = document.getElementById("reg_provinciaJunta")?.value || "";
+      userData.nombreEncargado = document.getElementById("reg_nombreEncargado")?.value || "";
+      userData.telefonoEncargado = document.getElementById("reg_telefonoEncargado")?.value || "";
+      userData.creadoEn = new Date();
     } else if (rol === "ayuntamiento") {
-      userData.nombre = document.getElementById("reg_nombreAyuntamiento").value;
-      userData.municipio = document.getElementById("reg_municipio").value;
-      userData.departamento = document.getElementById("reg_departamento").value;
+      // Ayuntamientos
+      collectionName = "Ayuntamientos";
+      userData.nombre = document.getElementById("reg_nombreAyuntamiento")?.value || "";
+      userData.email = email;
+      userData.telefono = document.getElementById("reg_telefonoAyuntamiento")?.value || "";
+      userData.direccion = document.getElementById("reg_direccionAyuntamiento")?.value || "";
+      userData.municipio = document.getElementById("reg_municipioAyuntamiento")?.value || "";
+      userData.provincia = document.getElementById("reg_provinciaAyuntamiento")?.value || "";
+      userData.creadoEn = new Date();
+    } else if (rol === "admin") {
+      // Administradores
+      collectionName = "Administradores";
+      userData.nombre = document.getElementById("reg_nombreAdmin")?.value || "";
+      userData.email = email;
+      userData.telefono = document.getElementById("reg_telefonoAdmin")?.value || "";
+      userData.rol = "admin";
+      userData.creadoEn = new Date();
     }
 
     const userCredential = await createUserWithEmailAndPassword(
@@ -56,12 +99,21 @@ window.registrarDesdeAdmin = async function () {
     );
 
     const uid = userCredential.user.uid;
-    await setDoc(doc(db, "usuarios", uid), userData);
+    if (collectionName) {
+      await setDoc(doc(db, collectionName, uid), userData);
+    } else {
+      throw new Error("Rol no válido");
+    }
 
     mostrarExito("Usuario registrado correctamente");
 
     // limpiar campos
-    ["reg_email","reg_password","reg_nombreJunta","reg_comunidad","reg_telefonoJunta","reg_nombreAyuntamiento","reg_municipio","reg_departamento"].forEach(id => {
+    [
+      "reg_email","reg_password",
+      "reg_nombreJunta","reg_direccionJunta","reg_sectorJunta","reg_municipioJunta","reg_provinciaJunta","reg_nombreEncargado","reg_telefonoEncargado",
+      "reg_nombreAyuntamiento","reg_telefonoAyuntamiento","reg_direccionAyuntamiento","reg_municipioAyuntamiento","reg_provinciaAyuntamiento",
+      "reg_nombreAdmin","reg_telefonoAdmin"
+    ].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.value = "";
     });
@@ -163,7 +215,11 @@ function mostrarExito(mensaje) {
     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
   `;
   const container = document.querySelector(".card");
-  container.insertBefore(successAlert, container.querySelector("button"));
+  if (container) {
+    container.prepend(successAlert);
+  } else {
+    document.body.prepend(successAlert);
+  }
   // Auto cerrar después de 3 segundos
   setTimeout(() => {
     successAlert.remove();
