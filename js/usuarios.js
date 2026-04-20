@@ -41,14 +41,8 @@ window.addEventListener("DOMContentLoaded", async () => {
   }
 
   try {
-    const usuarioDoc = await getDoc(doc(db, "usuarios", uid));
-
-    if (!usuarioDoc.exists() || usuarioDoc.data().rol !== "ayuntamiento") {
-      window.location.href = "dashboard.html";
-      return;
-    }
-
-    municipioAyuntamiento = usuarioDoc.data().municipio || "";
+    // Validar que el usuario sea ayuntamiento (puedes ajustar esta lógica si lo necesitas)
+    // Aquí solo cargamos las juntas de vecinos
     await cargarUsuarios();
   } catch (error) {
     console.error("Error al validar acceso:", error);
@@ -78,7 +72,7 @@ form.addEventListener("submit", async (event) => {
   const cedula = document.getElementById("cedula").value.trim();
   const telefono = document.getElementById("telefono").value.trim();
   const provincia = document.getElementById("provincia").value;
-  const municipio = municipioAyuntamiento; // Forzar municipio del ayuntamiento
+  const municipio = document.getElementById("municipio").value;
   const distrito_municipal = document.getElementById("distrito_municipal").value;
   const sector = document.getElementById("sector").value.trim();
   const institucion = document.getElementById("institucion").value.trim();
@@ -135,7 +129,7 @@ form.addEventListener("submit", async (event) => {
       };
 
       console.log("DEBUG - Datos a actualizar:", usuarioData);
-      await setDoc(doc(db, "usuarios", usuarioId), usuarioData, { merge: true });
+      await setDoc(doc(db, "JuntasDeVecinos", usuarioId), usuarioData, { merge: true });
       console.log("DEBUG - ¡Actualización exitosa!");
       showAlert("Usuario actualizado correctamente.", "success");
     } else {
@@ -159,7 +153,7 @@ form.addEventListener("submit", async (event) => {
         fecha_creacion: serverTimestamp()
       };
 
-      await setDoc(doc(db, "usuarios", nuevoUid), usuarioData);
+      await setDoc(doc(db, "JuntasDeVecinos", nuevoUid), usuarioData);
       console.log("DEBUG - ¡Usuario creado exitosamente!");
       showAlert("Usuario creado correctamente.", "success");
     }
@@ -183,13 +177,8 @@ async function cargarUsuarios() {
   usuariosBody.innerHTML = `<tr><td colspan="7" class="text-center py-5">Cargando usuarios...</td></tr>`;
 
   try {
-    let usuariosQuery;
-    if (municipioAyuntamiento) {
-      usuariosQuery = query(collection(db, "usuarios"), where("rol", "==", "junta"), where("municipio", "==", municipioAyuntamiento));
-    } else {
-      usuariosQuery = query(collection(db, "usuarios"), where("rol", "==", "junta"));
-    }
-    const snapshot = await getDocs(usuariosQuery);
+    // Cargar todas las juntas de vecinos
+    const snapshot = await getDocs(collection(db, "JuntasDeVecinos"));
 
     if (snapshot.empty) {
       usuariosBody.innerHTML = `<tr><td colspan="7" class="text-center py-5">No hay usuarios registrados.</td></tr>`;
@@ -270,7 +259,7 @@ function clearModalAlert() {
 // Funciones globales
 window.editarUsuario = async function(id) {
   try {
-    const docSnap = await getDoc(doc(db, "usuarios", id));
+    const docSnap = await getDoc(doc(db, "JuntasDeVecinos", id));
     if (!docSnap.exists()) {
       showAlert("Usuario no encontrado.", "danger");
       return;
@@ -317,7 +306,7 @@ window.eliminarUsuario = async function(id, nombre) {
 
   try {
     // Eliminar de Firestore
-    await deleteDoc(doc(db, "usuarios", id));
+    await deleteDoc(doc(db, "JuntasDeVecinos", id));
 
     // Nota: Para eliminar de Auth, necesitarías ser admin o el propio usuario.
     // Aquí solo eliminamos de Firestore.

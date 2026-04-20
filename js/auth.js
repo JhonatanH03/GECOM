@@ -150,15 +150,26 @@ window.login = async function () {
 
     const uid = userCredential.user.uid;
 
-    // Obtener rol desde Firestore
-    const docSnap = await getDoc(doc(db, "usuarios", uid));
-
-    if (!docSnap.exists()) {
+    // Buscar el usuario en las tres colecciones
+    const colecciones = [
+      { nombre: "Administradores", rol: "admin" },
+      { nombre: "Ayuntamientos", rol: "ayuntamiento" },
+      { nombre: "JuntasDeVecinos", rol: "junta" }
+    ];
+    let userDoc = null;
+    let rol = null;
+    for (const col of colecciones) {
+      const docSnap = await getDoc(doc(db, col.nombre, uid));
+      if (docSnap.exists()) {
+        userDoc = docSnap.data();
+        rol = userDoc.rol || col.rol;
+        break;
+      }
+    }
+    if (!userDoc) {
       mostrarError("Usuario sin rol asignado");
       return;
     }
-
-    const rol = docSnap.data().rol;
 
     // Guardar sesión
     localStorage.setItem("uid", uid);
@@ -173,7 +184,6 @@ window.login = async function () {
 
   } catch (error) {
     console.error("ERROR:", error.message);
-    
     // Mapear mensajes de error de Firebase
     let mensajeError = "Error de autenticación";
     if (error.code === "auth/user-not-found") {
