@@ -1,3 +1,23 @@
+// Funciones para mostrar mensajes de éxito y error en el login
+function mostrarExito(mensaje) {
+  let alert = document.createElement('div');
+  alert.className = 'alert alert-success alert-dismissible fade show';
+  alert.role = 'alert';
+  alert.innerHTML = `<strong>${mensaje}</strong><button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>`;
+  const container = document.querySelector('.card') || document.body;
+  container.prepend(alert);
+  setTimeout(() => { alert.remove(); }, 3000);
+}
+
+function mostrarError(mensaje) {
+  let alert = document.createElement('div');
+  alert.className = 'alert alert-danger alert-dismissible fade show';
+  alert.role = 'alert';
+  alert.innerHTML = `<strong>${mensaje}</strong><button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>`;
+  const container = document.querySelector('.card') || document.body;
+  container.prepend(alert);
+  setTimeout(() => { alert.remove(); }, 4000);
+}
 // Limpieza de colecciones antiguas (solo admin)
 import {
   collection,
@@ -54,42 +74,77 @@ document.addEventListener("DOMContentLoaded", function () {
 // Registro desde el panel de admin
 window.registrarDesdeAdmin = async function () {
   try {
-    const email = document.getElementById("reg_email").value;
+    const email = document.getElementById("reg_email").value.trim();
     const password = document.getElementById("reg_password").value;
     const rol = document.getElementById("reg_rol").value;
 
-    let userData = { email };
+    let userData = { email, rol };
     let collectionName = "";
+    let camposFaltantes = [];
+
     if (rol === "junta") {
       // JuntasDeVecinos
       collectionName = "JuntasDeVecinos";
-      userData.nombreJunta = document.getElementById("reg_nombreJunta")?.value || "";
+      userData.nombreJunta = document.getElementById("reg_nombreJunta")?.value.trim() || "";
       userData.emailJunta = email;
-      userData.direccion = document.getElementById("reg_direccionJunta")?.value || "";
-      userData.sector = document.getElementById("reg_sectorJunta")?.value || "";
-      userData.municipio = document.getElementById("reg_municipioJunta")?.value || "";
-      userData.provincia = document.getElementById("reg_provinciaJunta")?.value || "";
-      userData.nombreEncargado = document.getElementById("reg_nombreEncargado")?.value || "";
-      userData.telefonoEncargado = document.getElementById("reg_telefonoEncargado")?.value || "";
+      userData.direccion = document.getElementById("reg_direccionJunta")?.value.trim() || "";
+      userData.sector = document.getElementById("reg_sectorJunta")?.value.trim() || "";
+      userData.municipio = document.getElementById("reg_municipioJunta")?.value.trim() || "";
+      userData.provincia = document.getElementById("reg_provinciaJunta")?.value.trim() || "";
+      userData.nombreEncargado = document.getElementById("reg_nombreEncargado")?.value.trim() || "";
+      userData.telefonoEncargado = document.getElementById("reg_telefonoEncargado")?.value.trim() || "";
       userData.creadoEn = new Date();
+      // Validar campos obligatorios
+      [
+        [userData.nombreJunta, "Nombre de la Junta"],
+        [userData.emailJunta, "Correo"],
+        [userData.direccion, "Dirección"],
+        [userData.sector, "Sector"],
+        [userData.municipio, "Municipio"],
+        [userData.provincia, "Provincia"],
+        [userData.nombreEncargado, "Nombre del encargado"],
+        [userData.telefonoEncargado, "Teléfono"]
+      ].forEach(([val, label]) => { if (!val) camposFaltantes.push(label); });
     } else if (rol === "ayuntamiento") {
       // Ayuntamientos
       collectionName = "Ayuntamientos";
-      userData.nombre = document.getElementById("reg_nombreAyuntamiento")?.value || "";
+      userData.nombre = document.getElementById("reg_nombreAyuntamiento")?.value.trim() || "";
       userData.email = email;
-      userData.telefono = document.getElementById("reg_telefonoAyuntamiento")?.value || "";
-      userData.direccion = document.getElementById("reg_direccionAyuntamiento")?.value || "";
-      userData.municipio = document.getElementById("reg_municipioAyuntamiento")?.value || "";
-      userData.provincia = document.getElementById("reg_provinciaAyuntamiento")?.value || "";
+      userData.telefono = document.getElementById("reg_telefonoAyuntamiento")?.value.trim() || "";
+      userData.direccion = document.getElementById("reg_direccionAyuntamiento")?.value.trim() || "";
+      userData.municipio = document.getElementById("reg_municipioAyuntamiento")?.value.trim() || "";
+      userData.provincia = document.getElementById("reg_provinciaAyuntamiento")?.value.trim() || "";
       userData.creadoEn = new Date();
+      [
+        [userData.nombre, "Nombre del Ayuntamiento"],
+        [userData.email, "Correo"],
+        [userData.telefono, "Teléfono"],
+        [userData.direccion, "Dirección"],
+        [userData.municipio, "Municipio"],
+        [userData.provincia, "Provincia"]
+      ].forEach(([val, label]) => { if (!val) camposFaltantes.push(label); });
     } else if (rol === "admin") {
       // Administradores
       collectionName = "Administradores";
-      userData.nombre = document.getElementById("reg_nombreAdmin")?.value || "";
+      userData.nombre = document.getElementById("reg_nombreAdmin")?.value.trim() || "";
       userData.email = email;
-      userData.telefono = document.getElementById("reg_telefonoAdmin")?.value || "";
-      userData.rol = "admin";
+      userData.telefono = document.getElementById("reg_telefonoAdmin")?.value.trim() || "";
       userData.creadoEn = new Date();
+      [
+        [userData.nombre, "Nombre"],
+        [userData.email, "Correo"],
+        [userData.telefono, "Teléfono"]
+      ].forEach(([val, label]) => { if (!val) camposFaltantes.push(label); });
+    }
+
+    if (!email || !password || !rol) {
+      mostrarError("Correo, contraseña y rol son obligatorios.");
+      return;
+    }
+    if (camposFaltantes.length > 0) {
+      mostrarError("Faltan campos obligatorios: " + camposFaltantes.join(", "));
+
+      return;
     }
 
     const userCredential = await createUserWithEmailAndPassword(
@@ -139,8 +194,13 @@ window.registrarDesdeAdmin = async function () {
 // LOGIN
 window.login = async function () {
   try {
-    const email = document.getElementById("email").value;
+    const email = document.getElementById("email").value.trim();
     const password = document.getElementById("password").value;
+
+    if (!email || !password) {
+      mostrarError("Debes ingresar correo y contraseña.");
+      return;
+    }
 
     const userCredential = await signInWithEmailAndPassword(
       auth,
@@ -167,7 +227,7 @@ window.login = async function () {
       }
     }
     if (!userDoc) {
-      mostrarError("Usuario sin rol asignado");
+      mostrarError("Tu usuario no tiene rol asignado. Contacta al administrador.");
       return;
     }
 
@@ -179,59 +239,25 @@ window.login = async function () {
     document.getElementById("email").value = "";
     document.getElementById("password").value = "";
 
-    // Redirigir
-    window.location.href = "dashboard.html";
-
+    mostrarExito("Inicio de sesión exitoso. Redirigiendo...");
+    setTimeout(() => {
+      window.location.href = "dashboard.html";
+    }, 800);
   } catch (error) {
-    console.error("ERROR:", error.message);
-    // Mapear mensajes de error de Firebase
-    let mensajeError = "Error de autenticación";
+    console.error("ERROR LOGIN:", error);
+    let mensaje = "Error al iniciar sesión";
     if (error.code === "auth/user-not-found") {
-      mensajeError = "Usuario no encontrado";
+      mensaje = "Usuario no encontrado";
     } else if (error.code === "auth/wrong-password") {
-      mensajeError = "Contraseña incorrecta";
+      mensaje = "Contraseña incorrecta";
     } else if (error.code === "auth/invalid-email") {
-      mensajeError = "Correo inválido";
+      mensaje = "Correo inválido";
     } else if (error.code === "auth/user-disabled") {
-      mensajeError = "Usuario deshabilitado";
+      mensaje = "Usuario deshabilitado";
     } else if (error.code === "auth/too-many-requests") {
-      mensajeError = "Demasiados intentos. Intente más tarde";
+      mensaje = "Demasiados intentos. Intenta más tarde.";
     }
-    mostrarError(mensajeError);
+    mostrarError(mensaje);
   }
-};
-
-// Función para mostrar errores
-function mostrarError(mensaje) {
-  const errorAlert = document.getElementById("errorAlert");
-  const errorMessage = document.getElementById("errorMessage");
-  errorMessage.textContent = mensaje;
-  errorAlert.style.display = "block";
-  
-  // Auto cerrar después de 5 segundos
-  setTimeout(() => {
-    errorAlert.style.display = "none";
-  }, 5000);
 }
-
-// Función para mostrar éxito
-function mostrarExito(mensaje) {
-  // Crear un alert temporal de éxito
-  const successAlert = document.createElement("div");
-  successAlert.className = "alert alert-success alert-dismissible fade show";
-  successAlert.setAttribute("role", "alert");
-  successAlert.innerHTML = `
-    <strong>${mensaje}</strong>
-    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-  `;
-  const container = document.querySelector(".card");
-  if (container) {
-    container.prepend(successAlert);
-  } else {
-    document.body.prepend(successAlert);
-  }
-  // Auto cerrar después de 3 segundos
-  setTimeout(() => {
-    successAlert.remove();
-  }, 3000);
-}
+// ...existing code...
