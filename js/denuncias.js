@@ -15,11 +15,16 @@ import {
   getDownloadURL
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
 
+import {
+  getAuth
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
 const db = getFirestore(app);
 const storage = getStorage(app);
+const auth = getAuth(app);
 const rol = localStorage.getItem("rol");
 
-// 🔥 CREAR DENUNCIA
+// CREAR DENUNCIA
 window.crearDenuncia = async function () {
   try {
     const titulo = document.getElementById("titulo").value.trim();
@@ -40,9 +45,16 @@ window.crearDenuncia = async function () {
 
     const uid = localStorage.getItem("uid");
 
-    // 🔒 VALIDAR SESIÓN
-    if (!uid) {
+    // VALIDAR SESIÓN
+    if (!uid || !auth.currentUser) {
       alert("Debes iniciar sesión");
+      window.location.href = "index.html";
+      return;
+    }
+
+    // Verificar que el UID coincida
+    if (auth.currentUser.uid !== uid) {
+      alert("Error de autenticación. Por favor inicia sesión nuevamente");
       window.location.href = "index.html";
       return;
     }
@@ -61,12 +73,18 @@ window.crearDenuncia = async function () {
 
     let evidenciaURL = "";
     if (evidenciaFile) {
-      const storageRef = ref(storage, `evidencias/${uid}/${Date.now()}_${evidenciaFile.name}`);
-      await uploadBytes(storageRef, evidenciaFile);
-      evidenciaURL = await getDownloadURL(storageRef);
+      try {
+        const storageRef = ref(storage, `evidencias/${uid}/${Date.now()}_${evidenciaFile.name}`);
+        await uploadBytes(storageRef, evidenciaFile);
+        evidenciaURL = await getDownloadURL(storageRef);
+      } catch (uploadError) {
+        console.error("Error en carga de archivo:", uploadError);
+        alert("Error al cargar la evidencia: " + uploadError.message + "\nAsegúrate de estar autenticado");
+        return;
+      }
     }
 
-    // 🔥 GUARDAR EN FIRESTORE
+    // GUARDAR EN FIRESTORE
     await addDoc(collection(db, "denuncias"), {
       titulo,
       tipo,

@@ -406,18 +406,7 @@ document.getElementById("telefono").addEventListener("input", function(e) {
 });
 
 // Actualizar municipios y distritos simples según provincia
-const provincias = {
-  "Santo Domingo": ["Santo Domingo Este", "Santo Domingo Norte", "Santo Domingo Oeste", "Boca Chica"],
-  "Santiago": ["Santiago", "Licey al Medio", "Bonao"],
-  "La Vega": ["La Vega", "Constanza"],
-  "Puerto Plata": ["Puerto Plata", "Sosúa"],
-  "San Cristóbal": ["San Cristóbal", "Baní"],
-  "San Pedro de Macorís": ["San Pedro de Macorís", "Consuelo"],
-  "La Romana": ["La Romana", "Villa Hermosa"],
-  "Bonao": ["Bonao"],
-  "Higüey": ["Higüey"],
-  "Barahona": ["Barahona"]
-};
+const provincias = {};
 
 const municipiosSelect = document.getElementById("municipio");
 const distritoSelect = document.getElementById("distrito_municipal");
@@ -459,9 +448,6 @@ window.populateUsers = async function() {
       rol: "ayuntamiento",
       cedula: "001-0000000-1",
       telefono: "1-809-000-0000",
-      provincia: "Santo Domingo",
-      municipio: "Santo Domingo Este",
-      distrito_municipal: "Santo Domingo Este",
       sector: "Centro",
       institucion: "Ayuntamiento de Santo Domingo Este",
       estado: true,
@@ -473,9 +459,6 @@ window.populateUsers = async function() {
       rol: "ayuntamiento",
       cedula: "002-0000000-2",
       telefono: "1-809-111-1111",
-      provincia: "Santiago",
-      municipio: "Santiago",
-      distrito_municipal: "Santiago",
       sector: "Centro",
       institucion: "Ayuntamiento de Santiago",
       estado: true,
@@ -488,9 +471,6 @@ window.populateUsers = async function() {
       rol: "junta",
       cedula: "003-0000000-3",
       telefono: "1-809-222-2222",
-      provincia: "Santo Domingo",
-      municipio: "Santo Domingo Este",
-      distrito_municipal: "Santo Domingo Este",
       sector: "El Vedado",
       institucion: "Junta de Vecinos El Vedado",
       estado: true,
@@ -502,9 +482,6 @@ window.populateUsers = async function() {
       rol: "junta",
       cedula: "004-0000000-4",
       telefono: "1-809-333-3333",
-      provincia: "Santiago",
-      municipio: "Santiago",
-      distrito_municipal: "Santiago",
       sector: "Licey al Medio",
       institucion: "Junta de Vecinos Licey",
       estado: true,
@@ -516,9 +493,6 @@ window.populateUsers = async function() {
       rol: "junta",
       cedula: "005-0000000-5",
       telefono: "1-809-444-4444",
-      provincia: "La Vega",
-      municipio: "La Vega",
-      distrito_municipal: "La Vega",
       sector: "Centro",
       institucion: "Junta de Vecinos La Vega",
       estado: true,
