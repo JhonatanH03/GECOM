@@ -116,26 +116,349 @@ form.addEventListener("submit", async (event) => {
   }
 });
 
-async function cargarUsuarios() {usuariosBody.innerHTML = "";try {const q = query(collection(db, "usuarios"), where("rol", "==", "ayuntamiento"));const snapshot = await getDocs(q);if (snapshot.empty) {usuariosBody.innerHTML = "<tr><td colspan=\"8\" class=\"text-center\">No hay usuarios</td></tr>";return;}
-  const usuarios = [];snapshot.forEach((docSnap) => {const data = docSnap.data();data.id = docSnap.id;usuarios.push(data);});
-  usuarios.sort((a,b) => (a.nombre || "").toLowerCase().localeCompare((b.nombre || "").toLowerCase()));
-  usuarios.forEach((data) => {const label = data.estado ? "Activo" : "Inactivo";
-    usuariosBody.innerHTML += "<tr><td>" + escapeHtml(data.nombre) + "</td><td>" + escapeHtml(data.correo) + "</td><td>" + escapeHtml(data.telefono||"") + "</td><td>" + escapeHtml((data.provincia||"") + " / " + (data.municipio||"")) + "</td><td>" + escapeHtml(data.provincia||"") + "</td><td colspan=\"2\">" + escapeHtml(label) + "</td><td class=\"text-center\"><button class=\"btn btn-sm btn-warning me-1 px-2\" onclick=\"editarUsuario('" + data.id + "')\"><i class=\"bi bi-pencil\"></i></button><button class=\"btn btn-sm btn-danger px-2\" onclick=\"eliminarUsuario('" + data.id + "', '" + escapeHtml(data.nombre) + "')\"><i class=\"bi bi-trash\"></i></button></td></tr>";
-  });} catch (error) {console.error("Error al cargar usuarios:", error);usuariosBody.innerHTML = "<tr><td colspan=\"8\" class=\"text-center text-danger\">Error</td></tr>";}}
+async function cargarUsuarios() {
+  usuariosBody.innerHTML = `<tr><td colspan="7" class="text-center py-5">Cargando usuarios...</td></tr>`;
 
   try {
     // Cargar todas las juntas de vecinos
     const snapshot = await getDocs(collection(db, "JuntasDeVecinos"));
   } catch (error) {console.error("Error al cargar usuarios:", error);usuariosBody.innerHTML = "<tr><td colspan=\"8\" class=\"text-center text-danger\">Error al cargar usuarios</td></tr>";}
 
-window.editarUsuario = async function(id) {try {const docSnap = await getDoc(doc(db, "usuarios", id));if (!docSnap.exists()) {showAlert("Usuario no encontrado.", "danger");return;}
-  const data = docSnap.data();usuarioIdInput.value = id;document.getElementById("nombre").value = data.nombre || "";document.getElementById("correo").value = data.correo || "";document.getElementById("telefono").value = data.telefono || "";document.getElementById("provincia").value = data.provincia || "";document.getElementById("provincia").dispatchEvent(new Event("change"));
-  setTimeout(() => {document.getElementById("municipio").value = data.municipio || "";}, 100);modalTitle.textContent = "Editar Usuario - Ayuntamiento";submitBtn.textContent = "Actualizar";passwordField.style.display = "none";modal.show();
-  } catch (error) {console.error("Error:", error);showAlert("Error al cargar usuario.", "danger");}};
+    if (snapshot.empty) {
+      usuariosBody.innerHTML = `<tr><td colspan="7" class="text-center py-5">No hay usuarios registrados.</td></tr>`;
+      return;
+    }
 
-window.eliminarUsuario = async function(id, nombre) {if (confirm("Eliminar a " + nombre + "?")) {try {await deleteDoc(doc(db, "usuarios", id));showAlert("Usuario eliminado.", "success");await cargarUsuarios();} catch (error) {console.error("Error:", error);showAlert("Error al eliminar.", "danger");}}};
+    const usuarios = [];
+    snapshot.forEach((docSnap) => {
+      const data = docSnap.data();
+      data.id = docSnap.id;
+      usuarios.push(data);
+    });
 
-function escapeHtml(value) {return String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");}
+    usuarios.sort((a, b) => {
+      const nombreA = (a.nombre || "").toLowerCase();
+      const nombreB = (b.nombre || "").toLowerCase();
+      return nombreA.localeCompare(nombreB);
+    });
+
+    usuariosBody.innerHTML = "";
+
+    usuarios.forEach((data) => {
+      const estadoLabel = data.estado ? "Activo" : "Inactivo";
+      const ubicacion = `${data.provincia} / ${data.municipio} / ${data.distrito_municipal}`;
+
+      usuariosBody.innerHTML += `
+        <tr>
+          <td>${escapeHtml(data.nombre)}</td>
+          <td>${escapeHtml(data.correo)}</td>
+          <td>${escapeHtml(data.cedula)}</td>
+          <td>${escapeHtml(data.telefono)}</td>
+          <td>${escapeHtml(ubicacion)}</td>
+          <td>${escapeHtml(data.institucion)}</td>
+          <td>${escapeHtml(estadoLabel)}</td>
+          <td class="text-center">
+            <button class="btn btn-sm btn-warning me-1 px-2" onclick="editarUsuario('${data.id}')" title="Editar">
+              <i class="bi bi-pencil"></i>
+            </button>
+            <button class="btn btn-sm btn-danger px-2" onclick="eliminarUsuario('${data.id}', '${escapeHtml(data.nombre)}')" title="Eliminar">
+              <i class="bi bi-trash"></i>
+            </button>
+          </td>
+        </tr>
+      `;
+    });
+  } catch (error) {
+    console.error("Error al cargar usuarios:", error);
+    usuariosBody.innerHTML = `<tr><td colspan="7" class="text-center py-5 text-danger">No se pudo cargar la lista.</td></tr>`;
+  }
+}
+
+function showAlert(message, type = "success") {
+  alertContainer.innerHTML = `
+    <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+      ${escapeHtml(message)}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+    </div>
+  `;
+}
+
+function showModalAlert(message, type = "danger") {
+  modalAlertContainer.innerHTML = `
+    <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+      ${escapeHtml(message)}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+    </div>
+  `;
+}
+
+function clearAlert() {
+  alertContainer.innerHTML = "";
+}
+
+function clearModalAlert() {
+  modalAlertContainer.innerHTML = "";
+}
+
+// Funciones globales
+window.editarUsuario = async function(id) {
+  try {
+    const docSnap = await getDoc(doc(db, "JuntasDeVecinos", id));
+    if (!docSnap.exists()) {
+      showAlert("Usuario no encontrado.", "danger");
+      return;
+    }
+
+    const data = docSnap.data();
+
+    // Llenar formulario
+    usuarioIdInput.value = id;
+    document.getElementById("nombre").value = data.nombre || "";
+    document.getElementById("correo").value = data.correo || "";
+    document.getElementById("cedula").value = data.cedula || "";
+    document.getElementById("telefono").value = data.telefono || "";
+    document.getElementById("provincia").value = data.provincia || "";
+    document.getElementById("sector").value = data.sector || "";
+    document.getElementById("institucion").value = data.institucion || "";
+
+    // Trigger change para municipios
+    document.getElementById("provincia").dispatchEvent(new Event('change'));
+    setTimeout(() => {
+      document.getElementById("municipio").value = data.municipio || "";
+      document.getElementById("municipio").dispatchEvent(new Event('change'));
+      setTimeout(() => {
+        document.getElementById("distrito_municipal").value = data.distrito_municipal || "";
+      }, 100);
+    }, 100);
+
+    // Cambiar modal a modo edición
+    modalTitle.textContent = "Editar Usuario - Junta de Vecinos";
+    submitBtn.textContent = "Actualizar";
+    passwordField.style.display = "none";
+
+    modal.show();
+  } catch (error) {
+    console.error("Error al cargar usuario:", error);
+    showAlert("Error al cargar usuario.", "danger");
+  }
+};
+
+window.eliminarUsuario = async function(id, nombre) {
+  if (!confirm(`¿Estás seguro de que deseas eliminar al usuario "${nombre}"? Esta acción no se puede deshacer.`)) {
+    return;
+  }
+
+  try {
+    // Eliminar de Firestore
+    await deleteDoc(doc(db, "JuntasDeVecinos", id));
+
+    // Nota: Para eliminar de Auth, necesitarías ser admin o el propio usuario.
+    // Aquí solo eliminamos de Firestore.
+
+    showAlert("Usuario eliminado correctamente.", "success");
+    await cargarUsuarios();
+  } catch (error) {
+    console.error("Error al eliminar usuario:", error);
+    showAlert("Error al eliminar usuario.", "danger");
+  }
+};
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+// Validación en tiempo real de contraseña
+document.getElementById("contrasena").addEventListener("input", function(e) {
+  const password = e.target.value;
+  const reqLength = document.getElementById("reqLength");
+  const reqUpper = document.getElementById("reqUpper");
+  const reqLower = document.getElementById("reqLower");
+  const reqNumber = document.getElementById("reqNumber");
+
+  // Al menos 6 caracteres
+  if (password.length >= 6) {
+    reqLength.className = "text-success";
+    reqLength.innerHTML = "✓ Al menos 6 caracteres";
+  } else {
+    reqLength.className = "text-danger";
+    reqLength.innerHTML = "✗ Al menos 6 caracteres";
+  }
+
+  // Al menos una mayúscula
+  if (/[A-Z]/.test(password)) {
+    reqUpper.className = "text-success";
+    reqUpper.innerHTML = "✓ Una letra mayúscula";
+  } else {
+    reqUpper.className = "text-danger";
+    reqUpper.innerHTML = "✗ Una letra mayúscula";
+  }
+
+  // Al menos una minúscula
+  if (/[a-z]/.test(password)) {
+    reqLower.className = "text-success";
+    reqLower.innerHTML = "✓ Una letra minúscula";
+  } else {
+    reqLower.className = "text-danger";
+    reqLower.innerHTML = "✗ Una letra minúscula";
+  }
+
+  // Al menos un número
+  if (/\d/.test(password)) {
+    reqNumber.className = "text-success";
+    reqNumber.innerHTML = "✓ Un número";
+  } else {
+    reqNumber.className = "text-danger";
+    reqNumber.innerHTML = "✗ Un número";
+  }
+});
+
+// Formato automático para cédula
+const cedulaInput = document.getElementById("cedula");
+if (cedulaInput) {
+  cedulaInput.addEventListener("input", function(e) {
+    let digits = e.target.value.replace(/\D/g, ''); // Solo dígitos
+    if (digits.length > 11) digits = digits.slice(0, 11);
+    let formatted = '';
+    if (digits.length > 0) formatted += digits.slice(0, 3);
+    if (digits.length > 3) formatted += '-' + digits.slice(3, 10);
+    if (digits.length > 10) formatted += '-' + digits.slice(10);
+    e.target.value = formatted;
+  });
+}
+
+// Formato automático para teléfono
+const telefonoInput = document.getElementById("telefono");
+if (telefonoInput) {
+  telefonoInput.addEventListener("input", function(e) {
+    let value = e.target.value.replace(/\D/g, ''); // Solo dígitos
+    if (value.length > 13) value = value.slice(0, 13);
+    if (value.length > 1) value = value.slice(0, 1) + '-' + value.slice(1);
+    if (value.length > 5) value = value.slice(0, 5) + '-' + value.slice(5);
+    if (value.length > 9) value = value.slice(0, 9) + '-' + value.slice(9);
+    e.target.value = value;
+  });
+}
+
+// Actualizar municipios y distritos simples según provincia
+
+// Cargar provincias y municipios desde provincias.json
+// Cargar provincias y municipios solo cuando el modal se abre
+const provincias = {};
+
+modalElement.addEventListener('show.bs.modal', () => {
+  const provinciaSelect = document.getElementById("provincia");
+  const municipiosSelect = document.getElementById("municipio");
+  const distritoSelect = document.getElementById("distrito_municipal");
+
+  // Limpiar selects
+  provinciaSelect.innerHTML = '<option value="" selected>Seleccionar provincia</option>';
+  municipiosSelect.innerHTML = '<option value="" selected>Seleccionar municipio</option>';
+  if (distritoSelect) distritoSelect.innerHTML = '<option value="" selected>Seleccionar distrito</option>';
+
+  fetch("js/provincias.json")
+    .then(res => res.json())
+    .then(data => {
+      data.forEach(p => {
+        provincias[p.nombre] = p.municipios;
+        const option = document.createElement("option");
+        option.value = p.nombre;
+        option.textContent = p.nombre;
+        provinciaSelect.appendChild(option);
+      });
+    });
+
+  provinciaSelect.onchange = () => {
+    const provincia = provinciaSelect.value;
+    const municipios = provincias[provincia] || [];
+    municipiosSelect.innerHTML = '<option value="" selected>Seleccionar municipio</option>';
+    if (distritoSelect) distritoSelect.innerHTML = '<option value="" selected>Seleccionar distrito</option>';
+    municipios.forEach((nombre) => {
+      const option = document.createElement("option");
+      option.value = nombre;
+      option.textContent = nombre;
+      municipiosSelect.appendChild(option);
+    });
+  };
+
+  municipiosSelect.onchange = () => {
+    if (!distritoSelect) return;
+    const municipio = municipiosSelect.value;
+    distritoSelect.innerHTML = '<option value="" selected>Seleccionar distrito</option>';
+    if (municipio) {
+      const option = document.createElement("option");
+      option.value = municipio;
+      option.textContent = `${municipio} Distrito`;
+      distritoSelect.appendChild(option);
+    }
+  };
+});
+
+// Función para poblar usuarios de ejemplo
+window.populateUsers = async function() {
+  const usuariosEjemplo = [
+    // Ayuntamientos
+    {
+      nombre: "Ayuntamiento Santo Domingo",
+      correo: "ayuntamiento@santodomingo.gob.do",
+      rol: "ayuntamiento",
+      cedula: "001-0000000-1",
+      telefono: "1-809-000-0000",
+      sector: "Centro",
+      institucion: "Ayuntamiento de Santo Domingo Este",
+      estado: true,
+      contrasena: "Admin123"
+    },
+    {
+      nombre: "Ayuntamiento Santiago",
+      correo: "ayuntamiento@santiago.gob.do",
+      rol: "ayuntamiento",
+      cedula: "002-0000000-2",
+      telefono: "1-809-111-1111",
+      sector: "Centro",
+      institucion: "Ayuntamiento de Santiago",
+      estado: true,
+      contrasena: "Admin123"
+    },
+    // Juntas
+    {
+      nombre: "Junta Vecinos El Vedado",
+      correo: "junta@elvedado.com",
+      rol: "junta",
+      cedula: "003-0000000-3",
+      telefono: "1-809-222-2222",
+      sector: "El Vedado",
+      institucion: "Junta de Vecinos El Vedado",
+      estado: true,
+      contrasena: "Junta123"
+    },
+    {
+      nombre: "Junta Vecinos Licey",
+      correo: "junta@licey.com",
+      rol: "junta",
+      cedula: "004-0000000-4",
+      telefono: "1-809-333-3333",
+      sector: "Licey al Medio",
+      institucion: "Junta de Vecinos Licey",
+      estado: true,
+      contrasena: "Junta123"
+    },
+    {
+      nombre: "Junta Vecinos La Vega",
+      correo: "junta@lavega.com",
+      rol: "junta",
+      cedula: "005-0000000-5",
+      telefono: "1-809-444-4444",
+      sector: "Centro",
+      institucion: "Junta de Vecinos La Vega",
+      estado: true,
+      contrasena: "Junta123"
+    }
+  ];
 
 const contrasenaInput = document.getElementById("contrasena");if (contrasenaInput) {contrasenaInput.addEventListener("input", (e) => {const pwd = e.target.value;const req = [document.getElementById("reqLength"), document.getElementById("reqUpper"), document.getElementById("reqLower"), document.getElementById("reqNumber")];
   if (req[0]) req[0].innerHTML = pwd.length >= 6 ? "✓ Al menos 6 caracteres" : "✗ Al menos 6 caracteres";
