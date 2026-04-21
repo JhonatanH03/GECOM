@@ -37,6 +37,8 @@ if (!uid || !rolLocal) {
           encontrado = true;
           const userData = docSnap.data();
           const rol = userData.rol || col.rol;
+          // Mostrar siempre la tarjeta de Ver Denuncias
+          document.getElementById("cardVerDenuncias").style.display = "block";
           if (rol === "admin") {
             document.getElementById("cardAdmin").style.display = "block";
             document.getElementById("cardAdminAyunt").style.display = "block";
