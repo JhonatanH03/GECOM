@@ -50,7 +50,7 @@
       </div>
     </div>
 
-    <!-- Estadísticas (solo admin) -->
+    <!-- Gestión de Usuarios (solo admin) -->
     <div class="col-md-4" id="cardAdmin" style="display:none;">
       <div class="card p-4 shadow text-center">
         <h5>Estadísticas</h5>
@@ -60,11 +60,31 @@
       </div>
     </div>
 
-    <!-- Gestión de Usuarios (solo ayuntamiento) -->
-    <div class="col-md-4" id="cardAyunt" style="display:none;">
+    <!-- Gestión de Usuarios (solo admin) -->
+    <div class="col-md-4" id="cardAdminUsuarios" style="display:none;">
       <div class="card p-4 shadow text-center">
         <h5>Gestión de Usuarios</h5>
         <button onclick="ir('usuarios.html')" class="btn btn-secondary mt-3">
+          Ir
+        </button>
+      </div>
+    </div>
+
+    <!-- Gestión de Juntas (solo ayuntamiento) -->
+    <div class="col-md-4" id="cardAyunt" style="display:none;">
+      <div class="card p-4 shadow text-center">
+        <h5>Gestión de Juntas</h5>
+        <button onclick="ir('juntas.html')" class="btn btn-secondary mt-3">
+          Ir
+        </button>
+      </div>
+    </div>
+
+    <!-- Registrar Denuncia (solo ayuntamiento) -->
+    <div class="col-md-4" id="cardCrearDenunciaAyunt" style="display:none;">
+      <div class="card p-4 shadow text-center">
+        <h5>Registrar Denuncia</h5>
+        <button onclick="ir('crear.html')" class="btn btn-primary mt-3">
           Ir
         </button>
       </div>

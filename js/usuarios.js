@@ -1,21 +1,6 @@
-import app from "./firebase.js";
-import {
-  getAuth,
-  createUserWithEmailAndPassword
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import {
-  getFirestore,
-  doc,
-  setDoc,
-  getDoc,
-  collection,
-  query,
-  where,
-  orderBy,
-  getDocs,
-  serverTimestamp,
-  deleteDoc
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+﻿import app from "./firebase.js";
+import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, doc, setDoc, getDoc, collection, query, where, getDocs, serverTimestamp, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const auth = getAuth(app);
 const db = getFirestore(app);
@@ -32,8 +17,6 @@ const submitBtn = document.getElementById("submitBtn");
 const usuarioIdInput = document.getElementById("usuarioId");
 const passwordField = document.getElementById("passwordField");
 
-let municipioAyuntamiento = "";
-
 window.addEventListener("DOMContentLoaded", async () => {
   if (!uid || !rolLocal) {
     window.location.href = "index.html";
@@ -44,32 +27,15 @@ window.addEventListener("DOMContentLoaded", async () => {
     // Validar que el usuario sea ayuntamiento (puedes ajustar esta lógica si lo necesitas)
     // Aquí solo cargamos las juntas de vecinos
     await cargarUsuarios();
-  } catch (error) {
-    console.error("Error al validar acceso:", error);
-    window.location.href = "index.html";
-  }
-
-  // Reiniciar formulario cuando se cierra el modal
-  modalElement.addEventListener('hide.bs.modal', () => {
-    form.reset();
-    usuarioIdInput.value = "";
-    modalTitle.textContent = "Crear Usuario - Junta de Vecinos";
-    submitBtn.textContent = "Guardar";
-    passwordField.style.display = "block";
-    clearModalAlert();
-  });
+  } catch (error) {console.error("Error al validar acceso:", error);window.location.href = "index.html";}
+  modalElement.addEventListener("hide.bs.modal", () => {form.reset();usuarioIdInput.value = "";modalTitle.textContent = "Crear Usuario - Ayuntamiento";submitBtn.textContent = "Guardar";passwordField.style.display = "block";clearModalAlert();});
 });
 
 form.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  clearModalAlert();
-
+  event.preventDefault();clearModalAlert();
   const usuarioId = usuarioIdInput.value;
-  console.log("DEBUG - usuarioId:", usuarioId);
-  
   const nombre = document.getElementById("nombre").value.trim();
   const correo = document.getElementById("correo").value.trim();
-  const cedula = document.getElementById("cedula").value.trim();
   const telefono = document.getElementById("telefono").value.trim();
   const provincia = document.getElementById("provincia").value;
   const municipio = document.getElementById("municipio").value;
@@ -77,30 +43,7 @@ form.addEventListener("submit", async (event) => {
   const sector = document.getElementById("sector").value.trim();
   const institucion = document.getElementById("institucion").value.trim();
   const contrasena = document.getElementById("contrasena").value;
-
-  console.log("DEBUG - Datos:", { nombre, correo, cedula, usuarioId });
-
-  if (
-    !nombre ||
-    !correo ||
-    !cedula ||
-    !telefono ||
-    !provincia ||
-    !distrito_municipal ||
-    !sector ||
-    !institucion ||
-    (!usuarioId && !contrasena)
-  ) {
-    showModalAlert("Todos los campos son obligatorios.", "danger");
-    return;
-  }
-
-  const cedulaValida = /^\d{3}-\d{7}-\d{1}$/;
-  if (!cedulaValida.test(cedula)) {
-    showModalAlert("La cédula debe tener el formato 000-0000000-0.", "danger");
-    return;
-  }
-
+  if (!nombre || !correo || !telefono || !provincia || !municipio || (!usuarioId && !contrasena)) {showModalAlert("Todos los campos son obligatorios.", "danger");return;}
   const telefonoValido = /^1-\d{3}-\d{3}-\d{4}$/;
   if (!telefonoValido.test(telefono)) {
     showModalAlert("El teléfono debe tener el formato 1-000-000-0000.", "danger");
@@ -516,21 +459,14 @@ window.populateUsers = async function() {
     }
   ];
 
-  try {
-    for (const usuario of usuariosEjemplo) {
-      // Crear usuario en Auth
-      const credential = await createUserWithEmailAndPassword(auth, usuario.correo, usuario.contrasena);
-      const uid = credential.user.uid;
+const contrasenaInput = document.getElementById("contrasena");if (contrasenaInput) {contrasenaInput.addEventListener("input", (e) => {const pwd = e.target.value;const req = [document.getElementById("reqLength"), document.getElementById("reqUpper"), document.getElementById("reqLower"), document.getElementById("reqNumber")];
+  if (req[0]) req[0].innerHTML = pwd.length >= 6 ? "✓ Al menos 6 caracteres" : "✗ Al menos 6 caracteres";
+  if (req[1]) req[1].innerHTML = /[A-Z]/.test(pwd) ? "✓ Una letra mayúscula" : "✗ Una letra mayúscula";
+  if (req[2]) req[2].innerHTML = /[a-z]/.test(pwd) ? "✓ Una letra minúscula" : "✗ Una letra minúscula";
+  if (req[3]) req[3].innerHTML = /\d/.test(pwd) ? "✓ Un número" : "✗ Un número";});}
 
-      // Agregar a Firestore
-      const { contrasena, ...usuarioData } = usuario; // Excluir contraseña de Firestore
-      await setDoc(doc(db, "usuarios", uid), usuarioData);
+const telefonoInput = document.getElementById("telefono");if (telefonoInput) {telefonoInput.addEventListener("input", (e) => {let v = e.target.value.replace(/\D/g, "");if (v.length > 13) v = v.slice(0, 13);if (v.length > 1) v = v[0] + "-" + v.slice(1);if (v.length > 5) v = v.slice(0, 5) + "-" + v.slice(5);if (v.length > 9) v = v.slice(0, 9) + "-" + v.slice(9);e.target.value = v;});}
 
-      console.log(`Usuario ${usuario.nombre} agregado con UID: ${uid}`);
-    }
-    alert("Usuarios de ejemplo agregados correctamente");
-  } catch (error) {
-    console.error("Error al poblar usuarios:", error);
-    alert("Error al agregar usuarios: " + error.message);
-  }
-};
+const provincias = {"Santo Domingo": ["Santo Domingo Este", "Santo Domingo Norte", "Santo Domingo Oeste", "Boca Chica"], "Santiago": ["Santiago", "Licey al Medio", "Bonao"], "La Vega": ["La Vega", "Constanza"], "Puerto Plata": ["Puerto Plata", "Sosúa"], "San Cristóbal": ["San Cristóbal", "Baní"], "San Pedro de Macorís": ["San Pedro de Macorís", "Consuelo"], "La Romana": ["La Romana", "Villa Hermosa"], "Bonao": ["Bonao"], "Higüey": ["Higüey"], "Barahona": ["Barahona"]};
+const municipiosSelect = document.getElementById("municipio");const provinciaSelect = document.getElementById("provincia");
+if (provinciaSelect) {provinciaSelect.addEventListener("change", () => {const prov = provinciaSelect.value;const munis = provincias[prov] || [];if (municipiosSelect) {municipiosSelect.innerHTML = "";munis.forEach(m => {const opt = document.createElement("option");opt.value = m;opt.textContent = m;municipiosSelect.appendChild(opt);});}});}
