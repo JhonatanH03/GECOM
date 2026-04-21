@@ -122,7 +122,6 @@ async function cargarUsuarios() {
   try {
     // Cargar todas las juntas de vecinos
     const snapshot = await getDocs(collection(db, "JuntasDeVecinos"));
-  } catch (error) {console.error("Error al cargar usuarios:", error);usuariosBody.innerHTML = "<tr><td colspan=\"8\" class=\"text-center text-danger\">Error al cargar usuarios</td></tr>";}
 
     if (snapshot.empty) {
       usuariosBody.innerHTML = `<tr><td colspan="7" class="text-center py-5">No hay usuarios registrados.</td></tr>`;
@@ -458,7 +457,7 @@ window.populateUsers = async function() {
       estado: true,
       contrasena: "Junta123"
     }
-  ];
+  ]};
 
 const contrasenaInput = document.getElementById("contrasena");if (contrasenaInput) {contrasenaInput.addEventListener("input", (e) => {const pwd = e.target.value;const req = [document.getElementById("reqLength"), document.getElementById("reqUpper"), document.getElementById("reqLower"), document.getElementById("reqNumber")];
   if (req[0]) req[0].innerHTML = pwd.length >= 6 ? "✓ Al menos 6 caracteres" : "✗ Al menos 6 caracteres";

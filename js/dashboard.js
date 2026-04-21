@@ -39,6 +39,7 @@ if (!uid || !rolLocal) {
           const rol = userData.rol || col.rol;
           if (rol === "admin") {
             document.getElementById("cardAdmin").style.display = "block";
+            document.getElementById("cardAdminAyunt").style.display = "block";
           }
           if (rol === "junta") {
             document.getElementById("cardCrearDenuncia").style.display = "block";

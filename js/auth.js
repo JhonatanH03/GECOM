@@ -18,43 +18,35 @@ function mostrarError(mensaje) {
   container.prepend(alert);
   setTimeout(() => { alert.remove(); }, 4000);
 }
-// Limpieza de colecciones antiguas (solo admin)
-import {
-  collection,
-  getDocs,
-  deleteDoc
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
+// Firebase config
+const firebaseConfig = {
+  apiKey: "AIzaSyCoJ_1CWWVkPQsTTYby8nsUKAQrK1bY26I",
+  authDomain: "gecom-a721e.firebaseapp.com",
+  projectId: "gecom-a721e",
+  storageBucket: "gecom-a721e.firebasestorage.app",
+  messagingSenderId: "1058349745158",
+  appId: "1:1058349745158:web:924e4b88bcc538598e2f87"
+};
+
+const app = firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth(app);
+const db = firebase.firestore(app);
+
+// Limpieza de colecciones antiguas (solo admin)
 window.limpiarFirebase = async function () {
   if (!confirm("¿Seguro que deseas borrar todas las colecciones antiguas y usuarios? Esta acción no se puede deshacer.")) return;
   const colecciones = ["provincias", "municipios", "sectores", "ayuntamientos", "juntas", "usuarios"];
   let total = 0;
   for (const col of colecciones) {
-    const snapshot = await getDocs(collection(db, col));
+    const snapshot = await db.collection(col).get();
     for (const docu of snapshot.docs) {
-      await deleteDoc(docu.ref);
+      await docu.ref.delete();
       total++;
     }
   }
   mostrarExito(`Limpieza completada. Documentos eliminados: ${total}`);
 };
-import app from "./firebase.js";
-
-import {
-  getAuth,
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-
-import {
-  getFirestore,
-  doc,
-  setDoc,
-  getDoc
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-const auth = getAuth(app);
-const db = getFirestore(app);
 
 // Permitir login con ENTER desde el campo de contraseña
 document.addEventListener("DOMContentLoaded", function () {
@@ -147,15 +139,14 @@ window.registrarDesdeAdmin = async function () {
       return;
     }
 
-    const userCredential = await createUserWithEmailAndPassword(
-      auth,
+    const userCredential = await auth.createUserWithEmailAndPassword(
       email,
       password
     );
 
     const uid = userCredential.user.uid;
     if (collectionName) {
-      await setDoc(doc(db, collectionName, uid), userData);
+      await db.collection(collectionName).doc(uid).set(userData);
     } else {
       throw new Error("Rol no válido");
     }
@@ -202,8 +193,7 @@ window.login = async function () {
       return;
     }
 
-    const userCredential = await signInWithEmailAndPassword(
-      auth,
+    const userCredential = await auth.signInWithEmailAndPassword(
       email,
       password
     );
@@ -219,8 +209,8 @@ window.login = async function () {
     let userDoc = null;
     let rol = null;
     for (const col of colecciones) {
-      const docSnap = await getDoc(doc(db, col.nombre, uid));
-      if (docSnap.exists()) {
+      const docSnap = await db.collection(col.nombre).doc(uid).get();
+      if (docSnap.exists) {
         userDoc = docSnap.data();
         rol = userDoc.rol || col.rol;
         break;
@@ -259,26 +249,4 @@ window.login = async function () {
     }
     mostrarError(mensaje);
   }
-}
-
-// Función para mostrar éxito
-function mostrarExito(mensaje) {
-  // Crear un alert temporal de éxito
-  const successAlert = document.createElement("div");
-  successAlert.className = "alert alert-success alert-dismissible fade show";
-  successAlert.setAttribute("role", "alert");
-  successAlert.innerHTML = `
-    <strong>${mensaje}</strong>
-    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-  `;
-  const container = document.querySelector(".card");
-  if (container) {
-    container.prepend(successAlert);
-  } else {
-    document.body.prepend(successAlert);
-  }
-  // Auto cerrar después de 3 segundos
-  setTimeout(() => {
-    successAlert.remove();
-  }, 3000);
 }

@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>GECOM - Gestión de Juntas</title>
+  <title>GECOM - Gestión de Ayuntamientos</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
   
@@ -18,12 +18,12 @@
 <div class="container mt-5">
   <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-      <h2>Gestión de Juntas de Vecinos</h2>
-      <p class="mb-0 text-muted">Crear juntas de vecinos en su territorio.</p>
+      <h2>Gestión de Ayuntamientos</h2>
+      <p class="mb-0 text-muted">Los Administradores pueden crear Ayuntamientos.</p>
     </div>
     <div>
       <button class="btn btn-secondary me-2" onclick="window.location.href='dashboard.html'">Volver</button>
-      <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalCrearJunta">Crear Junta</button>
+      <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalCrearAyuntamiento">Crear Ayuntamiento</button>
     </div>
   </div>
 
@@ -31,23 +31,24 @@
 
   <div class="card shadow-sm">
     <div class="card-body">
-      <h5 class="card-title">Juntas registradas</h5>
+      <h5 class="card-title">Ayuntamientos registrados</h5>
       <div class="table-responsive">
-        <table class="table table-striped table-bordered align-middle" id="juntasTable">
+        <table class="table table-striped table-bordered align-middle" id="ayuntamientosTable">
           <thead class="table-light">
             <tr>
               <th>Nombre</th>
               <th>Correo</th>
               <th>Teléfono</th>
-              <th>Ubicación</th>
-              <th>Comunidad</th>
+              <th>Dirección</th>
+              <th>Provincia</th>
+              <th>Municipio</th>
               <th>Estado</th>
               <th>Acciones</th>
             </tr>
           </thead>
-          <tbody id="juntasBody">
+          <tbody id="ayuntamientosBody">
             <tr>
-              <td colspan="7" class="text-center py-5">Cargando juntas...</td>
+              <td colspan="8" class="text-center py-5">Cargando ayuntamientos...</td>
             </tr>
           </tbody>
         </table>
@@ -56,21 +57,21 @@
   </div>
 </div>
 
-<!-- Modal Crear Junta -->
-<div class="modal fade" id="modalCrearJunta" tabindex="-1" aria-labelledby="modalCrearJuntaLabel" aria-hidden="true">
+<!-- Modal Crear Ayuntamiento -->
+<div class="modal fade" id="modalCrearAyuntamiento" tabindex="-1" aria-labelledby="modalCrearAyuntamientoLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="modalCrearJuntaLabel">Crear Junta de Vecinos</h5>
+        <h5 class="modal-title" id="modalCrearAyuntamientoLabel">Crear Ayuntamiento</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
       </div>
-      <form id="formCrearJunta">
+      <form id="formCrearAyuntamiento">
         <div class="modal-body">
           <div id="modalAlertContainer"></div>
-          <input type="hidden" id="juntaId" name="juntaId" value="">
+          <input type="hidden" id="ayuntamientoId" name="ayuntamientoId" value="">
           <div class="row g-3">
             <div class="col-md-6">
-              <label class="form-label">Nombre de la Junta</label>
+              <label class="form-label">Nombre del Ayuntamiento</label>
               <input type="text" class="form-control" id="nombre" name="nombre" required>
             </div>
             <div class="col-md-6">
@@ -82,23 +83,13 @@
               <input type="text" class="form-control" id="telefono" name="telefono" placeholder="1-000-000-0000" maxlength="14" required>
             </div>
             <div class="col-md-6">
-              <label class="form-label">Comunidad</label>
-              <input type="text" class="form-control" id="comunidad" name="comunidad" required>
+              <label class="form-label">Dirección</label>
+              <input type="text" class="form-control" id="direccion" name="direccion" required>
             </div>
             <div class="col-md-6">
               <label class="form-label">Provincia</label>
               <select class="form-select" id="provincia" name="provincia" required>
                 <option value="" selected>Seleccionar provincia</option>
-                <option value="Santo Domingo">Santo Domingo</option>
-                <option value="Santiago">Santiago</option>
-                <option value="La Vega">La Vega</option>
-                <option value="Puerto Plata">Puerto Plata</option>
-                <option value="San Cristóbal">San Cristóbal</option>
-                <option value="San Pedro de Macorís">San Pedro de Macorís</option>
-                <option value="La Romana">La Romana</option>
-                <option value="Bonao">Bonao</option>
-                <option value="Higüey">Higüey</option>
-                <option value="Barahona">Barahona</option>
               </select>
             </div>
             <div class="col-md-6">
@@ -110,15 +101,12 @@
             <div class="col-md-12" id="passwordField">
               <label class="form-label">Contraseña</label>
               <input type="password" class="form-control" id="contrasena" name="contrasena">
-              <small class="text-muted d-block mt-2">Requisitos de contraseña:</small>
-              <small id="reqLength" class="text-danger">✗ Al menos 6 caracteres</small><br>
-              <small id="reqUpper" class="text-danger">✗ Una letra mayúscula</small><br>
-              <small id="reqLower" class="text-danger">✗ Una letra minúscula</small><br>
-              <small id="reqNumber" class="text-danger">✗ Un número</small>
-            </div>
-            <div class="col-md-6">
-              <label class="form-label">Cédula de la Junta</label>
-              <input type="text" class="form-control" id="cedula" name="cedula">
+              <div id="passwordRequirements" class="mt-2 small">
+                <div id="reqLength" class="text-danger">✗ Al menos 6 caracteres</div>
+                <div id="reqUpper" class="text-danger">✗ Una letra mayúscula</div>
+                <div id="reqLower" class="text-danger">✗ Una letra minúscula</div>
+                <div id="reqNumber" class="text-danger">✗ Un número</div>
+              </div>
             </div>
           </div>
         </div>
@@ -132,6 +120,28 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="js/juntas.js"></script>
+<script>
+// Provincias y municipios
+let provinciasData = [];
+fetch('js/provincias.json')
+  .then(res => res.json())
+  .then(data => {
+    provinciasData = data;
+    const provinciaSelect = document.getElementById('provincia');
+    provinciaSelect.innerHTML = '<option value="">Seleccionar provincia</option>' +
+      data.map(p => `<option value="${p.nombre}">${p.nombre}</option>`).join('');
+    provinciaSelect.addEventListener('change', () => {
+      const provincia = provinciaSelect.value;
+      const municipioSelect = document.getElementById('municipio');
+      municipioSelect.innerHTML = '<option value="">Seleccionar municipio</option>';
+      if (!provincia) return;
+      const prov = provinciasData.find(p => p.nombre === provincia);
+      if (prov && prov.municipios) {
+        municipioSelect.innerHTML += prov.municipios.map(m => `<option value="${m}">${m}</option>`).join('');
+      }
+    });
+  });
+</script>
+<script src="js/ayuntamientos.js"></script>
 </body>
 </html>
