@@ -51,16 +51,6 @@
           <label class="form-label fw-bold">Provincia</label>
           <select class="form-select" id="provincia" required>
             <option value="" selected>Seleccionar provincia</option>
-            <option value="Santo Domingo">Santo Domingo</option>
-            <option value="Santiago">Santiago</option>
-            <option value="La Vega">La Vega</option>
-            <option value="Puerto Plata">Puerto Plata</option>
-            <option value="San Cristóbal">San Cristóbal</option>
-            <option value="San Pedro de Macorís">San Pedro de Macorís</option>
-            <option value="La Romana">La Romana</option>
-            <option value="Bonao">Bonao</option>
-            <option value="Higüey">Higüey</option>
-            <option value="Barahona">Barahona</option>
           </select>
         </div>
         <div class="col-md-3">
@@ -105,25 +95,9 @@
 <script type="module" src="js/denuncias.js"></script>
 <script>
 // Lógica para selects dependientes
-const provincias = {
-  "Santo Domingo": ["Distrito Nacional", "Santo Domingo Este", "Santo Domingo Norte", "Santo Domingo Oeste", "Boca Chica", "San Antonio de Guerra", "Los Alcarrizos"],
-  "Santiago": ["Santiago de los Caballeros", "Tamboril", "Villa González", "Jánico", "Sabana Iglesia"],
-  "La Vega": ["Concepción de La Vega", "Constanza", "Jarabacoa", "Jima Abajo"],
-  "Puerto Plata": ["San Felipe de Puerto Plata", "Altamira", "Guananico", "Imbert", "Los Hidalgos", "Luperón", "Sosúa", "Villa Isabela", "Villa Montellano"],
-  "San Cristóbal": ["San Cristóbal", "Bajos de Haina", "Cambita Garabitos", "Sabana Grande de Palenque", "Yaguate"],
-  "San Pedro de Macorís": ["San Pedro de Macorís", "Consuelo", "Guayacanes", "Quisqueya", "Ramón Santana"],
-  "La Romana": ["La Romana", "Guaymate", "Villa Hermosa"],
-  "Bonao": ["Bonao", "Maimón", "Piedra Blanca"],
-  "Higüey": ["Higüey", "Miches", "El Seibo", "Hato Mayor"],
-  "Barahona": ["Santa Cruz de Barahona", "Cabral", "El Peñón", "Enriquillo", "Fundación", "Jaquimeyes", "La Ciénaga", "Las Salinas", "Paraíso", "Polo", "Vicente Noble"]
-};
+const provincias = {};
 
-const distritos = {
-  // Ejemplo, agregar más si es necesario
-  "Distrito Nacional": ["Distrito Nacional"],
-  "Santo Domingo Este": ["Santo Domingo Este"],
-  // Agregar más mappings
-};
+const distritos = {};
 
 document.getElementById("provincia").addEventListener("change", function() {
   const provincia = this.value;
