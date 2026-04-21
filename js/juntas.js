@@ -1,9 +1,16 @@
-import app from "./firebase.js";
-import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, doc, setDoc, getDoc, collection, query, where, getDocs, serverTimestamp, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+// Firebase config
+const firebaseConfig = {
+  apiKey: "AIzaSyCoJ_1CWWVkPQsTTYby8nsUKAQrK1bY26I",
+  authDomain: "gecom-a721e.firebaseapp.com",
+  projectId: "gecom-a721e",
+  storageBucket: "gecom-a721e.firebasestorage.app",
+  messagingSenderId: "1058349745158",
+  appId: "1:1058349745158:web:924e4b88bcc538598e2f87"
+};
 
-const auth = getAuth(app);
-const db = getFirestore(app);
+const app = firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth(app);
+const db = firebase.firestore(app);
 const uid = localStorage.getItem("uid");
 const rolLocal = localStorage.getItem("rol");
 const alertContainer = document.getElementById("alertContainer");
@@ -23,8 +30,17 @@ window.addEventListener("DOMContentLoaded", async () => {
     return;
   }
   try {
-    const usuarioDoc = await getDoc(doc(db, "usuarios", uid));
-    if (!usuarioDoc.exists() || usuarioDoc.data().rol !== "ayuntamiento") {
+    let collectionName = "";
+    if (rolLocal === "ayuntamiento") {
+      collectionName = "Ayuntamientos";
+    } else if (rolLocal === "admin") {
+      collectionName = "Administradores";
+    } else {
+      window.location.href = "dashboard.html";
+      return;
+    }
+    const usuarioDoc = await db.collection(collectionName).doc(uid).get();
+    if (!usuarioDoc.exists) {
       window.location.href = "dashboard.html";
       return;
     }
@@ -86,11 +102,11 @@ form.addEventListener("submit", async (event) => {
         municipio,
         cedula
       };
-      await setDoc(doc(db, "usuarios", juntaId), juntaData, { merge: true });
+      await db.collection("JuntasDeVecinos").doc(juntaId).set(juntaData, { merge: true });
       showAlert("Junta actualizada correctamente.", "success");
     } else {
       // Crear nueva junta
-      const credential = await createUserWithEmailAndPassword(auth, correo, contrasena);
+      const credential = await auth.createUserWithEmailAndPassword(correo, contrasena);
       const nuevoUid = credential.user.uid;
       
       const juntaData = {
@@ -103,11 +119,11 @@ form.addEventListener("submit", async (event) => {
         municipio,
         cedula,
         estado: true,
-        fecha_creacion: serverTimestamp(),
+        fecha_creacion: firebase.firestore.FieldValue.serverTimestamp(),
         creada_por: uid
       };
       
-      await setDoc(doc(db, "usuarios", nuevoUid), juntaData);
+      await db.collection("JuntasDeVecinos").doc(nuevoUid).set(juntaData);
       showAlert("Junta creada correctamente.", "success");
     }
     
@@ -128,8 +144,8 @@ form.addEventListener("submit", async (event) => {
 async function cargarJuntas() {
   juntasBody.innerHTML = "";
   try {
-    const q = query(collection(db, "usuarios"), where("rol", "==", "junta"), where("creada_por", "==", uid));
-    const snapshot = await getDocs(q);
+    const q = db.collection("JuntasDeVecinos").where("creada_por", "==", uid);
+    const snapshot = await q.get();
     
     if (snapshot.empty) {
       juntasBody.innerHTML = "<tr><td colspan=\"7\" class=\"text-center\">No hay juntas</td></tr>";
@@ -180,8 +196,8 @@ function clearModalAlert() {
 
 window.editarJunta = async function(id) {
   try {
-    const docSnap = await getDoc(doc(db, "usuarios", id));
-    if (!docSnap.exists()) {
+    const docSnap = await db.collection("JuntasDeVecinos").doc(id).get();
+    if (!docSnap.exists) {
       showAlert("Junta no encontrada.", "danger");
       return;
     }
@@ -213,7 +229,7 @@ window.editarJunta = async function(id) {
 window.eliminarJunta = async function(id, nombre) {
   if (confirm("¿Eliminar a " + nombre + "?")) {
     try {
-      await deleteDoc(doc(db, "usuarios", id));
+      await db.collection("JuntasDeVecinos").doc(id).delete();
       showAlert("Junta eliminada.", "success");
       await cargarJuntas();
     } catch (error) {
