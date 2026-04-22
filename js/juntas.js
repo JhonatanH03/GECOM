@@ -86,6 +86,10 @@ window.addEventListener("DOMContentLoaded", async () => {
     passwordField.style.display = "block";
     clearModalAlert();
   });
+
+  modalElement.addEventListener("show.bs.modal", () => {
+    bloquearUbicacionAyuntamiento();
+  });
 });
 
 form.addEventListener("submit", async (event) => {
