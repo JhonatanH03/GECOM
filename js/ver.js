@@ -144,7 +144,7 @@ async function cargarDenuncias() {
 async function obtenerMunicipioAyuntamiento() {
   if (rol !== "ayuntamiento") return;
   try {
-    const userDoc = await getDoc(doc(db, "usuarios", uid));
+    const userDoc = await getDoc(doc(db, "Ayuntamientos", uid));
     if (userDoc.exists()) {
       ayuntamientoMunicipio = userDoc.data().municipio || null;
     }

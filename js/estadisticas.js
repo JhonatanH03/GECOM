@@ -18,9 +18,10 @@ let usuarios = {}; // uid -> email
 
 // Cargar usuarios
 async function cargarUsuarios() {
-  const snapshot = await getDocs(collection(db, "usuarios"));
+  const snapshot = await getDocs(collection(db, "JuntasDeVecinos"));
   snapshot.forEach(doc => {
-    usuarios[doc.id] = doc.data().email;
+    const data = doc.data();
+    usuarios[doc.id] = data.correo || data.email || doc.id;
   });
   // Llenar select de usuarios
   const select = document.getElementById("usuarioFiltro");
