@@ -231,7 +231,7 @@ window.login = async function () {
 
     mostrarExito("Inicio de sesión exitoso. Redirigiendo...");
     setTimeout(() => {
-      window.location.href = "dashboard.html";
+      window.location.href = "dashboard.html?v=3";
     }, 800);
   } catch (error) {
     console.error("ERROR LOGIN:", error);

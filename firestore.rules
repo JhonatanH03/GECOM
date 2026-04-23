@@ -1,0 +1,98 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/Administradores/$(request.auth.uid));
+    }
+
+    function isAyuntamiento() {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/Ayuntamientos/$(request.auth.uid));
+    }
+
+    function isJunta() {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/JuntasDeVecinos/$(request.auth.uid));
+    }
+
+    function ayuntamientoData() {
+      return get(/databases/$(database)/documents/Ayuntamientos/$(request.auth.uid)).data;
+    }
+
+    function isSameMunicipioAsAyuntamiento(data) {
+      return isAyuntamiento() &&
+        data.municipio == ayuntamientoData().municipio &&
+        data.provincia == ayuntamientoData().provincia;
+    }
+
+    match /Administradores/{adminId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
+    }
+
+    match /Ayuntamientos/{ayuntamientoId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
+    }
+
+    match /provincias/{provinciaId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /JuntasDeVecinos/{juntaId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
+    }
+
+    match /denuncias/{denunciaId} {
+      allow read: if isAdmin() ||
+        (isJunta() && resource.data.uid == request.auth.uid) ||
+        isSameMunicipioAsAyuntamiento(resource.data);
+
+      allow create: if isAdmin() ||
+        (
+          isJunta() &&
+          request.resource.data.uid == request.auth.uid
+        );
+
+      allow update: if isAdmin() ||
+        (
+          isJunta() &&
+          resource.data.uid == request.auth.uid
+        ) ||
+        (
+          isAyuntamiento() &&
+          isSameMunicipioAsAyuntamiento(resource.data) &&
+          request.resource.data.diff(resource.data).changedKeys().hasOnly([
+            "estado",
+            "plazo_estimado",
+            "presupuesto_estimado",
+            "respuesta_ayuntamiento",
+            "fecha_respuesta",
+            "ayuntamiento_id"
+          ]) &&
+          request.resource.data.ayuntamiento_id == request.auth.uid
+        );
+
+      allow delete: if isAdmin();
+    }
+
+    // Coleccion legacy para compatibilidad temporal.
+    match /usuarios/{userId} {
+      allow read: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
+      allow write: if isAdmin();
+    }
+
+    // Cualquier otra coleccion queda bloqueada por defecto.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

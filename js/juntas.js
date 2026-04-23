@@ -23,6 +23,28 @@ const modalTitle = document.getElementById("modalCrearJuntaLabel");
 const submitBtn = document.getElementById("submitBtn");
 const juntaIdInput = document.getElementById("juntaId");
 const passwordField = document.getElementById("passwordField");
+let provinciaAyuntamiento = null;
+let municipioAyuntamiento = null;
+
+function esMismaUbicacion(data) {
+  if (rolLocal !== "ayuntamiento") return true;
+  return (
+    (data.provincia || "") === (provinciaAyuntamiento || "") &&
+    (data.municipio || "") === (municipioAyuntamiento || "")
+  );
+}
+
+function bloquearUbicacionAyuntamiento() {
+  if (rolLocal !== "ayuntamiento" || !provinciaAyuntamiento || !municipioAyuntamiento) return;
+  const provinciaSelect = document.getElementById("provincia");
+  const municipioSelect = document.getElementById("municipio");
+  if (!provinciaSelect || !municipioSelect) return;
+
+  provinciaSelect.innerHTML = `<option value="${provinciaAyuntamiento}" selected>${provinciaAyuntamiento}</option>`;
+  municipioSelect.innerHTML = `<option value="${municipioAyuntamiento}" selected>${municipioAyuntamiento}</option>`;
+  provinciaSelect.disabled = true;
+  municipioSelect.disabled = true;
+}
 
 window.addEventListener("DOMContentLoaded", async () => {
   if (!uid || !rolLocal) {
@@ -44,6 +66,12 @@ window.addEventListener("DOMContentLoaded", async () => {
       window.location.href = "dashboard.html";
       return;
     }
+    if (rolLocal === "ayuntamiento") {
+      const data = usuarioDoc.data() || {};
+      provinciaAyuntamiento = data.provincia || null;
+      municipioAyuntamiento = data.municipio || null;
+      bloquearUbicacionAyuntamiento();
+    }
     await cargarJuntas();
   } catch (error) {
     console.error("Error al validar acceso:", error);
@@ -58,6 +86,10 @@ window.addEventListener("DOMContentLoaded", async () => {
     passwordField.style.display = "block";
     clearModalAlert();
   });
+
+  modalElement.addEventListener("show.bs.modal", () => {
+    bloquearUbicacionAyuntamiento();
+  });
 });
 
 form.addEventListener("submit", async (event) => {
@@ -71,10 +103,12 @@ form.addEventListener("submit", async (event) => {
   const comunidad = document.getElementById("comunidad").value.trim();
   const provincia = document.getElementById("provincia").value;
   const municipio = document.getElementById("municipio").value;
+  const provinciaFinal = rolLocal === "ayuntamiento" ? (provinciaAyuntamiento || "") : provincia;
+  const municipioFinal = rolLocal === "ayuntamiento" ? (municipioAyuntamiento || "") : municipio;
   const cedula = document.getElementById("cedula").value.trim();
   const contrasena = document.getElementById("contrasena").value;
   
-  if (!nombre || !correo || !telefono || !comunidad || !provincia || !municipio || (!juntaId && !contrasena)) {
+  if (!nombre || !correo || !telefono || !comunidad || !provinciaFinal || !municipioFinal || (!juntaId && !contrasena)) {
     showModalAlert("Todos los campos son obligatorios.", "danger");
     return;
   }
@@ -98,8 +132,8 @@ form.addEventListener("submit", async (event) => {
         correo,
         telefono,
         comunidad,
-        provincia,
-        municipio,
+        provincia: provinciaFinal,
+        municipio: municipioFinal,
         cedula
       };
       await db.collection("JuntasDeVecinos").doc(juntaId).set(juntaData, { merge: true });
@@ -115,8 +149,8 @@ form.addEventListener("submit", async (event) => {
         rol: "junta",
         telefono,
         comunidad,
-        provincia,
-        municipio,
+        provincia: provinciaFinal,
+        municipio: municipioFinal,
         cedula,
         estado: true,
         fecha_creacion: firebase.firestore.FieldValue.serverTimestamp(),
@@ -155,6 +189,7 @@ async function cargarJuntas() {
     const juntas = [];
     snapshot.forEach((docSnap) => {
       const data = docSnap.data();
+      if (!esMismaUbicacion(data)) return;
       data.id = docSnap.id;
       juntas.push(data);
     });
@@ -203,6 +238,10 @@ window.editarJunta = async function(id) {
     }
     
     const data = docSnap.data();
+    if (!esMismaUbicacion(data)) {
+      showAlert("No puedes editar juntas fuera de tu municipio.", "danger");
+      return;
+    }
     juntaIdInput.value = id;
     document.getElementById("nombre").value = data.nombre || "";
     document.getElementById("correo").value = data.correo || "";
@@ -229,6 +268,15 @@ window.editarJunta = async function(id) {
 window.eliminarJunta = async function(id, nombre) {
   if (confirm("¿Eliminar a " + nombre + "?")) {
     try {
+      const docSnap = await db.collection("JuntasDeVecinos").doc(id).get();
+      if (!docSnap.exists) {
+        showAlert("Junta no encontrada.", "danger");
+        return;
+      }
+      if (!esMismaUbicacion(docSnap.data())) {
+        showAlert("No puedes eliminar juntas fuera de tu municipio.", "danger");
+        return;
+      }
       await db.collection("JuntasDeVecinos").doc(id).delete();
       showAlert("Junta eliminada.", "success");
       await cargarJuntas();

@@ -1,3 +1,14 @@
+/* Ocultar todas las tarjetas del dashboard por defecto */
+#cardCrearDenuncia,
+#cardJunta,
+#cardAdmin,
+#cardAyunt,
+#cardAdminAyunt,
+#cardAdminUsuarios,
+#cardCrearDenunciaAyunt,
+#cardVerDenuncias {
+  display: none !important;
+}
 /* Animación de entrada para el mensaje de error */
 @keyframes slideIn {
   from {
