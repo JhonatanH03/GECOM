@@ -93,37 +93,6 @@
 </div>
 
 <script type="module" src="js/denuncias.js"></script>
-<script>
-// Lógica para selects dependientes
-const provincias = {};
-
-const distritos = {};
-
-document.getElementById("provincia").addEventListener("change", function() {
-  const provincia = this.value;
-  const municipiosSelect = document.getElementById("municipio");
-  municipiosSelect.innerHTML = `<option value="" selected>Seleccionar municipio</option>`;
-  if (provincias[provincia]) {
-    provincias[provincia].forEach(municipio => {
-      municipiosSelect.innerHTML += `<option value="${municipio}">${municipio}</option>`;
-    });
-  }
-});
-
-document.getElementById("municipio").addEventListener("change", function() {
-  const municipio = this.value;
-  const distritosSelect = document.getElementById("distrito_municipal");
-  distritosSelect.innerHTML = `<option value="" selected>Seleccionar distrito</option>`;
-  // Simplificar: usar el mismo valor o agregar lógica
-  distritosSelect.innerHTML += `<option value="${municipio}">${municipio}</option>`;
-});
-
-// Manejar el submit del form
-document.getElementById("formDenuncia").addEventListener("submit", function(event) {
-  event.preventDefault();
-  crearDenuncia();
-});
-</script>
 
 </body>
 </html>
