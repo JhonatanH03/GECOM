@@ -32,13 +32,13 @@ service cloud.firestore {
     }
 
     match /Administradores/{adminId} {
-      allow read: if isAdmin() || (isSignedIn() && request.auth.uid == adminId);
-      allow write: if isAdmin();
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
     }
 
     match /Ayuntamientos/{ayuntamientoId} {
-      allow read: if isAdmin() || (isSignedIn() && request.auth.uid == ayuntamientoId);
-      allow create, update, delete: if isAdmin();
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
     }
 
     match /provincias/{provinciaId} {
@@ -47,35 +47,8 @@ service cloud.firestore {
     }
 
     match /JuntasDeVecinos/{juntaId} {
-      allow read: if isAdmin() ||
-        (isSignedIn() && request.auth.uid == juntaId) ||
-        (isAyuntamiento() && resource.data.creada_por == request.auth.uid);
-
-      allow create: if isAdmin() ||
-        (
-          isAyuntamiento() &&
-          request.resource.data.rol == "junta" &&
-          request.resource.data.creada_por == request.auth.uid &&
-          isSameMunicipioAsAyuntamiento(request.resource.data)
-        );
-
-      allow update: if isAdmin() ||
-        (
-          isAyuntamiento() &&
-          resource.data.creada_por == request.auth.uid &&
-          request.resource.data.creada_por == resource.data.creada_por &&
-          request.resource.data.rol == resource.data.rol &&
-          isSameMunicipioAsAyuntamiento(resource.data) &&
-          isSameMunicipioAsAyuntamiento(request.resource.data)
-        ) ||
-        (isSignedIn() && request.auth.uid == juntaId);
-
-      allow delete: if isAdmin() ||
-        (
-          isAyuntamiento() &&
-          resource.data.creada_por == request.auth.uid &&
-          isSameMunicipioAsAyuntamiento(resource.data)
-        );
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
     }
 
     match /denuncias/{denunciaId} {
