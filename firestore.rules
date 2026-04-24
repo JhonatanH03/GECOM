@@ -27,8 +27,7 @@ service cloud.firestore {
 
     function isSameMunicipioAsAyuntamiento(data) {
       return isAyuntamiento() &&
-        data.municipio == ayuntamientoData().municipio &&
-        data.provincia == ayuntamientoData().provincia;
+        data.municipio == ayuntamientoData().municipio;
     }
 
     match /Administradores/{adminId} {

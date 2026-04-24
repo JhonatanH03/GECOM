@@ -9,21 +9,45 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 import {
-  getStorage,
-  ref,
-  uploadBytes,
-  getDownloadURL
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
-
-import {
   getAuth
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
+import {
+  CLOUDINARY_CLOUD_NAME,
+  CLOUDINARY_UPLOAD_PRESET
+} from "./cloudinary.js";
+
 const db = getFirestore(app);
-const storage = getStorage(app);
 const auth = getAuth(app);
 const rol = localStorage.getItem("rol");
 let perfilUsuario = null;
+
+async function subirEvidenciaACloudinary(archivo, uid) {
+  if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_UPLOAD_PRESET) {
+    throw new Error(
+      "Cloudinary no esta configurado. Define CLOUDINARY_CLOUD_NAME y CLOUDINARY_UPLOAD_PRESET en js/cloudinary.js"
+    );
+  }
+
+  const endpoint = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
+  const formData = new FormData();
+  formData.append("file", archivo);
+  formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
+  formData.append("folder", `evidencias/${uid}`);
+
+  const response = await fetch(endpoint, {
+    method: "POST",
+    body: formData
+  });
+
+  const data = await response.json();
+  if (!response.ok || !data.secure_url) {
+    const mensaje = data?.error?.message || "No se pudo subir la evidencia a Cloudinary.";
+    throw new Error(mensaje);
+  }
+
+  return data.secure_url;
+}
 
 function mostrarMensajeFormulario(mensaje, tipo = "danger") {
   const msg = document.getElementById("msg");
@@ -80,6 +104,10 @@ function setSelectValue(selectId, value, placeholder) {
 
 async function cargarUbicacionDesdePerfil() {
   const uid = localStorage.getItem("uid");
+  const rolLocal = localStorage.getItem("rol");
+
+  console.log("[GECOM] uid:", uid, "| rol:", rolLocal);
+
   if (!uid) {
     habilitarEnvioFormulario(false);
     mostrarMensajeFormulario("No hay una sesión activa. Inicia sesión para registrar denuncias.");
@@ -88,6 +116,9 @@ async function cargarUbicacionDesdePerfil() {
 
   try {
     perfilUsuario = await obtenerPerfilUsuario(uid);
+
+    console.log("[GECOM] perfilUsuario:", perfilUsuario);
+
     if (!perfilUsuario) {
       habilitarEnvioFormulario(false);
       mostrarMensajeFormulario("No se encontró tu perfil en la base de datos. Contacta al administrador.");
@@ -96,19 +127,17 @@ async function cargarUbicacionDesdePerfil() {
 
     const provinciaPerfil = (perfilUsuario.provincia || "").trim();
     const municipioPerfil = (perfilUsuario.municipio || "").trim();
-    const distritoPerfil = (perfilUsuario.distrito_municipal || municipioPerfil || "").trim();
+    const comunidadPerfil = (perfilUsuario.comunidad || "").trim();
+
+    console.log("[GECOM] provincia:", provinciaPerfil, "| municipio:", municipioPerfil, "| comunidad:", comunidadPerfil);
 
     setSelectValue("provincia", provinciaPerfil, "Seleccionar provincia");
     setSelectValue("municipio", municipioPerfil, "Seleccionar municipio");
-    setSelectValue(
-      "distrito_municipal",
-      distritoPerfil,
-      "Seleccionar distrito"
-    );
 
     const sectorInput = document.getElementById("sector");
-    if (sectorInput && !sectorInput.value && perfilUsuario.sector) {
-      sectorInput.value = perfilUsuario.sector;
+    if (sectorInput) {
+      sectorInput.value = comunidadPerfil;
+      sectorInput.readOnly = true;
     }
 
     if (!provinciaPerfil || !municipioPerfil) {
@@ -137,25 +166,38 @@ window.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  cargarUbicacionDesdePerfil();
+  auth.onAuthStateChanged((user) => {
+    if (user && user.uid === localStorage.getItem("uid")) {
+      cargarUbicacionDesdePerfil();
+    } else {
+      habilitarEnvioFormulario(false);
+      mostrarMensajeFormulario("No hay una sesión activa. Inicia sesión para registrar denuncias.");
+    }
+  });
 });
 
 // CREAR DENUNCIA
 window.crearDenuncia = async function () {
   try {
     const titulo = document.getElementById("titulo").value.trim();
-    const tipo = document.getElementById("tipo").value;
+    const tipoSelect = document.getElementById("tipo").value;
+    const tipoOtro = document.getElementById("tipo_otro")?.value.trim();
+    const tipo = tipoSelect === "Otro" ? tipoOtro : tipoSelect;
     const descripcion = document.getElementById("descripcion").value.trim();
     const provincia = document.getElementById("provincia").value;
     const municipio = document.getElementById("municipio").value;
-    const distrito_municipal = document.getElementById("distrito_municipal").value;
     const sector = document.getElementById("sector").value.trim();
     const fecha_incidente = document.getElementById("fecha_incidente").value;
     const evidenciaFile = document.getElementById("evidencia").files[0];
 
     // Validar campos obligatorios
-    if (!titulo || !tipo || !descripcion || !provincia || !municipio || !distrito_municipal || !sector) {
+    if (!titulo || !tipo || !descripcion || !provincia || !municipio || !sector) {
       alert("Todos los campos son obligatorios.");
+      return;
+    }
+
+    if (document.getElementById("tipo").value === "Otro" && !tipo) {
+      alert("Por favor especifica el tipo de denuncia.");
       return;
     }
 
@@ -200,13 +242,16 @@ window.crearDenuncia = async function () {
     let evidenciaURL = "";
     if (evidenciaFile) {
       try {
-        const storageRef = ref(storage, `evidencias/${uid}/${Date.now()}_${evidenciaFile.name}`);
-        await uploadBytes(storageRef, evidenciaFile);
-        evidenciaURL = await getDownloadURL(storageRef);
+        evidenciaURL = await subirEvidenciaACloudinary(evidenciaFile, uid);
       } catch (uploadError) {
         console.error("Error en carga de archivo:", uploadError);
-        alert("Error al cargar la evidencia: " + uploadError.message + "\nAsegúrate de estar autenticado");
-        return;
+        const continuarSinEvidencia = window.confirm(
+          "No se pudo subir la imagen a Cloudinary. ¿Deseas guardar la denuncia sin evidencia?"
+        );
+        if (!continuarSinEvidencia) {
+          alert("Error al cargar la evidencia: " + uploadError.message);
+          return;
+        }
       }
     }
 
@@ -217,7 +262,6 @@ window.crearDenuncia = async function () {
       descripcion,
       provincia,
       municipio,
-      distrito_municipal,
       sector,
       fecha_incidente: fecha_incidente ? new Date(fecha_incidente) : null,
       evidencia: evidenciaURL,
@@ -231,6 +275,11 @@ window.crearDenuncia = async function () {
 
     alert("Denuncia creada correctamente");
     document.getElementById("formDenuncia").reset();
+    const campoTipoOtro = document.getElementById("tipo_otro");
+    if (campoTipoOtro) {
+      campoTipoOtro.classList.add("d-none");
+      campoTipoOtro.required = false;
+    }
     await cargarUbicacionDesdePerfil();
   } catch (error) {
     console.error("ERROR:", error.message);

@@ -38,6 +38,7 @@
             <option value="Servicios Públicos">Servicios Públicos</option>
             <option value="Otro">Otro</option>
           </select>
+          <input type="text" id="tipo_otro" class="form-control mt-2 d-none" placeholder="Especifica el tipo de denuncia" maxlength="100">
         </div>
       </div>
 
@@ -47,27 +48,21 @@
       </div>
 
       <div class="row g-3 mb-4">
-        <div class="col-md-3">
+        <div class="col-md-4">
           <label class="form-label fw-bold">Provincia</label>
           <select class="form-select" id="provincia" required>
             <option value="" selected>Seleccionar provincia</option>
           </select>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-4">
           <label class="form-label fw-bold">Municipio</label>
           <select class="form-select" id="municipio" required>
             <option value="" selected>Seleccionar municipio</option>
           </select>
         </div>
-        <div class="col-md-3">
-          <label class="form-label fw-bold">Distrito Municipal</label>
-          <select class="form-select" id="distrito_municipal" required>
-            <option value="" selected>Seleccionar distrito</option>
-          </select>
-        </div>
-        <div class="col-md-3">
-          <label class="form-label fw-bold">Sector</label>
-          <input type="text" id="sector" class="form-control" required>
+        <div class="col-md-4">
+          <label class="form-label fw-bold">Comunidad</label>
+          <input type="text" id="sector" class="form-control" readonly required>
         </div>
       </div>
 
@@ -93,6 +88,19 @@
 </div>
 
 <script type="module" src="js/denuncias.js"></script>
+<script>
+  document.getElementById("tipo").addEventListener("change", function () {
+    const tipoOtro = document.getElementById("tipo_otro");
+    if (this.value === "Otro") {
+      tipoOtro.classList.remove("d-none");
+      tipoOtro.required = true;
+    } else {
+      tipoOtro.classList.add("d-none");
+      tipoOtro.required = false;
+      tipoOtro.value = "";
+    }
+  });
+</script>
 
 </body>
 </html>
