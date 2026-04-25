@@ -25,6 +25,64 @@ const juntaIdInput = document.getElementById("juntaId");
 const passwordField = document.getElementById("passwordField");
 let provinciaAyuntamiento = null;
 let municipioAyuntamiento = null;
+const municipiosSelect = document.getElementById("municipio");
+const provinciaSelect = document.getElementById("provincia");
+
+async function cargarMunicipiosDesdeFirestore(provincia, municipioSeleccionado = "") {
+  if (!municipiosSelect) return;
+
+  municipiosSelect.innerHTML = '<option value="" selected>Cargando municipios...</option>';
+
+  if (!provincia) {
+    municipiosSelect.innerHTML = '<option value="" selected>Seleccionar municipio</option>';
+    return;
+  }
+
+  try {
+    let municipios = [];
+
+    const docSnap = await db.collection("provincias").doc(provincia).get();
+    if (docSnap.exists) {
+      const data = docSnap.data() || {};
+      if (Array.isArray(data.municipios)) {
+        municipios = data.municipios;
+      }
+    }
+
+    if (municipios.length === 0) {
+      const querySnap = await db.collection("provincias").where("nombre", "==", provincia).limit(1).get();
+      if (!querySnap.empty) {
+        const data = querySnap.docs[0].data() || {};
+        if (Array.isArray(data.municipios)) {
+          municipios = data.municipios;
+        }
+      }
+    }
+
+    municipiosSelect.innerHTML = '<option value="" selected>Seleccionar municipio</option>';
+
+    municipios.forEach((municipio) => {
+      const opt = document.createElement("option");
+      opt.value = municipio;
+      opt.textContent = municipio;
+      municipiosSelect.appendChild(opt);
+    });
+
+    if (municipioSeleccionado) {
+      const existe = municipios.some((m) => m === municipioSeleccionado);
+      if (!existe) {
+        const opt = document.createElement("option");
+        opt.value = municipioSeleccionado;
+        opt.textContent = municipioSeleccionado;
+        municipiosSelect.appendChild(opt);
+      }
+      municipiosSelect.value = municipioSeleccionado;
+    }
+  } catch (error) {
+    console.error("Error al cargar municipios desde Firestore:", error);
+    municipiosSelect.innerHTML = '<option value="" selected>Error al cargar municipios</option>';
+  }
+}
 
 function esMismaUbicacion(data) {
   if (rolLocal !== "ayuntamiento") return true;
@@ -34,16 +92,15 @@ function esMismaUbicacion(data) {
   );
 }
 
-function bloquearUbicacionAyuntamiento() {
+async function bloquearUbicacionAyuntamiento() {
   if (rolLocal !== "ayuntamiento" || !provinciaAyuntamiento || !municipioAyuntamiento) return;
-  const provinciaSelect = document.getElementById("provincia");
-  const municipioSelect = document.getElementById("municipio");
-  if (!provinciaSelect || !municipioSelect) return;
+  if (!provinciaSelect || !municipiosSelect) return;
 
   provinciaSelect.innerHTML = `<option value="${provinciaAyuntamiento}" selected>${provinciaAyuntamiento}</option>`;
-  municipioSelect.innerHTML = `<option value="${municipioAyuntamiento}" selected>${municipioAyuntamiento}</option>`;
   provinciaSelect.disabled = true;
-  municipioSelect.disabled = true;
+
+  await cargarMunicipiosDesdeFirestore(provinciaAyuntamiento, municipioAyuntamiento);
+  municipiosSelect.disabled = true;
 }
 
 window.addEventListener("DOMContentLoaded", async () => {
@@ -70,7 +127,7 @@ window.addEventListener("DOMContentLoaded", async () => {
       const data = usuarioDoc.data() || {};
       provinciaAyuntamiento = data.provincia || null;
       municipioAyuntamiento = data.municipio || null;
-      bloquearUbicacionAyuntamiento();
+      await bloquearUbicacionAyuntamiento();
     }
     await cargarJuntas();
   } catch (error) {
@@ -87,8 +144,12 @@ window.addEventListener("DOMContentLoaded", async () => {
     clearModalAlert();
   });
 
-  modalElement.addEventListener("show.bs.modal", () => {
-    bloquearUbicacionAyuntamiento();
+  modalElement.addEventListener("show.bs.modal", async () => {
+    if (rolLocal === "ayuntamiento") {
+      await bloquearUbicacionAyuntamiento();
+      return;
+    }
+    await cargarMunicipiosDesdeFirestore(provinciaSelect ? provinciaSelect.value : "");
   });
 });
 
@@ -248,12 +309,10 @@ window.editarJunta = async function(id) {
     document.getElementById("telefono").value = data.telefono || "";
     document.getElementById("comunidad").value = data.comunidad || "";
     document.getElementById("cedula").value = data.cedula || "";
-    document.getElementById("provincia").value = data.provincia || "";
-    document.getElementById("provincia").dispatchEvent(new Event("change"));
-    
-    setTimeout(() => {
-      document.getElementById("municipio").value = data.municipio || "";
-    }, 100);
+    if (provinciaSelect) {
+      provinciaSelect.value = data.provincia || "";
+      await cargarMunicipiosDesdeFirestore(data.provincia || "", data.municipio || "");
+    }
     
     modalTitle.textContent = "Editar Junta de Vecinos";
     submitBtn.textContent = "Actualizar";
@@ -326,35 +385,9 @@ if (telefonoInput) {
   });
 }
 
-const provincias = {
-  "Santo Domingo": ["Santo Domingo Este", "Santo Domingo Norte", "Santo Domingo Oeste", "Boca Chica"],
-  "Santiago": ["Santiago", "Licey al Medio", "Bonao"],
-  "La Vega": ["La Vega", "Constanza"],
-  "Puerto Plata": ["Puerto Plata", "Sosúa"],
-  "San Cristóbal": ["San Cristóbal", "Baní"],
-  "San Pedro de Macorís": ["San Pedro de Macorís", "Consuelo"],
-  "La Romana": ["La Romana", "Villa Hermosa"],
-  "Bonao": ["Bonao"],
-  "Higüey": ["Higüey"],
-  "Barahona": ["Barahona"]
-};
-
-const municipiosSelect = document.getElementById("municipio");
-const provinciaSelect = document.getElementById("provincia");
-
 if (provinciaSelect) {
-  provinciaSelect.addEventListener("change", () => {
-    const prov = provinciaSelect.value;
-    const munis = provincias[prov] || [];
-    
-    if (municipiosSelect) {
-      municipiosSelect.innerHTML = "";
-      munis.forEach(m => {
-        const opt = document.createElement("option");
-        opt.value = m;
-        opt.textContent = m;
-        municipiosSelect.appendChild(opt);
-      });
-    }
+  provinciaSelect.addEventListener("change", async () => {
+    if (rolLocal === "ayuntamiento") return;
+    await cargarMunicipiosDesdeFirestore(provinciaSelect.value);
   });
 }

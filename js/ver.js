@@ -9,8 +9,13 @@ import {
   getDoc,
   updateDoc
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import {
+  getAuth,
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 const db = getFirestore(app);
+const auth = getAuth(app);
 const rol = localStorage.getItem("rol");
 const uid = localStorage.getItem("uid");
 let ayuntamientoMunicipio = null;
@@ -62,11 +67,22 @@ function mostrarDetalleDenuncia(data, id) {
 
   if (data.evidencia) {
     evidenciaContainer.innerHTML = `
-      <a href="${escapeHtml(data.evidencia)}" target="_blank" class="d-block mb-2">Ver evidencia</a>
-      <img src="${escapeHtml(data.evidencia)}" alt="Evidencia" class="img-fluid rounded shadow-sm" />
+      <img
+        src="${escapeHtml(data.evidencia)}"
+        alt="Evidencia de la denuncia"
+        class="img-fluid rounded shadow-sm mb-2"
+        style="max-height:320px; object-fit:contain; cursor:pointer;"
+        onclick="window.open('${escapeHtml(data.evidencia)}', '_blank')"
+        title="Clic para ver en tamaño completo"
+      />
+      <div>
+        <a href="${escapeHtml(data.evidencia)}" target="_blank" class="btn btn-sm btn-outline-primary mt-1">
+          Ver imagen completa
+        </a>
+      </div>
     `;
   } else {
-    evidenciaContainer.textContent = "No hay evidencia disponible.";
+    evidenciaContainer.innerHTML = `<p class="text-muted">No hay evidencia disponible.</p>`;
   }
 
   const responseSection = document.getElementById("ayuntamientoResponseSection");
@@ -103,23 +119,33 @@ async function cargarDenuncias() {
     const filtro = document.getElementById("filtroEstado").value;
     let q;
 
+    console.log("[GECOM ver] rol:", rol, "| uid:", uid, "| municipio ayuntamiento:", ayuntamientoMunicipio);
+
     if (rol === "admin") {
       q = collection(db, "denuncias");
     } else if (rol === "junta") {
       q = query(collection(db, "denuncias"), where("uid", "==", uid));
-    } else if (rol === "ayuntamiento" && ayuntamientoMunicipio) {
-      q = query(collection(db, "denuncias"), where("municipio", "==", ayuntamientoMunicipio));
+    } else if (rol === "ayuntamiento") {
+      if (ayuntamientoMunicipio) {
+        q = query(collection(db, "denuncias"), where("municipio", "==", ayuntamientoMunicipio));
+      } else {
+        q = collection(db, "denuncias");
+      }
     } else {
-      q = collection(db, "denuncias");
+      q = query(collection(db, "denuncias"), where("uid", "==", uid));
     }
 
     const querySnapshot = await getDocs(q);
+    console.log("[GECOM ver] total denuncias obtenidas:", querySnapshot.size);
+
     const tabla = document.getElementById("tablaDenuncias");
     tabla.innerHTML = "";
 
+    let count = 0;
     querySnapshot.forEach((docSnap) => {
       const data = docSnap.data();
       if (filtro !== "Todos" && data.estado !== filtro) return;
+      count++;
 
       const fila = document.createElement("tr");
       fila.innerHTML = `
@@ -133,20 +159,30 @@ async function cargarDenuncias() {
       tabla.appendChild(fila);
     });
 
+    if (count === 0) {
+      tabla.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-3">No hay denuncias para mostrar.</td></tr>`;
+    }
+
     document.querySelectorAll(".ver-btn").forEach((button) => {
       button.addEventListener("click", () => abrirDetalleDenuncia(button.dataset.id));
     });
   } catch (error) {
     console.error("Error cargando denuncias:", error);
+    const tabla = document.getElementById("tablaDenuncias");
+    tabla.innerHTML = `<tr><td colspan="6" class="text-center text-danger py-3">Error al cargar denuncias: ${escapeHtml(error.message)}</td></tr>`;
   }
 }
 
 async function obtenerMunicipioAyuntamiento() {
   if (rol !== "ayuntamiento") return;
   try {
-    const userDoc = await getDoc(doc(db, "Ayuntamientos", uid));
-    if (userDoc.exists()) {
-      ayuntamientoMunicipio = userDoc.data().municipio || null;
+    const colecciones = ["Ayuntamientos", "usuarios"];
+    for (const col of colecciones) {
+      const userDoc = await getDoc(doc(db, col, uid));
+      if (userDoc.exists()) {
+        ayuntamientoMunicipio = userDoc.data().municipio || null;
+        break;
+      }
     }
   } catch (error) {
     console.error("Error cargando datos del ayuntamiento:", error);
@@ -181,7 +217,16 @@ async function responderDenuncia(event) {
       ayuntamiento_id: uid
     });
     mostrarModalFeedback("Respuesta guardada correctamente.", "success");
+    detalleModal.hide();
     await cargarDenuncias();
+    const paginaFeedback = document.getElementById("paginaFeedback");
+    if (paginaFeedback) {
+      paginaFeedback.innerHTML = `<div class="alert alert-success alert-dismissible fade show" role="alert">
+        Respuesta guardada correctamente.
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+      </div>`;
+      setTimeout(() => { paginaFeedback.innerHTML = ""; }, 4000);
+    }
   } catch (error) {
     console.error("Error guardando respuesta:", error);
     mostrarModalFeedback("No se pudo guardar la respuesta. Intenta nuevamente.", "danger");
@@ -204,4 +249,12 @@ async function init() {
   document.getElementById("detalleForm").addEventListener("submit", responderDenuncia);
 }
 
-window.addEventListener("DOMContentLoaded", init);
+window.addEventListener("DOMContentLoaded", () => {
+  onAuthStateChanged(auth, (user) => {
+    if (user && user.uid === uid) {
+      init();
+    } else {
+      window.location.href = "index.html";
+    }
+  });
+});
