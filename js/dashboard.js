@@ -18,11 +18,11 @@ if (!uid || !rolLocal) {
   if (rolLocal === "admin") {
     document.getElementById("cardAdmin").style.display = "block";
     document.getElementById("cardAdminAyunt").style.display = "block";
+    document.getElementById("cardAdminUsuarios").style.display = "block";
   }
 
   if (rolLocal === "junta") {
     document.getElementById("cardCrearDenuncia").style.display = "block";
-    document.getElementById("cardJunta").style.display = "block";
   }
 
   if (rolLocal === "ayuntamiento") {

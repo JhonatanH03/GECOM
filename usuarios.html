@@ -13,7 +13,7 @@
   <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
       <h2>Gestión de Usuarios</h2>
-      <p class="mb-0 text-muted">Solo los Ayuntamientos pueden crear, editar o eliminar Juntas de Vecinos.</p>
+      <p class="mb-0 text-muted">Los Administradores pueden crear, editar o eliminar todas las Juntas de Vecinos.</p>
     </div>
     <div>
       <button class="btn btn-secondary me-2" onclick="window.location.href='dashboard.html'">Volver</button>
@@ -80,6 +80,10 @@
             <div class="col-md-6">
               <label class="form-label">Nombre del encargado</label>
               <input type="text" class="form-control" id="nombreEncargado" name="nombreEncargado" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Cédula del encargado</label>
+              <input type="text" class="form-control" id="cedula" name="cedula" maxlength="13" required>
             </div>
             <div class="col-md-6">
               <label class="form-label">Provincia</label>

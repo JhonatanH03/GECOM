@@ -20,6 +20,7 @@ import {
 const db = getFirestore(app);
 const auth = getAuth(app);
 const rol = localStorage.getItem("rol");
+const provinciasMap = {};
 let perfilUsuario = null;
 
 async function subirEvidenciaACloudinary(archivo, uid) {
@@ -158,12 +159,24 @@ async function cargarUbicacionDesdePerfil() {
 }
 
 window.addEventListener("DOMContentLoaded", () => {
+  cargarUbicaciones();
+
   const formDenuncia = document.getElementById("formDenuncia");
   if (formDenuncia) {
     formDenuncia.addEventListener("submit", (event) => {
       event.preventDefault();
       window.crearDenuncia();
     });
+  }
+
+  const provinciaSelect = document.getElementById("provincia");
+  if (provinciaSelect) {
+    provinciaSelect.addEventListener("change", actualizarMunicipios);
+  }
+
+  const municipioSelect = document.getElementById("municipio");
+  if (municipioSelect) {
+    municipioSelect.addEventListener("change", actualizarDistritos);
   }
 
   auth.onAuthStateChanged((user) => {
@@ -237,7 +250,7 @@ window.crearDenuncia = async function () {
       return;
     }
 
-    const comunidad = perfilUsuario?.comunidad || perfilUsuario?.institucion || perfilUsuario?.nombreJunta || "Sin comunidad";
+    const comunidad = perfilUsuario?.comunidad || perfilUsuario?.sector || perfilUsuario?.institucion || perfilUsuario?.nombreJunta || sector || "Sin comunidad";
 
     let evidenciaURL = "";
     if (evidenciaFile) {
@@ -286,3 +299,51 @@ window.crearDenuncia = async function () {
     alert("Error al crear denuncia: " + error.message);
   }
 };
+
+async function cargarUbicaciones() {
+  const response = await fetch("js/provincias.json");
+  const provincias = await response.json();
+  const provinciaSelect = document.getElementById("provincia");
+  provinciaSelect.innerHTML = '<option value="" selected>Seleccionar provincia</option>';
+
+  provincias.forEach((item) => {
+    provinciasMap[item.nombre] = item.municipios || [];
+    const option = document.createElement("option");
+    option.value = item.nombre;
+    option.textContent = item.nombre;
+    provinciaSelect.appendChild(option);
+  });
+}
+
+function actualizarMunicipios() {
+  const provincia = document.getElementById("provincia").value;
+  const municipioSelect = document.getElementById("municipio");
+  municipioSelect.innerHTML = '<option value="" selected>Seleccionar municipio</option>';
+
+  (provinciasMap[provincia] || []).forEach((municipio) => {
+    const option = document.createElement("option");
+    option.value = municipio;
+    option.textContent = municipio;
+    municipioSelect.appendChild(option);
+  });
+
+  actualizarDistritos();
+}
+
+function actualizarDistritos() {
+  const municipio = document.getElementById("municipio").value;
+  const distritoSelect = document.getElementById("distrito_municipal");
+  if (!distritoSelect) {
+    return;
+  }
+
+  distritoSelect.innerHTML = '<option value="" selected>Seleccionar distrito</option>';
+  if (!municipio) {
+    return;
+  }
+
+  const option = document.createElement("option");
+  option.value = municipio;
+  option.textContent = municipio;
+  distritoSelect.appendChild(option);
+}
