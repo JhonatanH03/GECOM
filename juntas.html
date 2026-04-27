@@ -37,6 +37,7 @@
           <thead class="table-light">
             <tr>
               <th>Nombre</th>
+              <th>Usuario</th>
               <th>Correo</th>
               <th>Teléfono</th>
               <th>Ubicación</th>
@@ -47,7 +48,7 @@
           </thead>
           <tbody id="juntasBody">
             <tr>
-              <td colspan="7" class="text-center py-5">Cargando juntas...</td>
+              <td colspan="8" class="text-center py-5">Cargando juntas...</td>
             </tr>
           </tbody>
         </table>
@@ -72,6 +73,10 @@
             <div class="col-md-6">
               <label class="form-label">Nombre de la Junta</label>
               <input type="text" class="form-control" id="nombre" name="nombre" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Usuario</label>
+              <input type="text" class="form-control" id="usuario" name="usuario" required>
             </div>
             <div class="col-md-6">
               <label class="form-label">Correo</label>
@@ -107,7 +112,7 @@
                 <option value="" selected>Seleccionar municipio</option>
               </select>
             </div>
-            <div class="col-md-12" id="passwordField">
+            <div class="col-md-12" id="passwordField" style="display:none">
               <label class="form-label">Contraseña</label>
               <input type="password" class="form-control" id="contrasena" name="contrasena">
               <small class="text-muted d-block mt-2">Requisitos de contraseña:</small>

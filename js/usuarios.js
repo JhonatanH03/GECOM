@@ -63,6 +63,7 @@ form.addEventListener("submit", async (event) => {
 
   const usuarioId = usuarioIdInput.value;
   const nombre = document.getElementById("nombre").value.trim();
+  const usuario = document.getElementById("usuario").value.trim();
   const correo = document.getElementById("correo").value.trim();
   const telefono = document.getElementById("telefono").value.trim();
   const nombreEncargado = document.getElementById("nombreEncargado").value.trim();
@@ -70,9 +71,8 @@ form.addEventListener("submit", async (event) => {
   const provincia = provinciaSelect.value;
   const municipio = municipioSelect.value;
   const sector = document.getElementById("sector").value.trim();
-  const contrasena = document.getElementById("contrasena").value;
 
-  if (!nombre || !correo || !telefono || !nombreEncargado || !cedula || !provincia || !municipio || !sector || (!usuarioId && !contrasena)) {
+  if (!nombre || !usuario || !correo || !telefono || !nombreEncargado || !cedula || !provincia || !municipio || !sector) {
     showModalAlert("Todos los campos son obligatorios.", "danger");
     return;
   }
@@ -87,13 +87,11 @@ form.addEventListener("submit", async (event) => {
     return;
   }
 
-  if (!usuarioId && !passwordValida(contrasena)) {
-    showModalAlert("La contraseña debe tener al menos 6 caracteres, una mayúscula, una minúscula y un número.", "danger");
-    return;
-  }
+  const usuarioNormalizado = usuario.toLowerCase();
 
   const usuarioData = {
     nombre,
+    usuario,
     correo,
     rol: "junta",
     telefono,
@@ -111,13 +109,28 @@ form.addEventListener("submit", async (event) => {
       await setDoc(doc(db, "JuntasDeVecinos", usuarioId), usuarioData, { merge: true });
       showAlert("Junta actualizada correctamente.", "success");
     } else {
-      const credential = await createUserWithEmailAndPassword(auth, correo, contrasena);
+      const snapshot = await getDocs(collection(db, "JuntasDeVecinos"));
+      const usuarioDuplicado = snapshot.docs.some((docSnap) => {
+        const data = docSnap.data() || {};
+        const rolDoc = (data.rol || "junta").toLowerCase();
+        const usuarioDoc = (data.usuario || "").toLowerCase();
+        return rolDoc === "junta" && usuarioDoc === usuarioNormalizado;
+      });
+      if (usuarioDuplicado) {
+        showModalAlert("Ya existe un usuario con ese nombre y ese rol.", "danger");
+        return;
+      }
+
+      // Crear nueva junta con contraseña genérica
+      const contrasenaGenerica = "Inicial123";
+      const credential = await createUserWithEmailAndPassword(auth, correo, contrasenaGenerica);
       const nuevoUid = credential.user.uid;
       await setDoc(doc(db, "JuntasDeVecinos", nuevoUid), {
         ...usuarioData,
-        fecha_creacion: serverTimestamp()
+        fecha_creacion: serverTimestamp(),
+        primerLogin: true
       });
-      showAlert("Junta creada correctamente.", "success");
+      showAlert(`Junta creada correctamente. Usuario: ${usuario}, Contraseña temporal: ${contrasenaGenerica}`, "success");
     }
 
     modal.hide();
@@ -180,6 +193,7 @@ async function cargarUsuarios() {
       const fila = document.createElement("tr");
       fila.innerHTML = `
         <td>${escapeHtml(data.nombre)}</td>
+        <td>${escapeHtml(data.usuario || "")}</td>
         <td>${escapeHtml(data.correo)}</td>
         <td>${escapeHtml(data.cedula)}</td>
         <td>${escapeHtml(data.telefono)}</td>
@@ -215,6 +229,7 @@ window.editarUsuario = async function editarUsuario(id) {
     const data = docSnap.data();
     usuarioIdInput.value = id;
     document.getElementById("nombre").value = data.nombre || "";
+    document.getElementById("usuario").value = data.usuario || "";
     document.getElementById("correo").value = data.correo || "";
     document.getElementById("telefono").value = data.telefono || "";
     document.getElementById("nombreEncargado").value = data.nombreEncargado || "";
