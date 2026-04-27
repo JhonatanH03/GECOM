@@ -22,6 +22,10 @@ let ayuntamientoMunicipio = null;
 let currentDenunciaId = null;
 const detalleModal = new bootstrap.Modal(document.getElementById("detalleModal"));
 
+const ITEMS_POR_PAGINA = 20;
+let todasLasDenuncias = [];
+let paginaActual = 1;
+
 function escapeHtml(value) {
   return String(value || "")
     .replace(/&/g, "&amp;")
@@ -114,9 +118,89 @@ async function abrirDetalleDenuncia(id) {
   }
 }
 
+function renderizarPagina() {
+  const tabla = document.getElementById("tablaDenuncias");
+  const filtro = document.getElementById("filtroEstado").value;
+
+  const filtradas = todasLasDenuncias.filter(({ data }) =>
+    filtro === "Todos" || data.estado === filtro
+  );
+
+  const totalPaginas = Math.max(1, Math.ceil(filtradas.length / ITEMS_POR_PAGINA));
+  if (paginaActual > totalPaginas) paginaActual = totalPaginas;
+
+  const inicio = (paginaActual - 1) * ITEMS_POR_PAGINA;
+  const pagina = filtradas.slice(inicio, inicio + ITEMS_POR_PAGINA);
+
+  tabla.innerHTML = "";
+
+  if (pagina.length === 0) {
+    tabla.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-3">No hay denuncias para mostrar.</td></tr>`;
+  } else {
+    pagina.forEach(({ id, data }) => {
+      const fila = document.createElement("tr");
+      fila.innerHTML = `
+        <td>${escapeHtml(data.titulo || "Sin título")}</td>
+        <td>${escapeHtml((data.descripcion || "Sin descripción").slice(0, 80))}${data.descripcion && data.descripcion.length > 80 ? "..." : ""}</td>
+        <td>${escapeHtml(data.comunidad || "Sin comunidad")}</td>
+        <td>${escapeHtml(data.estado || "Pendiente")}</td>
+        <td>${data.fecha ? new Date(data.fecha.seconds * 1000).toLocaleDateString() : "Sin fecha"}</td>
+        <td><button class="btn btn-sm btn-primary ver-btn" data-id="${id}">Ver</button></td>
+      `;
+      tabla.appendChild(fila);
+    });
+  }
+
+  document.querySelectorAll(".ver-btn").forEach((btn) => {
+    btn.addEventListener("click", () => abrirDetalleDenuncia(btn.dataset.id));
+  });
+
+  // Paginación
+  const container = document.getElementById("paginacionContainer");
+  const info = document.getElementById("paginacionInfo");
+  const controles = document.getElementById("paginacionControles");
+
+  if (filtradas.length <= ITEMS_POR_PAGINA) {
+    container.classList.add("d-none");
+    return;
+  }
+
+  container.classList.remove("d-none");
+  info.textContent = `Mostrando ${inicio + 1}–${Math.min(inicio + ITEMS_POR_PAGINA, filtradas.length)} de ${filtradas.length} denuncias`;
+
+  controles.innerHTML = "";
+
+  // Anterior
+  const liPrev = document.createElement("li");
+  liPrev.className = `page-item ${paginaActual === 1 ? "disabled" : ""}`;
+  liPrev.innerHTML = `<a class="page-link" href="#">«</a>`;
+  liPrev.addEventListener("click", (e) => { e.preventDefault(); if (paginaActual > 1) { paginaActual--; renderizarPagina(); } });
+  controles.appendChild(liPrev);
+
+  // Páginas numeradas (máximo 5 visibles)
+  const rango = 2;
+  const desde = Math.max(1, paginaActual - rango);
+  const hasta = Math.min(totalPaginas, paginaActual + rango);
+
+  for (let i = desde; i <= hasta; i++) {
+    const li = document.createElement("li");
+    li.className = `page-item ${i === paginaActual ? "active" : ""}`;
+    li.innerHTML = `<a class="page-link" href="#">${i}</a>`;
+    const pagNum = i;
+    li.addEventListener("click", (e) => { e.preventDefault(); paginaActual = pagNum; renderizarPagina(); });
+    controles.appendChild(li);
+  }
+
+  // Siguiente
+  const liNext = document.createElement("li");
+  liNext.className = `page-item ${paginaActual === totalPaginas ? "disabled" : ""}`;
+  liNext.innerHTML = `<a class="page-link" href="#">»</a>`;
+  liNext.addEventListener("click", (e) => { e.preventDefault(); if (paginaActual < totalPaginas) { paginaActual++; renderizarPagina(); } });
+  controles.appendChild(liNext);
+}
+
 async function cargarDenuncias() {
   try {
-    const filtro = document.getElementById("filtroEstado").value;
     let q;
 
     console.log("[GECOM ver] rol:", rol, "| uid:", uid, "| municipio ayuntamiento:", ayuntamientoMunicipio);
@@ -126,11 +210,9 @@ async function cargarDenuncias() {
     } else if (rol === "junta") {
       q = query(collection(db, "denuncias"), where("uid", "==", uid));
     } else if (rol === "ayuntamiento") {
-      if (ayuntamientoMunicipio) {
-        q = query(collection(db, "denuncias"), where("municipio", "==", ayuntamientoMunicipio));
-      } else {
-        q = collection(db, "denuncias");
-      }
+      q = ayuntamientoMunicipio
+        ? query(collection(db, "denuncias"), where("municipio", "==", ayuntamientoMunicipio))
+        : collection(db, "denuncias");
     } else {
       q = query(collection(db, "denuncias"), where("uid", "==", uid));
     }
@@ -138,34 +220,20 @@ async function cargarDenuncias() {
     const querySnapshot = await getDocs(q);
     console.log("[GECOM ver] total denuncias obtenidas:", querySnapshot.size);
 
-    const tabla = document.getElementById("tablaDenuncias");
-    tabla.innerHTML = "";
-
-    let count = 0;
+    todasLasDenuncias = [];
     querySnapshot.forEach((docSnap) => {
-      const data = docSnap.data();
-      if (filtro !== "Todos" && data.estado !== filtro) return;
-      count++;
-
-      const fila = document.createElement("tr");
-      fila.innerHTML = `
-        <td>${escapeHtml(data.titulo || "Sin título")}</td>
-        <td>${escapeHtml((data.descripcion || "Sin descripción").slice(0, 80))}${data.descripcion && data.descripcion.length > 80 ? "..." : ""}</td>
-        <td>${escapeHtml(data.comunidad || "Sin comunidad")}</td>
-        <td>${escapeHtml(data.estado || "Pendiente")}</td>
-        <td>${data.fecha ? new Date(data.fecha.seconds * 1000).toLocaleDateString() : "Sin fecha"}</td>
-        <td><button class="btn btn-sm btn-primary ver-btn" data-id="${docSnap.id}">Ver</button></td>
-      `;
-      tabla.appendChild(fila);
+      todasLasDenuncias.push({ id: docSnap.id, data: docSnap.data() });
     });
 
-    if (count === 0) {
-      tabla.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-3">No hay denuncias para mostrar.</td></tr>`;
-    }
-
-    document.querySelectorAll(".ver-btn").forEach((button) => {
-      button.addEventListener("click", () => abrirDetalleDenuncia(button.dataset.id));
+    // Ordenar por fecha desc
+    todasLasDenuncias.sort((a, b) => {
+      const fa = a.data.fecha?.seconds || 0;
+      const fb = b.data.fecha?.seconds || 0;
+      return fb - fa;
     });
+
+    paginaActual = 1;
+    renderizarPagina();
   } catch (error) {
     console.error("Error cargando denuncias:", error);
     const tabla = document.getElementById("tablaDenuncias");
@@ -245,7 +313,10 @@ async function init() {
   if (!validarSesion()) return;
   await obtenerMunicipioAyuntamiento();
   await cargarDenuncias();
-  document.getElementById("filtroEstado").addEventListener("change", cargarDenuncias);
+  document.getElementById("filtroEstado").addEventListener("change", () => {
+    paginaActual = 1;
+    renderizarPagina();
+  });
   document.getElementById("detalleForm").addEventListener("submit", responderDenuncia);
 }
 
