@@ -37,6 +37,7 @@
           <thead class="table-light">
             <tr>
               <th>Nombre</th>
+              <th>Usuario</th>
               <th>Correo</th>
               <th>Teléfono</th>
               <th>Dirección</th>
@@ -48,7 +49,7 @@
           </thead>
           <tbody id="ayuntamientosBody">
             <tr>
-              <td colspan="8" class="text-center py-5">Cargando ayuntamientos...</td>
+              <td colspan="9" class="text-center py-5">Cargando ayuntamientos...</td>
             </tr>
           </tbody>
         </table>
@@ -75,6 +76,10 @@
               <input type="text" class="form-control" id="nombre" name="nombre" required>
             </div>
             <div class="col-md-6">
+              <label class="form-label">Usuario</label>
+              <input type="text" class="form-control" id="usuario" name="usuario" required>
+            </div>
+            <div class="col-md-6">
               <label class="form-label">Correo</label>
               <input type="email" class="form-control" id="correo" name="correo" required>
             </div>
@@ -99,14 +104,9 @@
               </select>
             </div>
             <div class="col-md-12" id="passwordField">
-              <label class="form-label">Contraseña</label>
-              <input type="password" class="form-control" id="contrasena" name="contrasena">
-              <div id="passwordRequirements" class="mt-2 small">
-                <div id="reqLength" class="text-danger">✗ Al menos 6 caracteres</div>
-                <div id="reqUpper" class="text-danger">✗ Una letra mayúscula</div>
-                <div id="reqLower" class="text-danger">✗ Una letra minúscula</div>
-                <div id="reqNumber" class="text-danger">✗ Un número</div>
-              </div>
+              <label class="form-label">Contraseña Temporal</label>
+              <input type="text" class="form-control" id="contrasenaTemporal" value="Inicial123" readonly>
+              <small class="text-muted">Esta contraseña es de un solo uso. El ayuntamiento debe cambiarla al iniciar sesión por primera vez.</small>
             </div>
           </div>
         </div>

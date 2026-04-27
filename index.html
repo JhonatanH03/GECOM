@@ -42,8 +42,8 @@
 
 
 <div class="mb-3">
-  <label>Correo</label>
-  <input type="email" id="email" class="form-control">
+  <label>Usuario</label>
+  <input type="text" id="usuario" class="form-control">
 </div>
 
 <div class="mb-3">
@@ -69,6 +69,10 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
+        <div class="mb-3">
+          <label>Usuario</label>
+          <input type="text" id="reg_usuario" class="form-control">
+        </div>
         <div class="mb-3">
           <label>Correo</label>
           <input type="email" id="reg_email" class="form-control">
@@ -100,19 +104,17 @@
           </div>
         </div>
         <div id="reg_camposAyuntamiento" style="display:none">
-                </div>
-                <div id="reg_camposAdmin" style="display:none">
-                  <div class="mb-3">
-                    <label>Nombre del Administrador</label>
-                    <input type="text" id="reg_nombreAdmin" class="form-control">
-                  </div>
-                  <div class="mb-3">
-                    <label>Teléfono</label>
-                    <input type="text" id="reg_telefonoAdmin" class="form-control">
-                  </div>
           <div class="mb-3">
             <label>Nombre del Ayuntamiento</label>
             <input type="text" id="reg_nombreAyuntamiento" class="form-control">
+          </div>
+          <div class="mb-3">
+            <label>Teléfono</label>
+            <input type="text" id="reg_telefonoAyuntamiento" class="form-control">
+          </div>
+          <div class="mb-3">
+            <label>Dirección</label>
+            <input type="text" id="reg_direccionAyuntamiento" class="form-control">
           </div>
           <div class="mb-3">
             <label>Provincia</label>
@@ -121,6 +123,16 @@
           <div class="mb-3">
             <label>Municipio</label>
             <select id="reg_municipioAyuntamiento" class="form-control"></select>
+          </div>
+        </div>
+        <div id="reg_camposAdmin" style="display:none">
+          <div class="mb-3">
+            <label>Nombre del Administrador</label>
+            <input type="text" id="reg_nombreAdmin" class="form-control">
+          </div>
+          <div class="mb-3">
+            <label>Teléfono</label>
+            <input type="text" id="reg_telefonoAdmin" class="form-control">
           </div>
         </div>
       </div>

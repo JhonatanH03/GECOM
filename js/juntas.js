@@ -159,6 +159,7 @@ form.addEventListener("submit", async (event) => {
   
   const juntaId = juntaIdInput.value;
   const nombre = document.getElementById("nombre").value.trim();
+  const usuario = document.getElementById("usuario").value.trim();
   const correo = document.getElementById("correo").value.trim();
   const telefono = document.getElementById("telefono").value.trim();
   const comunidad = document.getElementById("comunidad").value.trim();
@@ -167,9 +168,8 @@ form.addEventListener("submit", async (event) => {
   const provinciaFinal = rolLocal === "ayuntamiento" ? (provinciaAyuntamiento || "") : provincia;
   const municipioFinal = rolLocal === "ayuntamiento" ? (municipioAyuntamiento || "") : municipio;
   const cedula = document.getElementById("cedula").value.trim();
-  const contrasena = document.getElementById("contrasena").value;
   
-  if (!nombre || !correo || !telefono || !comunidad || !provinciaFinal || !municipioFinal || (!juntaId && !contrasena)) {
+  if (!nombre || !usuario || !correo || !telefono || !comunidad || !provinciaFinal || !municipioFinal) {
     showModalAlert("Todos los campos son obligatorios.", "danger");
     return;
   }
@@ -179,15 +179,12 @@ form.addEventListener("submit", async (event) => {
     showModalAlert("El teléfono debe tener el formato 1-000-000-0000.", "danger");
     return;
   }
-  
-  if (!juntaId && contrasena.length < 6) {
-    showModalAlert("La contraseña debe tener al menos 6 caracteres.", "danger");
-    return;
-  }
+
+  const usuarioNormalizado = usuario.toLowerCase();
   
   try {
     if (juntaId) {
-      // Editar junta existente
+      // Editar junta existente - no cambiar usuario
       const juntaData = {
         nombre,
         correo,
@@ -200,12 +197,29 @@ form.addEventListener("submit", async (event) => {
       await db.collection("JuntasDeVecinos").doc(juntaId).set(juntaData, { merge: true });
       showAlert("Junta actualizada correctamente.", "success");
     } else {
-      // Crear nueva junta
-      const credential = await auth.createUserWithEmailAndPassword(correo, contrasena);
+      const existingSnap = await db.collection("JuntasDeVecinos").get();
+      const usuarioDuplicado = existingSnap.docs.some((docSnap) => {
+        const data = docSnap.data() || {};
+        const rolDoc = (data.rol || "junta").toLowerCase();
+        const usuarioDoc = (data.usuario || "").toLowerCase();
+        return rolDoc === "junta" && usuarioDoc === usuarioNormalizado;
+      });
+      if (usuarioDuplicado) {
+        showModalAlert("Ya existe un usuario con ese nombre y ese rol.", "danger");
+        return;
+      }
+
+      // Crear nueva junta con usuario y contraseña genérica
+      // Generar contraseña genérica: "Inicial123"
+      const contrasenaGenerica = "Inicial123";
+      
+      // Crear usuario en Firebase Auth
+      const credential = await auth.createUserWithEmailAndPassword(correo, contrasenaGenerica);
       const nuevoUid = credential.user.uid;
       
       const juntaData = {
         nombre,
+        usuario,
         correo,
         rol: "junta",
         telefono,
@@ -215,11 +229,12 @@ form.addEventListener("submit", async (event) => {
         cedula,
         estado: true,
         fecha_creacion: firebase.firestore.FieldValue.serverTimestamp(),
-        creada_por: uid
+        creada_por: uid,
+        primerLogin: true // Indica que es el primer login
       };
       
       await db.collection("JuntasDeVecinos").doc(nuevoUid).set(juntaData);
-      showAlert("Junta creada correctamente.", "success");
+      showAlert(`Junta creada correctamente. Usuario: ${usuario}, Contraseña temporal: ${contrasenaGenerica}`, "success");
     }
     
     form.reset();
@@ -230,6 +245,8 @@ form.addEventListener("submit", async (event) => {
     console.error("ERROR:", error);
     if (error.code === "auth/email-already-in-use") {
       showModalAlert("El correo ya está en uso.", "danger");
+    } else if (error.code === "auth/weak-password") {
+      showModalAlert("Error con la contraseña genérica. Contacta al administrador.", "danger");
     } else {
       showModalAlert(error.message || "Ocurrió un error.", "danger");
     }
@@ -261,6 +278,7 @@ async function cargarJuntas() {
       const label = data.estado ? "Activa" : "Inactiva";
       juntasBody.innerHTML += `<tr>
         <td>${escapeHtml(data.nombre)}</td>
+        <td>${escapeHtml(data.usuario || "")}</td>
         <td>${escapeHtml(data.correo)}</td>
         <td>${escapeHtml(data.telefono || "")}</td>
         <td>${escapeHtml((data.provincia || "") + " / " + (data.municipio || ""))}</td>
@@ -305,6 +323,7 @@ window.editarJunta = async function(id) {
     }
     juntaIdInput.value = id;
     document.getElementById("nombre").value = data.nombre || "";
+    document.getElementById("usuario").value = data.usuario || "";
     document.getElementById("correo").value = data.correo || "";
     document.getElementById("telefono").value = data.telefono || "";
     document.getElementById("comunidad").value = data.comunidad || "";

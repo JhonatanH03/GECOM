@@ -48,27 +48,6 @@ window.addEventListener("DOMContentLoaded", async () => {
     passwordField.style.display = "block";
     clearModalAlert();
   });
-
-  // Password validation
-  document.getElementById("contrasena").addEventListener("input", function() {
-    const password = this.value;
-    const reqLength = document.getElementById("reqLength");
-    const reqUpper = document.getElementById("reqUpper");
-    const reqLower = document.getElementById("reqLower");
-    const reqNumber = document.getElementById("reqNumber");
-
-    reqLength.className = password.length >= 6 ? "text-success" : "text-danger";
-    reqLength.innerHTML = (password.length >= 6 ? "✓" : "✗") + " Al menos 6 caracteres";
-
-    reqUpper.className = /[A-Z]/.test(password) ? "text-success" : "text-danger";
-    reqUpper.innerHTML = (/[A-Z]/.test(password) ? "✓" : "✗") + " Una letra mayúscula";
-
-    reqLower.className = /[a-z]/.test(password) ? "text-success" : "text-danger";
-    reqLower.innerHTML = (/[a-z]/.test(password) ? "✓" : "✗") + " Una letra minúscula";
-
-    reqNumber.className = /\d/.test(password) ? "text-success" : "text-danger";
-    reqNumber.innerHTML = (/\d/.test(password) ? "✓" : "✗") + " Un número";
-  });
 });
 
 form.addEventListener("submit", async (event) => {
@@ -77,14 +56,14 @@ form.addEventListener("submit", async (event) => {
   
   const ayuntamientoId = ayuntamientoIdInput.value;
   const nombre = document.getElementById("nombre").value.trim();
+  const usuario = document.getElementById("usuario").value.trim();
   const correo = document.getElementById("correo").value.trim();
   const telefono = document.getElementById("telefono").value.trim();
   const direccion = document.getElementById("direccion").value.trim();
   const provincia = document.getElementById("provincia").value;
   const municipio = document.getElementById("municipio").value;
-  const contrasena = document.getElementById("contrasena").value;
   
-  if (!nombre || !correo || !telefono || !direccion || !provincia || !municipio || (!ayuntamientoId && !contrasena)) {
+  if (!nombre || !usuario || !correo || !telefono || !direccion || !provincia || !municipio) {
     showModalAlert("Todos los campos son obligatorios.", "danger");
     return;
   }
@@ -94,11 +73,8 @@ form.addEventListener("submit", async (event) => {
     showModalAlert("El teléfono debe tener el formato 1-000-000-0000.", "danger");
     return;
   }
-  
-  if (!ayuntamientoId && contrasena.length < 6) {
-    showModalAlert("La contraseña debe tener al menos 6 caracteres.", "danger");
-    return;
-  }
+
+  const usuarioNormalizado = usuario.toLowerCase();
   
   try {
     if (ayuntamientoId) {
@@ -114,12 +90,26 @@ form.addEventListener("submit", async (event) => {
       await db.collection("Ayuntamientos").doc(ayuntamientoId).set(ayuntamientoData, { merge: true });
       showAlert("Ayuntamiento actualizado correctamente.", "success");
     } else {
-      // Crear nuevo ayuntamiento
-      const credential = await auth.createUserWithEmailAndPassword(correo, contrasena);
+      const existingSnap = await db.collection("Ayuntamientos").get();
+      const usuarioDuplicado = existingSnap.docs.some((docSnap) => {
+        const data = docSnap.data() || {};
+        const rolDoc = (data.rol || "ayuntamiento").toLowerCase();
+        const usuarioDoc = (data.usuario || "").toLowerCase();
+        return rolDoc === "ayuntamiento" && usuarioDoc === usuarioNormalizado;
+      });
+      if (usuarioDuplicado) {
+        showModalAlert("Ya existe un usuario con ese nombre y ese rol.", "danger");
+        return;
+      }
+
+      // Crear nuevo ayuntamiento con contraseña temporal de primer uso.
+      const contrasenaGenerica = "Inicial123";
+      const credential = await auth.createUserWithEmailAndPassword(correo, contrasenaGenerica);
       const nuevoUid = credential.user.uid;
       
       const ayuntamientoData = {
         nombre,
+        usuario,
         correo,
         rol: "ayuntamiento",
         telefono,
@@ -128,11 +118,12 @@ form.addEventListener("submit", async (event) => {
         municipio,
         estado: true,
         fecha_creacion: firebase.firestore.FieldValue.serverTimestamp(),
-        creada_por: uid
+        creada_por: uid,
+        primerLogin: true
       };
       
       await db.collection("Ayuntamientos").doc(nuevoUid).set(ayuntamientoData);
-      showAlert("Ayuntamiento creado correctamente.", "success");
+      showAlert(`Ayuntamiento creado correctamente. Usuario: ${usuario}, Contraseña temporal: ${contrasenaGenerica}`, "success");
     }
     
     form.reset();
@@ -155,7 +146,7 @@ async function cargarAyuntamientos() {
     const snapshot = await db.collection("Ayuntamientos").get();
     
     if (snapshot.empty) {
-      ayuntamientosBody.innerHTML = "<tr><td colspan=\"8\" class=\"text-center\">No hay ayuntamientos</td></tr>";
+      ayuntamientosBody.innerHTML = "<tr><td colspan=\"9\" class=\"text-center\">No hay ayuntamientos</td></tr>";
       return;
     }
     
@@ -172,6 +163,7 @@ async function cargarAyuntamientos() {
       const label = data.estado ? "Activo" : "Inactivo";
       ayuntamientosBody.innerHTML += `<tr>
         <td>${escapeHtml(data.nombre)}</td>
+        <td>${escapeHtml(data.usuario || "")}</td>
         <td>${escapeHtml(data.correo)}</td>
         <td>${escapeHtml(data.telefono || "")}</td>
         <td>${escapeHtml(data.direccion || "")}</td>
@@ -186,7 +178,7 @@ async function cargarAyuntamientos() {
     });
   } catch (error) {
     console.error("Error al cargar ayuntamientos:", error);
-    ayuntamientosBody.innerHTML = "<tr><td colspan=\"8\" class=\"text-center text-danger\">Error al cargar ayuntamientos</td></tr>";
+    ayuntamientosBody.innerHTML = "<tr><td colspan=\"9\" class=\"text-center text-danger\">Error al cargar ayuntamientos</td></tr>";
   }
 }
 
@@ -213,6 +205,7 @@ window.editarAyuntamiento = async function(id) {
     const data = docSnap.data();
     ayuntamientoIdInput.value = id;
     document.getElementById("nombre").value = data.nombre || "";
+    document.getElementById("usuario").value = data.usuario || "";
     document.getElementById("correo").value = data.correo || "";
     document.getElementById("telefono").value = data.telefono || "";
     document.getElementById("direccion").value = data.direccion || "";
