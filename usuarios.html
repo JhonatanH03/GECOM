@@ -31,6 +31,7 @@
           <thead class="table-light">
             <tr>
               <th>Nombre de la Junta</th>
+              <th>Usuario</th>
               <th>Correo</th>
               <th>Cédula</th>
               <th>Teléfono</th>
@@ -43,7 +44,7 @@
           </thead>
           <tbody id="usuariosBody">
             <tr>
-              <td colspan="9" class="text-center py-5">Cargando usuarios...</td>
+              <td colspan="10" class="text-center py-5">Cargando usuarios...</td>
             </tr>
           </tbody>
         </table>
@@ -68,6 +69,10 @@
             <div class="col-md-6">
               <label class="form-label">Nombre de la Junta</label>
               <input type="text" class="form-control" id="nombre" name="nombre" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Usuario</label>
+              <input type="text" class="form-control" id="usuario" name="usuario" required>
             </div>
             <div class="col-md-6">
               <label class="form-label">Correo institucional</label>
@@ -101,7 +106,7 @@
               <label class="form-label">Sector</label>
               <input type="text" class="form-control" id="sector" name="sector" required>
             </div>
-            <div class="col-md-12" id="passwordField">
+            <div class="col-md-12" id="passwordField" style="display:none">
               <label class="form-label">Contraseña</label>
               <input type="password" class="form-control" id="contrasena" name="contrasena">
               <div id="passwordRequirements" class="mt-2 small">
