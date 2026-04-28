@@ -153,6 +153,13 @@
         </div>
       </div>
       <div class="modal-footer">
+        <div class="d-flex gap-2 align-items-center me-auto">
+          <select id="formatoDescargaDetalle" class="form-select form-select-sm" style="width:120px;">
+            <option value="excel">Excel</option>
+            <option value="pdf">PDF</option>
+          </select>
+          <button type="button" id="btnDescargarDetalle" class="btn btn-success btn-sm">Descargar</button>
+        </div>
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="modalCerrar">Cerrar</button>
       </div>
     </div>
@@ -160,6 +167,9 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
 <script type="module" src="js/ver.js"></script>
 
 </body>

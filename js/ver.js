@@ -188,18 +188,7 @@ async function abrirDetalleDenuncia(id) {
 
 function renderizarPagina() {
   const tabla = document.getElementById("tablaDenuncias");
-  const filtro = document.getElementById("filtroEstado").value;
-  const filtroProvincia = document.getElementById("filtroProvincia")?.value || "Todos";
-  const filtroMunicipio = document.getElementById("filtroMunicipio")?.value || "Todos";
-  const filtroComunidad = document.getElementById("filtroComunidad")?.value || "Todos";
-
-  const filtradas = todasLasDenuncias.filter(({ data }) => {
-    const cumpleEstado = filtro === "Todos" || data.estado === filtro;
-    const cumpleProvincia = rol !== "admin" || filtroProvincia === "Todos" || (data.provincia || "") === filtroProvincia;
-    const cumpleMunicipio = rol !== "admin" || filtroMunicipio === "Todos" || (data.municipio || "") === filtroMunicipio;
-    const cumpleComunidad = rol !== "admin" || filtroComunidad === "Todos" || (data.comunidad || "") === filtroComunidad;
-    return cumpleEstado && cumpleProvincia && cumpleMunicipio && cumpleComunidad;
-  });
+  const filtradas = obtenerDenunciasFiltradas();
 
   const totalPaginas = Math.max(1, Math.ceil(filtradas.length / ITEMS_POR_PAGINA));
   if (paginaActual > totalPaginas) paginaActual = totalPaginas;
@@ -272,6 +261,79 @@ function renderizarPagina() {
   liNext.innerHTML = `<a class="page-link" href="#">»</a>`;
   liNext.addEventListener("click", (e) => { e.preventDefault(); if (paginaActual < totalPaginas) { paginaActual++; renderizarPagina(); } });
   controles.appendChild(liNext);
+}
+
+function obtenerDenunciasFiltradas() {
+  const filtro = document.getElementById("filtroEstado")?.value || "Todos";
+  const filtroProvincia = document.getElementById("filtroProvincia")?.value || "Todos";
+  const filtroMunicipio = document.getElementById("filtroMunicipio")?.value || "Todos";
+  const filtroComunidad = document.getElementById("filtroComunidad")?.value || "Todos";
+
+  return todasLasDenuncias.filter(({ data }) => {
+    const cumpleEstado = filtro === "Todos" || data.estado === filtro;
+    const cumpleProvincia = rol !== "admin" || filtroProvincia === "Todos" || (data.provincia || "") === filtroProvincia;
+    const cumpleMunicipio = rol !== "admin" || filtroMunicipio === "Todos" || (data.municipio || "") === filtroMunicipio;
+    const cumpleComunidad = rol !== "admin" || filtroComunidad === "Todos" || (data.comunidad || "") === filtroComunidad;
+    return cumpleEstado && cumpleProvincia && cumpleMunicipio && cumpleComunidad;
+  });
+}
+
+function obtenerFechaTexto(valorFecha) {
+  if (!valorFecha) return "Sin fecha";
+  if (valorFecha.seconds) return new Date(valorFecha.seconds * 1000).toLocaleDateString();
+  return new Date(valorFecha).toLocaleDateString();
+}
+
+async function descargarDenunciaSeleccionada() {
+  if (!currentDenunciaId) {
+    mostrarModalFeedback("Primero abre una denuncia con el botón Ver.", "warning");
+    return;
+  }
+
+  const formato = document.getElementById("formatoDescargaDetalle")?.value || "excel";
+  let detalle = todasLasDenuncias.find((item) => item.id === currentDenunciaId);
+
+  if (!detalle) {
+    const docSnap = await getDoc(doc(db, "denuncias", currentDenunciaId));
+    if (!docSnap.exists()) {
+      mostrarModalFeedback("No se pudo cargar la denuncia para descargar.", "danger");
+      return;
+    }
+    detalle = { id: docSnap.id, data: docSnap.data() };
+  }
+
+  const { id, data } = detalle;
+  const row = {
+    ID: id,
+    Titulo: data.titulo || "Sin titulo",
+    Descripcion: data.descripcion || "Sin descripcion",
+    Provincia: data.provincia || "",
+    Municipio: data.municipio || "",
+    Comunidad: data.comunidad || "",
+    Estado: data.estado || "Pendiente",
+    Fecha: obtenerFechaTexto(data.fecha)
+  };
+
+  if (formato === "excel") {
+    const ws = XLSX.utils.json_to_sheet([row]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Denuncia");
+    XLSX.writeFile(wb, `denuncia_${id}.xlsx`);
+    return;
+  }
+
+  const { jsPDF } = window.jspdf;
+  const docPdf = new jsPDF({ orientation: "landscape" });
+  docPdf.setFontSize(12);
+  docPdf.text("Detalle de denuncia", 14, 14);
+  docPdf.autoTable({
+    startY: 20,
+    head: [["ID", "Titulo", "Descripcion", "Provincia", "Municipio", "Comunidad", "Estado", "Fecha"]],
+    body: [[row.ID, row.Titulo, row.Descripcion, row.Provincia, row.Municipio, row.Comunidad, row.Estado, row.Fecha]],
+    styles: { fontSize: 8, cellWidth: "wrap" },
+    headStyles: { fillColor: [33, 37, 41] }
+  });
+  docPdf.save(`denuncia_${id}.pdf`);
 }
 
 async function cargarDenuncias() {
@@ -411,6 +473,7 @@ async function init() {
     });
   }
   document.getElementById("detalleForm").addEventListener("submit", responderDenuncia);
+  document.getElementById("btnDescargarDetalle")?.addEventListener("click", descargarDenunciaSeleccionada);
 }
 
 window.addEventListener("DOMContentLoaded", () => {
