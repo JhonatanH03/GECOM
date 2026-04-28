@@ -234,6 +234,16 @@ async function crearEntradaHistorial(denunciaId, denunciaData, actualizacion) {
   });
 }
 
+function hubosCambiosEnRespuesta(denunciaActual, actualizacion) {
+  if (!denunciaActual) return true;
+  return (
+    (denunciaActual.estado || "Pendiente") !== actualizacion.estado ||
+    (denunciaActual.respuesta_ayuntamiento || "") !== actualizacion.respuesta_ayuntamiento ||
+    (denunciaActual.plazo_estimado || "") !== actualizacion.plazo_estimado ||
+    (denunciaActual.presupuesto_estimado || "") !== actualizacion.presupuesto_estimado
+  );
+}
+
 function mostrarDetalleDenuncia(data, id) {
   currentDenunciaId = id;
   document.getElementById("detalleId").value = id;
@@ -553,15 +563,18 @@ async function responderDenuncia(event) {
     }
 
     await updateDoc(doc(db, "denuncias", currentDenunciaId), actualizacion);
-    try {
-      await crearNotificacionRespuesta(currentDenunciaId, denunciaActual, estado);
-    } catch (notifError) {
-      console.warn("La respuesta se guardo, pero no se pudo crear la notificacion:", notifError);
-    }
-    try {
-      await crearEntradaHistorial(currentDenunciaId, denunciaActual, actualizacion);
-    } catch (historialError) {
-      console.warn("La respuesta se guardo, pero no se pudo registrar en el historial:", historialError);
+
+    if (hubosCambiosEnRespuesta(denunciaActual, actualizacion)) {
+      try {
+        await crearNotificacionRespuesta(currentDenunciaId, denunciaActual, estado);
+      } catch (notifError) {
+        console.warn("La respuesta se guardo, pero no se pudo crear la notificacion:", notifError);
+      }
+      try {
+        await crearEntradaHistorial(currentDenunciaId, denunciaActual, actualizacion);
+      } catch (historialError) {
+        console.warn("La respuesta se guardo, pero no se pudo registrar en el historial:", historialError);
+      }
     }
     mostrarModalFeedback("Respuesta guardada correctamente.", "success");
     detalleModal.hide();

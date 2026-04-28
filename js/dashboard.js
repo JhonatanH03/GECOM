@@ -96,14 +96,26 @@ function renderizarNotificaciones(items) {
   });
 
   lista.querySelectorAll("button.notif-delete").forEach((btn) => {
-    btn.addEventListener("click", async (e) => {
+    btn.addEventListener("click", (e) => {
       e.stopPropagation();
       const id = btn.dataset.id;
-      try {
-        await deleteDoc(doc(db, "notificaciones", id));
-      } catch (error) {
-        console.error("No se pudo eliminar la notificación:", error);
-      }
+      const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById("modalEliminarNotif"));
+      const confirmar = document.getElementById("btnConfirmarEliminarNotif");
+
+      // Reemplazar listener previo para evitar acumulación
+      const nuevoConfirmar = confirmar.cloneNode(true);
+      confirmar.parentNode.replaceChild(nuevoConfirmar, confirmar);
+
+      nuevoConfirmar.addEventListener("click", async () => {
+        modal.hide();
+        try {
+          await deleteDoc(doc(db, "notificaciones", id));
+        } catch (error) {
+          console.error("No se pudo eliminar la notificación:", error);
+        }
+      });
+
+      modal.show();
     });
   });
 }
