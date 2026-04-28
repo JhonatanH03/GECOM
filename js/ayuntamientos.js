@@ -172,6 +172,7 @@ async function cargarAyuntamientos() {
         <td>${escapeHtml(label)}</td>
         <td class="text-center">
           <button class="btn btn-sm btn-warning me-1 px-2" onclick="editarAyuntamiento('${data.id}')"><i class="bi bi-pencil"></i></button>
+          <button class="btn btn-sm btn-info me-1 px-2" onclick="reestablecerContrasenaAyuntamiento('${data.id}', '${escapeHtml(data.nombre)}')" title="Restablecer contraseña"><i class="bi bi-key"></i></button>
           <button class="btn btn-sm btn-danger px-2" onclick="eliminarAyuntamiento('${data.id}', '${escapeHtml(data.nombre)}')"><i class="bi bi-trash"></i></button>
         </td>
       </tr>`;
@@ -236,6 +237,33 @@ window.eliminarAyuntamiento = async function(id, nombre) {
       console.error("Error:", error);
       showAlert("Error al eliminar.", "danger");
     }
+  }
+};
+
+window.reestablecerContrasenaAyuntamiento = async function(id, nombre) {
+  if (!confirm(`¿Enviar correo de restablecimiento de contraseña a ${nombre}?`)) {
+    return;
+  }
+
+  try {
+    const doc = await db.collection("Ayuntamientos").doc(id).get();
+    if (!doc.exists) {
+      showAlert("Ayuntamiento no encontrado.", "danger");
+      return;
+    }
+    const correo = doc.data().correo;
+    if (!correo) {
+      showAlert("El ayuntamiento no tiene un correo registrado.", "danger");
+      return;
+    }
+
+    await auth.sendPasswordResetEmail(correo);
+    await db.collection("Ayuntamientos").doc(id).update({ primerLogin: true });
+
+    showAlert(`Se ha enviado un correo de restablecimiento a ${correo}. El usuario deberá cambiar su contraseña al iniciar sesión.`, "success");
+  } catch (error) {
+    console.error("Error restableciendo contraseña:", error);
+    showAlert("No se pudo enviar el correo de restablecimiento: " + error.message, "danger");
   }
 };
 
