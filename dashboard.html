@@ -15,7 +15,16 @@
 
   <div class="d-flex justify-content-between align-items-center mb-4">
     <h2>Panel Principal</h2>
-    <button onclick="logout()" class="btn btn-danger">Cerrar sesión</button>
+    <div class="d-flex align-items-center gap-2">
+      <div class="dropdown" id="notificacionesWrap" style="display:none;">
+        <button class="btn btn-outline-dark position-relative" type="button" data-bs-toggle="dropdown" aria-expanded="false" id="btnNotificaciones">
+          Campanita
+          <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="badgeNotificaciones" style="display:none;">0</span>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end" id="listaNotificaciones" style="width: 340px; max-height: 360px; overflow-y: auto;"></ul>
+      </div>
+      <button onclick="logout()" class="btn btn-danger">Cerrar sesión</button>
+    </div>
   </div>
 
   <div class="row g-4">
@@ -45,6 +54,16 @@
       <div class="card p-4 shadow text-center">
         <h5>Panel Junta</h5>
         <button onclick="ir('junta.html')" class="btn btn-info mt-3">
+          Ir
+        </button>
+      </div>
+    </div>
+
+    <!-- Historial de cambios (solo junta) -->
+    <div class="col-md-4" id="cardHistorial" style="display:none;">
+      <div class="card p-4 shadow text-center">
+        <h5>Historial de Cambios</h5>
+        <button onclick="ir('historial.html')" class="btn btn-outline-secondary mt-3">
           Ir
         </button>
       </div>
@@ -105,6 +124,7 @@
 </div>
 
 <script type="module" src="js/dashboard.js?v=2"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 </body>
 </html>

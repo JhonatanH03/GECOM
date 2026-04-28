@@ -7,7 +7,9 @@ import {
   where,
   doc,
   getDoc,
-  updateDoc
+  updateDoc,
+  addDoc,
+  serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import {
   getAuth,
@@ -193,6 +195,43 @@ function obtenerTextoDiasEnProceso(data) {
   const dias = obtenerDiasEnProceso(data);
   if (dias === null) return "No aplica";
   return dias === 1 ? "1 dia" : `${dias} dias`;
+}
+
+function construirMensajeNotificacion(data, estado) {
+  const titulo = (data?.titulo || "tu denuncia").trim();
+  return `El ayuntamiento actualizo ${titulo} a estado: ${estado}.`;
+}
+
+async function crearNotificacionRespuesta(denunciaId, denunciaData, estado) {
+  const receptorUid = denunciaData?.uid;
+  if (!receptorUid) return;
+
+  await addDoc(collection(db, "notificaciones"), {
+    denunciaId,
+    receptorUid,
+    tipo: "respuesta_denuncia",
+    mensaje: construirMensajeNotificacion(denunciaData, estado),
+    leida: false,
+    createdAt: serverTimestamp(),
+    createdBy: uid
+  });
+}
+
+async function crearEntradaHistorial(denunciaId, denunciaData, actualizacion) {
+  const receptorUid = denunciaData?.uid;
+  if (!receptorUid) return;
+
+  await addDoc(collection(db, "JuntasDeVecinos", receptorUid, "historial"), {
+    denunciaId,
+    tituloDenuncia: denunciaData?.titulo || "Sin título",
+    tipo: "respuesta_ayuntamiento",
+    estado: actualizacion.estado,
+    plazo_estimado: actualizacion.plazo_estimado || "",
+    presupuesto_estimado: actualizacion.presupuesto_estimado || "",
+    respuesta: actualizacion.respuesta_ayuntamiento || "",
+    ayuntamientoId: uid,
+    createdAt: serverTimestamp()
+  });
 }
 
 function mostrarDetalleDenuncia(data, id) {
@@ -463,7 +502,7 @@ async function cargarDenuncias() {
 async function obtenerMunicipioAyuntamiento() {
   if (rol !== "ayuntamiento") return;
   try {
-    const colecciones = ["Ayuntamientos", "usuarios"];
+    const colecciones = ["Ayuntamientos"];
     for (const col of colecciones) {
       const userDoc = await getDoc(doc(db, col, uid));
       if (userDoc.exists()) {
@@ -514,6 +553,16 @@ async function responderDenuncia(event) {
     }
 
     await updateDoc(doc(db, "denuncias", currentDenunciaId), actualizacion);
+    try {
+      await crearNotificacionRespuesta(currentDenunciaId, denunciaActual, estado);
+    } catch (notifError) {
+      console.warn("La respuesta se guardo, pero no se pudo crear la notificacion:", notifError);
+    }
+    try {
+      await crearEntradaHistorial(currentDenunciaId, denunciaActual, actualizacion);
+    } catch (historialError) {
+      console.warn("La respuesta se guardo, pero no se pudo registrar en el historial:", historialError);
+    }
     mostrarModalFeedback("Respuesta guardada correctamente.", "success");
     detalleModal.hide();
     await cargarDenuncias();
@@ -566,6 +615,12 @@ async function init() {
   }
   document.getElementById("detalleForm").addEventListener("submit", responderDenuncia);
   document.getElementById("btnDescargarDetalle")?.addEventListener("click", descargarDenunciaSeleccionada);
+
+  const params = new URLSearchParams(window.location.search);
+  const denunciaIdParam = params.get("denuncia");
+  if (denunciaIdParam) {
+    await abrirDetalleDenuncia(denunciaIdParam);
+  }
 }
 
 window.addEventListener("DOMContentLoaded", () => {

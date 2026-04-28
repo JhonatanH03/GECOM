@@ -89,8 +89,8 @@ async function buscarUsuarioPorIdentificador(usuarioNormalizado) {
 
 // Limpieza de colecciones antiguas (solo admin)
 window.limpiarFirebase = async function () {
-  if (!confirm("¿Seguro que deseas borrar todas las colecciones antiguas y usuarios? Esta acción no se puede deshacer.")) return;
-  const colecciones = ["provincias", "municipios", "sectores", "ayuntamientos", "juntas", "usuarios"];
+  if (!confirm("¿Seguro que deseas borrar todas las colecciones antiguas? Esta acción no se puede deshacer.")) return;
+  const colecciones = ["provincias", "municipios", "sectores", "ayuntamientos", "juntas"];
   let total = 0;
   for (const col of colecciones) {
     const snapshot = await db.collection(col).get();
