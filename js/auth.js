@@ -33,6 +33,60 @@ const app = firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth(app);
 const db = firebase.firestore(app);
 
+async function sincronizarLoginIndex({ uid, usuario, email, rol }) {
+  const usuarioNormalizado = String(usuario || "").trim().toLowerCase();
+  const correo = String(email || "").trim();
+  if (!uid || !usuarioNormalizado || !correo || !rol) return;
+
+  await db.collection("loginIndex").doc(usuarioNormalizado).set({
+    uid,
+    email: correo,
+    rol,
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  }, { merge: true });
+}
+
+async function obtenerPerfilPorUid(uid) {
+  const colecciones = [
+    { nombre: "Administradores", rol: "admin" },
+    { nombre: "Ayuntamientos", rol: "ayuntamiento" },
+    { nombre: "JuntasDeVecinos", rol: "junta" }
+  ];
+
+  for (const col of colecciones) {
+    const docSnap = await db.collection(col.nombre).doc(uid).get();
+    if (docSnap.exists) {
+      const data = docSnap.data() || {};
+      return {
+        uid,
+        rol: data.rol || col.rol,
+        usuario: data.usuario || ((data.email || data.correo || "").split("@")[0] || ""),
+        userDoc: data,
+        collectionMatched: col.nombre
+      };
+    }
+  }
+
+  return null;
+}
+
+async function buscarUsuarioPorIdentificador(usuarioNormalizado) {
+  const docSnap = await db.collection("loginIndex").doc(usuarioNormalizado).get();
+  if (!docSnap.exists) {
+    return null;
+  }
+
+  const data = docSnap.data() || {};
+  if (!data.email) return null;
+
+  return {
+    uid: data.uid,
+    rol: data.rol,
+    userEmail: data.email,
+    collectionMatched: null
+  };
+}
+
 // Limpieza de colecciones antiguas (solo admin)
 window.limpiarFirebase = async function () {
   if (!confirm("¿Seguro que deseas borrar todas las colecciones antiguas y usuarios? Esta acción no se puede deshacer.")) return;
@@ -153,6 +207,7 @@ window.registrarDesdeAdmin = async function () {
     const uid = userCredential.user.uid;
     if (collectionName) {
       await db.collection(collectionName).doc(uid).set(userData);
+      await sincronizarLoginIndex({ uid, usuario, email, rol });
     } else {
       throw new Error("Rol no válido");
     }
@@ -194,71 +249,55 @@ window.login = async function () {
     const usuario = document.getElementById("usuario").value.trim();
     const usuarioNormalizado = usuario.toLowerCase();
     const password = document.getElementById("password").value;
+    const pareceCorreo = usuario.includes("@");
 
     if (!usuario || !password) {
       mostrarError("Debes ingresar usuario y contraseña.");
       return;
     }
 
-    // Buscar el usuario en las colecciones para obtener el email
-    const colecciones = [
-      { nombre: "Administradores", rol: "admin" },
-      { nombre: "Ayuntamientos", rol: "ayuntamiento" },
-      { nombre: "JuntasDeVecinos", rol: "junta" }
-    ];
-    
-    let userEmail = null;
-    let userDoc = null;
-    let rol = null;
-    let uid = null;
-    let collectionMatched = null;
-    
-    // Búsqueda en todas las colecciones
-    for (const col of colecciones) {
-      // Búsqueda directa para soportar usuarios nuevos y cuentas antiguas sin campo usuario.
-      const snapshot = await db.collection(col.nombre).get();
-
-      for (const doc of snapshot.docs) {
-        const data = doc.data();
-        const docUsuario = (data.usuario || "").toLowerCase();
-        const docEmail = (data.email || data.correo || "").toLowerCase();
-        const docEmailLocal = docEmail.includes("@") ? docEmail.split("@")[0] : docEmail;
-        const docNombre = (data.nombre || "").toLowerCase().trim();
-
-        const coincideUsuario = !!docUsuario && docUsuario === usuarioNormalizado;
-        const coincideCuentaAntigua = !docUsuario && !!docEmail && (
-          docEmail === usuarioNormalizado || docEmailLocal === usuarioNormalizado
-        );
-        const coincideNombreLegacy = !docUsuario && !!docNombre && docNombre === usuarioNormalizado;
-
-        if (coincideUsuario || coincideCuentaAntigua || coincideNombreLegacy) {
-          userDoc = data;
-          uid = doc.id;
-          userEmail = userDoc.email || userDoc.correo;
-          rol = userDoc.rol || col.rol;
-          collectionMatched = col.nombre;
-          break;
-        }
-      }
-
-      if (userEmail) break; // Si encontramos el usuario, salir del loop
-    }
-    
-    if (!userEmail) {
-      mostrarError("Usuario o contraseña incorrectos. Verifica que el usuario sea correcto.");
-      return;
-    }
-
     // Autenticarse con el email encontrado
     try {
-      const userCredential = await auth.signInWithEmailAndPassword(userEmail, password);
+      let userCredential = null;
+      let perfil = null;
+
+      if (pareceCorreo) {
+        userCredential = await auth.signInWithEmailAndPassword(usuario, password);
+        perfil = await obtenerPerfilPorUid(userCredential.user.uid);
+      } else {
+        const resultadoBusqueda = await buscarUsuarioPorIdentificador(usuarioNormalizado);
+        if (!resultadoBusqueda || !resultadoBusqueda.userEmail) {
+          mostrarError("No se pudo resolver el usuario. Intenta iniciar con tu correo electrónico.");
+          return;
+        }
+
+        userCredential = await auth.signInWithEmailAndPassword(resultadoBusqueda.userEmail, password);
+        perfil = await obtenerPerfilPorUid(userCredential.user.uid);
+      }
+
+      if (!perfil) {
+        await auth.signOut();
+        mostrarError("Tu cuenta no tiene un perfil válido. Contacta al administrador.");
+        return;
+      }
+
+      let { uid, rol, userDoc, collectionMatched } = perfil;
+      const usuarioMigrado = perfil.usuario || (userCredential.user.email && userCredential.user.email.includes("@")
+        ? userCredential.user.email.split("@")[0]
+        : usuarioNormalizado);
 
       // Migración automática: si el documento no tenía usuario, se crea al iniciar sesión.
-      const usuarioMigrado = userEmail.includes("@") ? userEmail.split("@")[0] : usuarioNormalizado;
       if (collectionMatched && uid && !userDoc.usuario) {
         await db.collection(collectionMatched).doc(uid).set({ usuario: usuarioMigrado }, { merge: true });
         userDoc.usuario = usuarioMigrado;
       }
+
+      await sincronizarLoginIndex({
+        uid,
+        usuario: userDoc.usuario || usuarioMigrado,
+        email: userCredential.user.email || userDoc.email || userDoc.correo,
+        rol
+      });
 
       // Guardar sesión
       localStorage.setItem("uid", uid);
@@ -291,6 +330,10 @@ window.login = async function () {
         mensaje = "Usuario deshabilitado";
       } else if (authError.code === "auth/too-many-requests") {
         mensaje = "Demasiados intentos. Intenta más tarde.";
+      } else if (authError.code === "permission-denied" || authError.code === "failed-precondition") {
+        mensaje = "El inicio de sesión por usuario está restringido. Usa tu correo electrónico.";
+      } else if (authError.code === "not-found") {
+        mensaje = "Usuario o correo no encontrado.";
       }
       mostrarError(mensaje);
     }

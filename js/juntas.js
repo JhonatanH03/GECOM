@@ -28,6 +28,36 @@ let municipioAyuntamiento = null;
 const municipiosSelect = document.getElementById("municipio");
 const provinciaSelect = document.getElementById("provincia");
 
+async function sincronizarLoginIndex({ uid, usuario, correo, rol }) {
+  const usuarioNormalizado = String(usuario || "").trim().toLowerCase();
+  const email = String(correo || "").trim();
+  if (!uid || !usuarioNormalizado || !email || !rol) return;
+
+  await db.collection("loginIndex").doc(usuarioNormalizado).set({
+    uid,
+    email,
+    rol,
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  }, { merge: true });
+}
+
+async function eliminarLoginIndex(usuario) {
+  const usuarioNormalizado = String(usuario || "").trim().toLowerCase();
+  if (!usuarioNormalizado) return;
+  await db.collection("loginIndex").doc(usuarioNormalizado).delete();
+}
+
+function generarContrasenaTemporal(length = 12) {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%";
+  const cryptoApi = window.crypto || window.msCrypto;
+  if (cryptoApi && typeof cryptoApi.getRandomValues === "function") {
+    const values = new Uint32Array(length);
+    cryptoApi.getRandomValues(values);
+    return Array.from(values, (v) => chars[v % chars.length]).join("");
+  }
+  return Array.from({ length }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+}
+
 async function cargarMunicipiosDesdeFirestore(provincia, municipioSeleccionado = "") {
   if (!municipiosSelect) return;
 
@@ -184,9 +214,12 @@ form.addEventListener("submit", async (event) => {
   
   try {
     if (juntaId) {
+      const previoDoc = await db.collection("JuntasDeVecinos").doc(juntaId).get();
+      const previoData = previoDoc.exists ? (previoDoc.data() || {}) : {};
       // Editar junta existente - no cambiar usuario
       const juntaData = {
         nombre,
+        usuario,
         correo,
         telefono,
         comunidad,
@@ -195,6 +228,10 @@ form.addEventListener("submit", async (event) => {
         cedula
       };
       await db.collection("JuntasDeVecinos").doc(juntaId).set(juntaData, { merge: true });
+      await sincronizarLoginIndex({ uid: juntaId, usuario, correo, rol: "junta" });
+      if (previoData.usuario && previoData.usuario.toLowerCase() !== usuarioNormalizado) {
+        await eliminarLoginIndex(previoData.usuario);
+      }
       showAlert("Junta actualizada correctamente.", "success");
     } else {
       const existingSnap = await db.collection("JuntasDeVecinos").get();
@@ -209,12 +246,11 @@ form.addEventListener("submit", async (event) => {
         return;
       }
 
-      // Crear nueva junta con usuario y contraseña genérica
-      // Generar contraseña genérica: "Inicial123"
-      const contrasenaGenerica = "Inicial123";
+      // Crear nueva junta con usuario y contraseña temporal aleatoria.
+      const contrasenaTemporal = generarContrasenaTemporal();
       
       // Crear usuario en Firebase Auth
-      const credential = await auth.createUserWithEmailAndPassword(correo, contrasenaGenerica);
+      const credential = await auth.createUserWithEmailAndPassword(correo, contrasenaTemporal);
       const nuevoUid = credential.user.uid;
       
       const juntaData = {
@@ -234,7 +270,8 @@ form.addEventListener("submit", async (event) => {
       };
       
       await db.collection("JuntasDeVecinos").doc(nuevoUid).set(juntaData);
-      showAlert(`Junta creada correctamente. Usuario: ${usuario}, Contraseña temporal: ${contrasenaGenerica}`, "success");
+      await sincronizarLoginIndex({ uid: nuevoUid, usuario, correo, rol: "junta" });
+      showAlert(`Junta creada correctamente. Usuario: ${usuario}, Contraseña temporal: ${contrasenaTemporal}`, "success");
     }
     
     form.reset();
@@ -246,7 +283,7 @@ form.addEventListener("submit", async (event) => {
     if (error.code === "auth/email-already-in-use") {
       showModalAlert("El correo ya está en uso.", "danger");
     } else if (error.code === "auth/weak-password") {
-      showModalAlert("Error con la contraseña genérica. Contacta al administrador.", "danger");
+      showModalAlert("Error con la contraseña temporal. Contacta al administrador.", "danger");
     } else {
       showModalAlert(error.message || "Ocurrió un error.", "danger");
     }
@@ -356,6 +393,7 @@ window.eliminarJunta = async function(id, nombre) {
         return;
       }
       await db.collection("JuntasDeVecinos").doc(id).delete();
+      await eliminarLoginIndex((docSnap.data() || {}).usuario);
       showAlert("Junta eliminada.", "success");
       await cargarJuntas();
     } catch (error) {
