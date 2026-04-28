@@ -48,6 +48,26 @@ service cloud.firestore {
     match /JuntasDeVecinos/{juntaId} {
       allow read: if isSignedIn();
       allow write: if isSignedIn();
+
+      match /historial/{entryId} {
+        allow read: if isAdmin() ||
+          (isJunta() && request.auth.uid == juntaId);
+        allow create: if isAyuntamiento() &&
+          request.resource.data.keys().hasOnly([
+            "denunciaId",
+            "tituloDenuncia",
+            "tipo",
+            "estado",
+            "plazo_estimado",
+            "presupuesto_estimado",
+            "respuesta",
+            "ayuntamientoId",
+            "createdAt"
+          ]) &&
+          request.resource.data.ayuntamientoId == request.auth.uid;
+        allow delete: if isAdmin() ||
+          (isJunta() && request.auth.uid == juntaId);
+      }
     }
 
     match /loginIndex/{identifier} {
@@ -99,10 +119,37 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    // Coleccion legacy para compatibilidad temporal.
-    match /usuarios/{userId} {
-      allow read: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
-      allow write: if isAdmin();
+    match /notificaciones/{notificacionId} {
+      allow get: if isAdmin() ||
+        (isJunta() && resource.data.receptorUid == request.auth.uid);
+      allow list: if isAdmin() || isJunta();
+
+      allow create: if isAyuntamiento() &&
+        request.resource.data.keys().hasOnly([
+          "denunciaId",
+          "receptorUid",
+          "tipo",
+          "mensaje",
+          "leida",
+          "createdAt",
+          "createdBy"
+        ]) &&
+        request.resource.data.denunciaId is string &&
+        request.resource.data.receptorUid is string &&
+        request.resource.data.tipo is string &&
+        request.resource.data.mensaje is string &&
+        request.resource.data.leida is bool &&
+        request.resource.data.createdBy == request.auth.uid;
+
+      allow update: if (isAdmin() ||
+        (isJunta() && resource.data.receptorUid == request.auth.uid)) &&
+        request.resource.data.diff(resource.data).changedKeys().hasOnly([
+          "leida",
+          "leidaAt"
+        ]);
+
+      allow delete: if isAdmin() ||
+        (isJunta() && resource.data.receptorUid == request.auth.uid);
     }
 
     // Cualquier otra coleccion queda bloqueada por defecto.

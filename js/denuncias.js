@@ -74,12 +74,12 @@ function habilitarEnvioFormulario(estaHabilitado) {
 
 async function obtenerPerfilUsuario(uid) {
   const coleccionesPorRol = {
-    junta: ["JuntasDeVecinos", "usuarios"],
-    ayuntamiento: ["Ayuntamientos", "usuarios"],
-    admin: ["Administradores", "usuarios"]
+    junta: ["JuntasDeVecinos"],
+    ayuntamiento: ["Ayuntamientos"],
+    admin: ["Administradores"]
   };
 
-  const colecciones = coleccionesPorRol[rol] || ["usuarios", "JuntasDeVecinos", "Ayuntamientos", "Administradores"];
+  const colecciones = coleccionesPorRol[rol] || ["JuntasDeVecinos", "Ayuntamientos", "Administradores"];
 
   for (const nombreColeccion of colecciones) {
     const perfilSnap = await getDoc(doc(db, nombreColeccion, uid));

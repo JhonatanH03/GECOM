@@ -61,10 +61,10 @@ document.getElementById("btnSeed").addEventListener("click", async () => {
   let comunidad = "Comunidad de Prueba";
 
   const colecciones = rol === "junta"
-    ? ["JuntasDeVecinos", "usuarios"]
+    ? ["JuntasDeVecinos"]
     : rol === "ayuntamiento"
-    ? ["Ayuntamientos", "usuarios"]
-    : ["usuarios"];
+    ? ["Ayuntamientos"]
+    : ["Administradores"];
 
   for (const col of colecciones) {
     const snap = await getDoc(doc(db, col, uid));
