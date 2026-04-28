@@ -165,6 +165,36 @@ function limpiarModalFeedback() {
   document.getElementById("modalFeedback").innerHTML = "";
 }
 
+function convertirAFecha(valorFecha) {
+  if (!valorFecha) return null;
+  if (typeof valorFecha.toDate === "function") return valorFecha.toDate();
+  if (typeof valorFecha.seconds === "number") return new Date(valorFecha.seconds * 1000);
+
+  const fecha = new Date(valorFecha);
+  return Number.isNaN(fecha.getTime()) ? null : fecha;
+}
+
+function obtenerDiasEnProceso(data) {
+  if ((data.estado || "Pendiente") !== "En proceso") return null;
+
+  const fechaInicio = convertirAFecha(data.fecha_en_proceso || data.fecha_respuesta || data.fecha);
+  if (!fechaInicio) return null;
+
+  const inicioDia = new Date(fechaInicio.getFullYear(), fechaInicio.getMonth(), fechaInicio.getDate());
+  const hoy = new Date();
+  const inicioHoy = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+  const diferenciaMs = inicioHoy.getTime() - inicioDia.getTime();
+
+  if (diferenciaMs < 0) return 0;
+  return Math.floor(diferenciaMs / 86400000);
+}
+
+function obtenerTextoDiasEnProceso(data) {
+  const dias = obtenerDiasEnProceso(data);
+  if (dias === null) return "No aplica";
+  return dias === 1 ? "1 dia" : `${dias} dias`;
+}
+
 function mostrarDetalleDenuncia(data, id) {
   currentDenunciaId = id;
   document.getElementById("detalleId").value = id;
@@ -175,6 +205,7 @@ function mostrarDetalleDenuncia(data, id) {
   document.getElementById("detalleUbicacion").textContent = `${escapeHtml(data.provincia || "")} / ${escapeHtml(data.municipio || "")} / ${escapeHtml(data.distrito_municipal || "")} / ${escapeHtml(data.sector || "")}`;
   document.getElementById("detalleFechaIncidente").textContent = data.fecha_incidente ? new Date(data.fecha_incidente.seconds * 1000).toLocaleDateString() : "No especificado";
   document.getElementById("detalleFechaRegistro").textContent = data.fecha ? new Date(data.fecha.seconds * 1000).toLocaleString() : "No especificado";
+  document.getElementById("detalleDiasEnProceso").textContent = obtenerTextoDiasEnProceso(data);
   document.getElementById("detalleDescripcion").textContent = data.descripcion || "Sin descripción";
 
   document.getElementById("detalleEstadoActual").textContent = data.estado || "Pendiente";
@@ -247,7 +278,7 @@ function renderizarPagina() {
   tabla.innerHTML = "";
 
   if (pagina.length === 0) {
-    tabla.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-3">No hay denuncias para mostrar.</td></tr>`;
+    tabla.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-3">No hay denuncias para mostrar.</td></tr>`;
   } else {
     pagina.forEach(({ id, data }) => {
       const fila = document.createElement("tr");
@@ -256,6 +287,7 @@ function renderizarPagina() {
         <td>${escapeHtml((data.descripcion || "Sin descripción").slice(0, 80))}${data.descripcion && data.descripcion.length > 80 ? "..." : ""}</td>
         <td>${escapeHtml(data.comunidad || "Sin comunidad")}</td>
         <td>${escapeHtml(data.estado || "Pendiente")}</td>
+        <td>${escapeHtml(obtenerTextoDiasEnProceso(data))}</td>
         <td>${data.fecha ? new Date(data.fecha.seconds * 1000).toLocaleDateString() : "Sin fecha"}</td>
         <td><button class="btn btn-sm btn-primary ver-btn" data-id="${id}">Ver</button></td>
       `;
@@ -327,9 +359,8 @@ function obtenerDenunciasFiltradas() {
 }
 
 function obtenerFechaTexto(valorFecha) {
-  if (!valorFecha) return "Sin fecha";
-  if (valorFecha.seconds) return new Date(valorFecha.seconds * 1000).toLocaleDateString();
-  return new Date(valorFecha).toLocaleDateString();
+  const fecha = convertirAFecha(valorFecha);
+  return fecha ? fecha.toLocaleDateString() : "Sin fecha";
 }
 
 async function descargarDenunciaSeleccionada() {
@@ -359,6 +390,7 @@ async function descargarDenunciaSeleccionada() {
     Municipio: data.municipio || "",
     Comunidad: data.comunidad || "",
     Estado: data.estado || "Pendiente",
+    DiasEnProceso: obtenerTextoDiasEnProceso(data),
     Fecha: obtenerFechaTexto(data.fecha)
   };
 
@@ -376,8 +408,8 @@ async function descargarDenunciaSeleccionada() {
   docPdf.text("Detalle de denuncia", 14, 14);
   docPdf.autoTable({
     startY: 20,
-    head: [["ID", "Titulo", "Descripcion", "Provincia", "Municipio", "Comunidad", "Estado", "Fecha"]],
-    body: [[row.ID, row.Titulo, row.Descripcion, row.Provincia, row.Municipio, row.Comunidad, row.Estado, row.Fecha]],
+    head: [["ID", "Titulo", "Descripcion", "Provincia", "Municipio", "Comunidad", "Estado", "Dias en proceso", "Fecha"]],
+    body: [[row.ID, row.Titulo, row.Descripcion, row.Provincia, row.Municipio, row.Comunidad, row.Estado, row.DiasEnProceso, row.Fecha]],
     styles: { fontSize: 8, cellWidth: "wrap" },
     headStyles: { fillColor: [33, 37, 41] }
   });
@@ -424,7 +456,7 @@ async function cargarDenuncias() {
   } catch (error) {
     console.error("Error cargando denuncias:", error);
     const tabla = document.getElementById("tablaDenuncias");
-    tabla.innerHTML = `<tr><td colspan="6" class="text-center text-danger py-3">Error al cargar denuncias: ${escapeHtml(error.message)}</td></tr>`;
+    tabla.innerHTML = `<tr><td colspan="7" class="text-center text-danger py-3">Error al cargar denuncias: ${escapeHtml(error.message)}</td></tr>`;
   }
 }
 
@@ -463,14 +495,25 @@ async function responderDenuncia(event) {
   }
 
   try {
-    await updateDoc(doc(db, "denuncias", currentDenunciaId), {
+    const denunciaActual = todasLasDenuncias.find((item) => item.id === currentDenunciaId)?.data;
+    const actualizacion = {
       estado,
       plazo_estimado: plazo,
       presupuesto_estimado: presupuesto,
       respuesta_ayuntamiento: respuesta,
       fecha_respuesta: new Date(),
       ayuntamiento_id: uid
-    });
+    };
+
+    if (estado === "En proceso") {
+      if ((denunciaActual?.estado || "Pendiente") !== "En proceso") {
+        actualizacion.fecha_en_proceso = new Date();
+      }
+    } else {
+      actualizacion.fecha_en_proceso = null;
+    }
+
+    await updateDoc(doc(db, "denuncias", currentDenunciaId), actualizacion);
     mostrarModalFeedback("Respuesta guardada correctamente.", "success");
     detalleModal.hide();
     await cargarDenuncias();
