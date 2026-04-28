@@ -20,6 +20,36 @@ const provinciaSelect = document.getElementById("provincia");
 const municipioSelect = document.getElementById("municipio");
 const provincias = {};
 
+async function sincronizarLoginIndex({ uid, usuario, correo, rol }) {
+  const usuarioNormalizado = String(usuario || "").trim().toLowerCase();
+  const email = String(correo || "").trim();
+  if (!uid || !usuarioNormalizado || !email || !rol) return;
+
+  await setDoc(doc(db, "loginIndex", usuarioNormalizado), {
+    uid,
+    email,
+    rol,
+    updatedAt: serverTimestamp()
+  }, { merge: true });
+}
+
+async function eliminarLoginIndex(usuario) {
+  const usuarioNormalizado = String(usuario || "").trim().toLowerCase();
+  if (!usuarioNormalizado) return;
+  await deleteDoc(doc(db, "loginIndex", usuarioNormalizado));
+}
+
+function generarContrasenaTemporal(length = 12) {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%";
+  const cryptoApi = window.crypto || window.msCrypto;
+  if (cryptoApi && typeof cryptoApi.getRandomValues === "function") {
+    const values = new Uint32Array(length);
+    cryptoApi.getRandomValues(values);
+    return Array.from(values, (v) => chars[v % chars.length]).join("");
+  }
+  return Array.from({ length }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+}
+
 window.addEventListener("DOMContentLoaded", async () => {
   if (!uid || !rolLocal) {
     window.location.href = "index.html";
@@ -106,7 +136,13 @@ form.addEventListener("submit", async (event) => {
 
   try {
     if (usuarioId) {
+      const previoDoc = await getDoc(doc(db, "JuntasDeVecinos", usuarioId));
+      const previoData = previoDoc.exists() ? (previoDoc.data() || {}) : {};
       await setDoc(doc(db, "JuntasDeVecinos", usuarioId), usuarioData, { merge: true });
+      await sincronizarLoginIndex({ uid: usuarioId, usuario, correo, rol: "junta" });
+      if (previoData.usuario && previoData.usuario.toLowerCase() !== usuarioNormalizado) {
+        await eliminarLoginIndex(previoData.usuario);
+      }
       showAlert("Junta actualizada correctamente.", "success");
     } else {
       const snapshot = await getDocs(collection(db, "JuntasDeVecinos"));
@@ -121,16 +157,17 @@ form.addEventListener("submit", async (event) => {
         return;
       }
 
-      // Crear nueva junta con contraseña genérica
-      const contrasenaGenerica = "Inicial123";
-      const credential = await createUserWithEmailAndPassword(auth, correo, contrasenaGenerica);
+      // Crear nueva junta con contraseña temporal aleatoria.
+      const contrasenaTemporal = generarContrasenaTemporal();
+      const credential = await createUserWithEmailAndPassword(auth, correo, contrasenaTemporal);
       const nuevoUid = credential.user.uid;
       await setDoc(doc(db, "JuntasDeVecinos", nuevoUid), {
         ...usuarioData,
         fecha_creacion: serverTimestamp(),
         primerLogin: true
       });
-      showAlert(`Junta creada correctamente. Usuario: ${usuario}, Contraseña temporal: ${contrasenaGenerica}`, "success");
+      await sincronizarLoginIndex({ uid: nuevoUid, usuario, correo, rol: "junta" });
+      showAlert(`Junta creada correctamente. Usuario: ${usuario}, Contraseña temporal: ${contrasenaTemporal}`, "success");
     }
 
     modal.hide();
@@ -255,7 +292,10 @@ window.eliminarUsuario = async function eliminarUsuario(id, nombre) {
   }
 
   try {
+    const docSnap = await getDoc(doc(db, "JuntasDeVecinos", id));
+    const data = docSnap.exists() ? (docSnap.data() || {}) : {};
     await deleteDoc(doc(db, "JuntasDeVecinos", id));
+    await eliminarLoginIndex(data.usuario);
     showAlert("Junta eliminada correctamente.", "success");
     await cargarUsuarios();
   } catch (error) {

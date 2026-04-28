@@ -50,6 +50,22 @@ service cloud.firestore {
       allow write: if isSignedIn();
     }
 
+    match /loginIndex/{identifier} {
+      allow get: if true;
+      allow list: if false;
+      allow create, update: if isSignedIn() &&
+        request.resource.data.keys().hasOnly([
+          "uid",
+          "email",
+          "rol",
+          "updatedAt"
+        ]) &&
+        request.resource.data.uid is string &&
+        request.resource.data.email is string &&
+        request.resource.data.rol is string;
+      allow delete: if isSignedIn();
+    }
+
     match /denuncias/{denunciaId} {
       allow read: if isAdmin() ||
         (isJunta() && resource.data.uid == request.auth.uid) ||

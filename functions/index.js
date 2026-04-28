@@ -1,7 +1,19 @@
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
+const crypto = require("crypto");
 
 admin.initializeApp();
+
+const PASSWORD_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%";
+
+function generateTemporaryPassword(length = 12) {
+  const randomBytes = crypto.randomBytes(length);
+  let password = "";
+  for (let i = 0; i < length; i++) {
+    password += PASSWORD_ALPHABET[randomBytes[i] % PASSWORD_ALPHABET.length];
+  }
+  return password;
+}
 
 exports.resetAyuntamientoPassword = functions.https.onCall(async (data, context) => {
   if (!context.auth || !context.auth.uid) {
@@ -15,14 +27,15 @@ exports.resetAyuntamientoPassword = functions.https.onCall(async (data, context)
   }
 
   const ayuntamientoUid = (data && data.ayuntamientoUid ? String(data.ayuntamientoUid) : "").trim();
-  const temporaryPassword = (data && data.temporaryPassword ? String(data.temporaryPassword) : "Inicial123").trim();
+  const providedTemporaryPassword = (data && data.temporaryPassword ? String(data.temporaryPassword) : "").trim();
+  const temporaryPassword = providedTemporaryPassword || generateTemporaryPassword(12);
 
   if (!ayuntamientoUid) {
     throw new functions.https.HttpsError("invalid-argument", "Debes indicar el UID del ayuntamiento.");
   }
 
-  if (temporaryPassword.length < 6) {
-    throw new functions.https.HttpsError("invalid-argument", "La contraseña temporal debe tener al menos 6 caracteres.");
+  if (providedTemporaryPassword && temporaryPassword.length < 8) {
+    throw new functions.https.HttpsError("invalid-argument", "La contraseña temporal debe tener al menos 8 caracteres.");
   }
 
   const ayuntamientoDocRef = admin.firestore().collection("Ayuntamientos").doc(ayuntamientoUid);

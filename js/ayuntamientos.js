@@ -24,6 +24,36 @@ const submitBtn = document.getElementById("submitBtn");
 const ayuntamientoIdInput = document.getElementById("ayuntamientoId");
 const passwordField = document.getElementById("passwordField");
 
+async function sincronizarLoginIndex({ uid, usuario, correo, rol }) {
+  const usuarioNormalizado = String(usuario || "").trim().toLowerCase();
+  const email = String(correo || "").trim();
+  if (!uid || !usuarioNormalizado || !email || !rol) return;
+
+  await db.collection("loginIndex").doc(usuarioNormalizado).set({
+    uid,
+    email,
+    rol,
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  }, { merge: true });
+}
+
+async function eliminarLoginIndex(usuario) {
+  const usuarioNormalizado = String(usuario || "").trim().toLowerCase();
+  if (!usuarioNormalizado) return;
+  await db.collection("loginIndex").doc(usuarioNormalizado).delete();
+}
+
+function generarContrasenaTemporal(length = 12) {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%";
+  const cryptoApi = window.crypto || window.msCrypto;
+  if (cryptoApi && typeof cryptoApi.getRandomValues === "function") {
+    const values = new Uint32Array(length);
+    cryptoApi.getRandomValues(values);
+    return Array.from(values, (v) => chars[v % chars.length]).join("");
+  }
+  return Array.from({ length }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+}
+
 window.addEventListener("DOMContentLoaded", async () => {
   if (!uid || !rolLocal) {
     window.location.href = "index.html";
@@ -78,9 +108,12 @@ form.addEventListener("submit", async (event) => {
   
   try {
     if (ayuntamientoId) {
+      const previoDoc = await db.collection("Ayuntamientos").doc(ayuntamientoId).get();
+      const previoData = previoDoc.exists ? (previoDoc.data() || {}) : {};
       // Editar ayuntamiento existente
       const ayuntamientoData = {
         nombre,
+        usuario,
         correo,
         telefono,
         direccion,
@@ -88,6 +121,10 @@ form.addEventListener("submit", async (event) => {
         municipio
       };
       await db.collection("Ayuntamientos").doc(ayuntamientoId).set(ayuntamientoData, { merge: true });
+      await sincronizarLoginIndex({ uid: ayuntamientoId, usuario, correo, rol: "ayuntamiento" });
+      if (previoData.usuario && previoData.usuario.toLowerCase() !== usuarioNormalizado) {
+        await eliminarLoginIndex(previoData.usuario);
+      }
       showAlert("Ayuntamiento actualizado correctamente.", "success");
     } else {
       const existingSnap = await db.collection("Ayuntamientos").get();
@@ -102,9 +139,9 @@ form.addEventListener("submit", async (event) => {
         return;
       }
 
-      // Crear nuevo ayuntamiento con contraseña temporal de primer uso.
-      const contrasenaGenerica = "Inicial123";
-      const credential = await auth.createUserWithEmailAndPassword(correo, contrasenaGenerica);
+      // Crear nuevo ayuntamiento con contraseña temporal aleatoria de primer uso.
+      const contrasenaTemporal = generarContrasenaTemporal();
+      const credential = await auth.createUserWithEmailAndPassword(correo, contrasenaTemporal);
       const nuevoUid = credential.user.uid;
       
       const ayuntamientoData = {
@@ -123,7 +160,8 @@ form.addEventListener("submit", async (event) => {
       };
       
       await db.collection("Ayuntamientos").doc(nuevoUid).set(ayuntamientoData);
-      showAlert(`Ayuntamiento creado correctamente. Usuario: ${usuario}, Contraseña temporal: ${contrasenaGenerica}`, "success");
+      await sincronizarLoginIndex({ uid: nuevoUid, usuario, correo, rol: "ayuntamiento" });
+      showAlert(`Ayuntamiento creado correctamente. Usuario: ${usuario}, Contraseña temporal: ${contrasenaTemporal}`, "success");
     }
     
     form.reset();
@@ -230,7 +268,10 @@ window.editarAyuntamiento = async function(id) {
 window.eliminarAyuntamiento = async function(id, nombre) {
   if (confirm("¿Eliminar a " + nombre + "?")) {
     try {
+      const docSnap = await db.collection("Ayuntamientos").doc(id).get();
+      const data = docSnap.exists ? (docSnap.data() || {}) : {};
       await db.collection("Ayuntamientos").doc(id).delete();
+      await eliminarLoginIndex(data.usuario);
       showAlert("Ayuntamiento eliminado.", "success");
       await cargarAyuntamientos();
     } catch (error) {
