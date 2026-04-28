@@ -249,7 +249,6 @@ window.login = async function () {
     const usuario = document.getElementById("usuario").value.trim();
     const usuarioNormalizado = usuario.toLowerCase();
     const password = document.getElementById("password").value;
-    const pareceCorreo = usuario.includes("@");
 
     if (!usuario || !password) {
       mostrarError("Debes ingresar usuario y contraseña.");
@@ -261,19 +260,14 @@ window.login = async function () {
       let userCredential = null;
       let perfil = null;
 
-      if (pareceCorreo) {
-        userCredential = await auth.signInWithEmailAndPassword(usuario, password);
-        perfil = await obtenerPerfilPorUid(userCredential.user.uid);
-      } else {
-        const resultadoBusqueda = await buscarUsuarioPorIdentificador(usuarioNormalizado);
-        if (!resultadoBusqueda || !resultadoBusqueda.userEmail) {
-          mostrarError("No se pudo resolver el usuario. Intenta iniciar con tu correo electrónico.");
-          return;
-        }
-
-        userCredential = await auth.signInWithEmailAndPassword(resultadoBusqueda.userEmail, password);
-        perfil = await obtenerPerfilPorUid(userCredential.user.uid);
+      const resultadoBusqueda = await buscarUsuarioPorIdentificador(usuarioNormalizado);
+      if (!resultadoBusqueda || !resultadoBusqueda.userEmail) {
+        mostrarError("Usuario no encontrado. Verifica tu nombre de usuario.");
+        return;
       }
+
+      userCredential = await auth.signInWithEmailAndPassword(resultadoBusqueda.userEmail, password);
+      perfil = await obtenerPerfilPorUid(userCredential.user.uid);
 
       if (!perfil) {
         await auth.signOut();
