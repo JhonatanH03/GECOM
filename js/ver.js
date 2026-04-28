@@ -26,6 +26,74 @@ const ITEMS_POR_PAGINA = 20;
 let todasLasDenuncias = [];
 let paginaActual = 1;
 
+function poblarFiltrosZonaAdmin() {
+  if (rol !== "admin") return;
+
+  const wrap = document.getElementById("filtrosZonaAdmin");
+  const filtroProvincia = document.getElementById("filtroProvincia");
+  const filtroMunicipio = document.getElementById("filtroMunicipio");
+  const filtroComunidad = document.getElementById("filtroComunidad");
+  if (!wrap || !filtroProvincia || !filtroMunicipio || !filtroComunidad) return;
+
+  const provinciaActual = filtroProvincia.value || "Todos";
+  const municipioActual = filtroMunicipio.value || "Todos";
+  const comunidadActual = filtroComunidad.value || "Todos";
+
+  const provincias = Array.from(new Set(
+    todasLasDenuncias
+      .map(({ data }) => (data.provincia || "").trim())
+      .filter(Boolean)
+  )).sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }));
+
+  filtroProvincia.innerHTML = '<option value="Todos">Todos</option>';
+  provincias.forEach((p) => {
+    const option = document.createElement("option");
+    option.value = p;
+    option.textContent = p;
+    filtroProvincia.appendChild(option);
+  });
+  filtroProvincia.value = provincias.includes(provinciaActual) ? provinciaActual : "Todos";
+
+  const municipios = Array.from(new Set(
+    todasLasDenuncias
+      .filter(({ data }) => filtroProvincia.value === "Todos" || (data.provincia || "") === filtroProvincia.value)
+      .map(({ data }) => (data.municipio || "").trim())
+      .filter(Boolean)
+  )).sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }));
+
+  filtroMunicipio.innerHTML = '<option value="Todos">Todos</option>';
+  municipios.forEach((m) => {
+    const option = document.createElement("option");
+    option.value = m;
+    option.textContent = m;
+    filtroMunicipio.appendChild(option);
+  });
+
+  filtroMunicipio.value = municipios.includes(municipioActual) ? municipioActual : "Todos";
+
+  const comunidades = Array.from(new Set(
+    todasLasDenuncias
+      .filter(({ data }) => {
+        const matchProvincia = filtroProvincia.value === "Todos" || (data.provincia || "") === filtroProvincia.value;
+        const matchMunicipio = filtroMunicipio.value === "Todos" || (data.municipio || "") === filtroMunicipio.value;
+        return matchProvincia && matchMunicipio;
+      })
+      .map(({ data }) => (data.comunidad || "").trim())
+      .filter(Boolean)
+  )).sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }));
+
+  filtroComunidad.innerHTML = '<option value="Todos">Todos</option>';
+  comunidades.forEach((c) => {
+    const option = document.createElement("option");
+    option.value = c;
+    option.textContent = c;
+    filtroComunidad.appendChild(option);
+  });
+
+  filtroComunidad.value = comunidades.includes(comunidadActual) ? comunidadActual : "Todos";
+  wrap.classList.remove("d-none");
+}
+
 function escapeHtml(value) {
   return String(value || "")
     .replace(/&/g, "&amp;")
@@ -121,10 +189,17 @@ async function abrirDetalleDenuncia(id) {
 function renderizarPagina() {
   const tabla = document.getElementById("tablaDenuncias");
   const filtro = document.getElementById("filtroEstado").value;
+  const filtroProvincia = document.getElementById("filtroProvincia")?.value || "Todos";
+  const filtroMunicipio = document.getElementById("filtroMunicipio")?.value || "Todos";
+  const filtroComunidad = document.getElementById("filtroComunidad")?.value || "Todos";
 
-  const filtradas = todasLasDenuncias.filter(({ data }) =>
-    filtro === "Todos" || data.estado === filtro
-  );
+  const filtradas = todasLasDenuncias.filter(({ data }) => {
+    const cumpleEstado = filtro === "Todos" || data.estado === filtro;
+    const cumpleProvincia = rol !== "admin" || filtroProvincia === "Todos" || (data.provincia || "") === filtroProvincia;
+    const cumpleMunicipio = rol !== "admin" || filtroMunicipio === "Todos" || (data.municipio || "") === filtroMunicipio;
+    const cumpleComunidad = rol !== "admin" || filtroComunidad === "Todos" || (data.comunidad || "") === filtroComunidad;
+    return cumpleEstado && cumpleProvincia && cumpleMunicipio && cumpleComunidad;
+  });
 
   const totalPaginas = Math.max(1, Math.ceil(filtradas.length / ITEMS_POR_PAGINA));
   if (paginaActual > totalPaginas) paginaActual = totalPaginas;
@@ -232,6 +307,8 @@ async function cargarDenuncias() {
       return fb - fa;
     });
 
+    poblarFiltrosZonaAdmin();
+
     paginaActual = 1;
     renderizarPagina();
   } catch (error) {
@@ -317,6 +394,22 @@ async function init() {
     paginaActual = 1;
     renderizarPagina();
   });
+  if (rol === "admin") {
+    document.getElementById("filtroProvincia")?.addEventListener("change", () => {
+      poblarFiltrosZonaAdmin();
+      paginaActual = 1;
+      renderizarPagina();
+    });
+    document.getElementById("filtroMunicipio")?.addEventListener("change", () => {
+      poblarFiltrosZonaAdmin();
+      paginaActual = 1;
+      renderizarPagina();
+    });
+    document.getElementById("filtroComunidad")?.addEventListener("change", () => {
+      paginaActual = 1;
+      renderizarPagina();
+    });
+  }
   document.getElementById("detalleForm").addEventListener("submit", responderDenuncia);
 }
 

@@ -16,7 +16,7 @@
     <a href="dashboard.html" class="btn btn-secondary">
       <i class="bi bi-arrow-left"></i> Volver al Dashboard
     </a>
-    <div class="w-50">
+    <div class="w-50" id="filtroEstadoWrap">
       <label class="form-label">Filtrar por estado:</label>
       <select id="filtroEstado" class="form-select">
         <option value="Todos">Todos</option>
@@ -24,6 +24,27 @@
         <option value="En proceso">En proceso</option>
         <option value="Resuelta">Resuelta</option>
         <option value="Rechazada">Rechazada</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-3 d-none" id="filtrosZonaAdmin">
+    <div class="col-md-4">
+      <label class="form-label">Filtrar por provincia:</label>
+      <select id="filtroProvincia" class="form-select">
+        <option value="Todos">Todos</option>
+      </select>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Filtrar por municipio:</label>
+      <select id="filtroMunicipio" class="form-select">
+        <option value="Todos">Todos</option>
+      </select>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Filtrar por comunidad:</label>
+      <select id="filtroComunidad" class="form-select">
+        <option value="Todos">Todos</option>
       </select>
     </div>
   </div>
