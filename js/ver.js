@@ -330,12 +330,24 @@ function renderizarPagina() {
     tabla.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-3">No hay denuncias para mostrar.</td></tr>`;
   } else {
     pagina.forEach(({ id, data }) => {
+      const estadoBadge = {
+        Pendiente: "secondary",
+        "En proceso": "warning",
+        Resuelta: "success",
+        Rechazada: "danger"
+      }[data.estado || "Pendiente"] || "secondary";
+
+      const tieneRespuesta = !!data.respuesta_ayuntamiento;
+
       const fila = document.createElement("tr");
       fila.innerHTML = `
-        <td>${escapeHtml(data.titulo || "Sin título")}</td>
+        <td>
+          ${escapeHtml(data.titulo || "Sin título")}
+          ${tieneRespuesta ? '<span class="badge bg-info ms-1" title="Tiene respuesta oficial">R</span>' : ""}
+        </td>
         <td>${escapeHtml((data.descripcion || "Sin descripción").slice(0, 80))}${data.descripcion && data.descripcion.length > 80 ? "..." : ""}</td>
         <td>${escapeHtml(data.comunidad || "Sin comunidad")}</td>
-        <td>${escapeHtml(data.estado || "Pendiente")}</td>
+        <td><span class="badge bg-${estadoBadge}">${escapeHtml(data.estado || "Pendiente")}</span></td>
         <td>${escapeHtml(obtenerTextoDiasEnProceso(data))}</td>
         <td>${data.fecha ? new Date(data.fecha.seconds * 1000).toLocaleDateString() : "Sin fecha"}</td>
         <td><button class="btn btn-sm btn-primary ver-btn" data-id="${id}">Ver</button></td>
@@ -399,7 +411,11 @@ function obtenerDenunciasFiltradas() {
   const filtroComunidad = document.getElementById("filtroComunidad")?.value || "Todos";
 
   return todasLasDenuncias.filter(({ data }) => {
-    const cumpleEstado = filtro === "Todos" || data.estado === filtro;
+    let cumpleEstado;
+    if (filtro === "Todos") cumpleEstado = true;
+    else if (filtro === "Sin respuesta") cumpleEstado = !data.respuesta_ayuntamiento;
+    else cumpleEstado = data.estado === filtro;
+
     const cumpleProvincia = rol !== "admin" || filtroProvincia === "Todos" || (data.provincia || "") === filtroProvincia;
     const cumpleMunicipio = rol !== "admin" || filtroMunicipio === "Todos" || (data.municipio || "") === filtroMunicipio;
     const cumpleComunidad = rol !== "admin" || filtroComunidad === "Todos" || (data.comunidad || "") === filtroComunidad;
