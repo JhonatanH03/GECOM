@@ -20,6 +20,56 @@ const rolLocal = localStorage.getItem("rol");
 const db = getFirestore(app);
 const auth = getAuth(app);
 
+function aplicarTemaDashboard() {
+  const html = document.getElementById("htmlRoot");
+  const body = document.getElementById("bodyRoot");
+  const menuTema = document.getElementById("menuTema");
+  if (!html || !body || !menuTema) return;
+
+  const tema = localStorage.getItem("tema") || "sistema";
+  let temaFinal = tema;
+
+  if (tema === "sistema") {
+    temaFinal = window.matchMedia("(prefers-color-scheme: dark)").matches ? "oscuro" : "claro";
+  }
+
+  if (temaFinal === "oscuro") {
+    html.setAttribute("data-bs-theme", "dark");
+    body.classList.remove("bg-light");
+    body.classList.add("bg-dark");
+  } else {
+    html.setAttribute("data-bs-theme", "light");
+    body.classList.remove("bg-dark");
+    body.classList.add("bg-light");
+  }
+
+  menuTema.querySelectorAll("a[data-tema]").forEach((a) => {
+    a.classList.remove("active");
+    if (a.dataset.tema === tema) a.classList.add("active");
+  });
+}
+
+function inicializarSelectorTemaDashboard() {
+  const menuTema = document.getElementById("menuTema");
+  if (!menuTema) return;
+
+  aplicarTemaDashboard();
+
+  menuTema.querySelectorAll("a[data-tema]").forEach((a) => {
+    a.addEventListener("click", (e) => {
+      e.preventDefault();
+      localStorage.setItem("tema", a.dataset.tema);
+      aplicarTemaDashboard();
+    });
+  });
+
+  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+    if ((localStorage.getItem("tema") || "sistema") === "sistema") {
+      aplicarTemaDashboard();
+    }
+  });
+}
+
 window.ir = function (ruta) {
   window.location.href = ruta;
 };
@@ -143,6 +193,7 @@ function iniciarSuscripcionNotificaciones() {
 if (!uid || !rolLocal) {
   window.location.href = "index.html";
 } else {
+  inicializarSelectorTemaDashboard();
   document.getElementById("cardVerDenuncias").style.display = "block";
 
   if (rolLocal === "admin") {

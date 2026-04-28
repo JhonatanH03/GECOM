@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" id="htmlRoot">
 <head>
   <meta charset="UTF-8">
   <title>GECOM - Panel Principal</title>
@@ -9,16 +9,27 @@
   <script src="js/guard.js"></script>
 </head>
 
-<body class="bg-light">
+<body id="bodyRoot" class="bg-light">
 
 <div class="container mt-5">
 
   <div class="d-flex justify-content-between align-items-center mb-4">
     <h2>Panel Principal</h2>
     <div class="d-flex align-items-center gap-2">
+      <div class="dropdown">
+        <button id="btnPaletaTema" class="btn btn-outline-dark btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Elegir tema">
+          🎨
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end" id="menuTema">
+          <li><a class="dropdown-item" href="#" data-tema="claro">☀️ Claro</a></li>
+          <li><a class="dropdown-item" href="#" data-tema="oscuro">🌙 Oscuro</a></li>
+          <li><a class="dropdown-item" href="#" data-tema="sistema">💻 Sistema</a></li>
+        </ul>
+      </div>
       <div class="dropdown" id="notificacionesWrap" style="display:none;">
         <button class="btn btn-outline-dark position-relative" type="button" data-bs-toggle="dropdown" aria-expanded="false" id="btnNotificaciones">
-          Campanita
+          <span aria-hidden="true" style="font-size: 1.1rem; line-height: 1;">&#128276;</span>
+          <span class="visually-hidden">Notificaciones</span>
           <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="badgeNotificaciones" style="display:none;">0</span>
         </button>
         <ul class="dropdown-menu dropdown-menu-end" id="listaNotificaciones" style="width: 340px; max-height: 360px; overflow-y: auto;"></ul>
