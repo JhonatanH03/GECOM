@@ -25,6 +25,41 @@ const detalleModal = new bootstrap.Modal(document.getElementById("detalleModal")
 const ITEMS_POR_PAGINA = 20;
 let todasLasDenuncias = [];
 let paginaActual = 1;
+let catalogoProvincias = [];
+const municipiosPorProvincia = new Map();
+
+function ordenarEs(lista) {
+  return lista.sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }));
+}
+
+async function cargarCatalogoProvincias() {
+  if (rol !== "admin") return;
+  try {
+    const res = await fetch("js/provincias.json", { cache: "no-store" });
+    if (!res.ok) throw new Error("No se pudo cargar provincias.json");
+    const data = await res.json();
+
+    catalogoProvincias = ordenarEs(
+      data
+        .map((item) => (item?.nombre || "").trim())
+        .filter(Boolean)
+    );
+
+    municipiosPorProvincia.clear();
+    data.forEach((item) => {
+      const provincia = (item?.nombre || "").trim();
+      if (!provincia) return;
+      const municipios = ordenarEs(
+        Array.from(new Set((item?.municipios || []).map((m) => String(m || "").trim()).filter(Boolean)))
+      );
+      municipiosPorProvincia.set(provincia, municipios);
+    });
+  } catch (error) {
+    console.warn("No se pudo cargar el catálogo de provincias, se usará fallback por denuncias:", error);
+    catalogoProvincias = [];
+    municipiosPorProvincia.clear();
+  }
+}
 
 function poblarFiltrosZonaAdmin() {
   if (rol !== "admin") return;
@@ -39,11 +74,13 @@ function poblarFiltrosZonaAdmin() {
   const municipioActual = filtroMunicipio.value || "Todos";
   const comunidadActual = filtroComunidad.value || "Todos";
 
-  const provincias = Array.from(new Set(
-    todasLasDenuncias
-      .map(({ data }) => (data.provincia || "").trim())
-      .filter(Boolean)
-  )).sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }));
+  const provincias = catalogoProvincias.length
+    ? [...catalogoProvincias]
+    : ordenarEs(Array.from(new Set(
+      todasLasDenuncias
+        .map(({ data }) => (data.provincia || "").trim())
+        .filter(Boolean)
+    )));
 
   filtroProvincia.innerHTML = '<option value="Todos">Todos</option>';
   provincias.forEach((p) => {
@@ -54,12 +91,23 @@ function poblarFiltrosZonaAdmin() {
   });
   filtroProvincia.value = provincias.includes(provinciaActual) ? provinciaActual : "Todos";
 
-  const municipios = Array.from(new Set(
-    todasLasDenuncias
-      .filter(({ data }) => filtroProvincia.value === "Todos" || (data.provincia || "") === filtroProvincia.value)
-      .map(({ data }) => (data.municipio || "").trim())
-      .filter(Boolean)
-  )).sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }));
+  let municipios = [];
+  if (municipiosPorProvincia.size) {
+    if (filtroProvincia.value === "Todos") {
+      municipios = ordenarEs(Array.from(new Set(
+        Array.from(municipiosPorProvincia.values()).flat()
+      )));
+    } else {
+      municipios = [...(municipiosPorProvincia.get(filtroProvincia.value) || [])];
+    }
+  } else {
+    municipios = ordenarEs(Array.from(new Set(
+      todasLasDenuncias
+        .filter(({ data }) => filtroProvincia.value === "Todos" || (data.provincia || "") === filtroProvincia.value)
+        .map(({ data }) => (data.municipio || "").trim())
+        .filter(Boolean)
+    )));
+  }
 
   filtroMunicipio.innerHTML = '<option value="Todos">Todos</option>';
   municipios.forEach((m) => {
@@ -71,7 +119,7 @@ function poblarFiltrosZonaAdmin() {
 
   filtroMunicipio.value = municipios.includes(municipioActual) ? municipioActual : "Todos";
 
-  const comunidades = Array.from(new Set(
+  const comunidades = ordenarEs(Array.from(new Set(
     todasLasDenuncias
       .filter(({ data }) => {
         const matchProvincia = filtroProvincia.value === "Todos" || (data.provincia || "") === filtroProvincia.value;
@@ -80,7 +128,7 @@ function poblarFiltrosZonaAdmin() {
       })
       .map(({ data }) => (data.comunidad || "").trim())
       .filter(Boolean)
-  )).sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }));
+  )));
 
   filtroComunidad.innerHTML = '<option value="Todos">Todos</option>';
   comunidades.forEach((c) => {
@@ -450,6 +498,7 @@ function validarSesion() {
 
 async function init() {
   if (!validarSesion()) return;
+  await cargarCatalogoProvincias();
   await obtenerMunicipioAyuntamiento();
   await cargarDenuncias();
   document.getElementById("filtroEstado").addEventListener("change", () => {
