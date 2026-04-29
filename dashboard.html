@@ -6,15 +6,22 @@
 
   <!-- Bootstrap -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
   <script src="js/guard.js"></script>
 </head>
 
-<body id="bodyRoot" class="bg-light">
+<body id="bodyRoot" class="bg-light dashboard-page">
 
-<div class="container mt-5">
+<div class="container mt-5 dashboard-shell">
 
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2>Panel Principal</h2>
+  <div class="dashboard-header d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h2 class="dashboard-title mb-1">Panel Principal</h2>
+      <p class="dashboard-subtitle mb-0">Centro de operaciones de GECOM</p>
+    </div>
     <div class="d-flex align-items-center gap-2">
       <div class="dropdown">
         <button id="btnPaletaTema" class="btn btn-outline-dark btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Elegir tema">
@@ -27,24 +34,24 @@
         </ul>
       </div>
       <div class="dropdown" id="notificacionesWrap" style="display:none;">
-        <button class="btn btn-outline-dark position-relative" type="button" data-bs-toggle="dropdown" aria-expanded="false" id="btnNotificaciones">
+        <button class="btn btn-outline-dark position-relative btn-notificaciones" type="button" data-bs-toggle="dropdown" aria-expanded="false" id="btnNotificaciones" aria-label="Notificaciones">
           <span aria-hidden="true" style="font-size: 1.1rem; line-height: 1;">&#128276;</span>
           <span class="visually-hidden">Notificaciones</span>
           <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="badgeNotificaciones" style="display:none;">0</span>
         </button>
-        <ul class="dropdown-menu dropdown-menu-end" id="listaNotificaciones" style="width: 340px; max-height: 360px; overflow-y: auto;"></ul>
+        <ul class="dropdown-menu dropdown-menu-end notificaciones-menu" id="listaNotificaciones" style="width: 340px; max-height: 360px; overflow-y: auto;"></ul>
       </div>
       <button onclick="logout()" class="btn btn-danger">Cerrar sesión</button>
     </div>
   </div>
 
-  <div class="row g-4">
+  <div class="row g-4 dashboard-grid">
 
     <!-- Registrar denuncia -->
     <div class="col-md-4" id="cardCrearDenuncia" style="display:none;">
-      <div class="card p-4 shadow text-center">
+      <div class="card p-4 shadow-sm text-center h-100 dashboard-card card-junta">
         <h5>Registrar Denuncia</h5>
-        <button onclick="ir('crear.html')" class="btn btn-primary mt-3">
+        <button onclick="ir('crear.html')" class="btn btn-primary mt-3 gecom-btn">
           Ir
         </button>
       </div>
@@ -52,9 +59,9 @@
 
     <!-- Ver denuncias -->
     <div class="col-md-4" id="cardVerDenuncias" style="display:none;">
-      <div class="card p-4 shadow text-center">
+      <div class="card p-4 shadow-sm text-center h-100 dashboard-card card-general">
         <h5>Ver Denuncias</h5>
-        <button onclick="ir('ver.html')" class="btn btn-success mt-3">
+        <button onclick="ir('ver.html')" class="btn btn-success mt-3 gecom-btn">
           Ir
         </button>
       </div>
@@ -62,9 +69,9 @@
 
     <!-- Panel Junta de Vecinos -->
     <div class="col-md-4" id="cardJunta" style="display:none;">
-      <div class="card p-4 shadow text-center">
+      <div class="card p-4 shadow-sm text-center h-100 dashboard-card card-junta">
         <h5>Panel Junta</h5>
-        <button onclick="ir('junta.html')" class="btn btn-info mt-3">
+        <button onclick="ir('junta.html')" class="btn btn-info mt-3 gecom-btn">
           Ir
         </button>
       </div>
@@ -72,9 +79,9 @@
 
     <!-- Historial de cambios (solo junta) -->
     <div class="col-md-4" id="cardHistorial" style="display:none;">
-      <div class="card p-4 shadow text-center">
+      <div class="card p-4 shadow-sm text-center h-100 dashboard-card card-junta">
         <h5>Historial de Cambios</h5>
-        <button onclick="ir('historial.html')" class="btn btn-outline-secondary mt-3">
+        <button onclick="ir('historial.html')" class="btn btn-outline-secondary mt-3 gecom-btn">
           Ir
         </button>
       </div>
@@ -82,9 +89,9 @@
 
     <!-- Gestión de Usuarios (solo admin) -->
     <div class="col-md-4" id="cardAdmin" style="display:none;">
-      <div class="card p-4 shadow text-center">
+      <div class="card p-4 shadow-sm text-center h-100 dashboard-card card-admin">
         <h5>Estadísticas</h5>
-        <button onclick="ir('estadisticas.html')" class="btn btn-warning mt-3">
+        <button onclick="ir('estadisticas.html')" class="btn btn-warning mt-3 gecom-btn">
           Ir
         </button>
       </div>
@@ -92,9 +99,9 @@
 
     <!-- Gestión de Usuarios (solo admin) -->
     <div class="col-md-4" id="cardAdminAyunt" style="display:none;">
-      <div class="card p-4 shadow text-center">
+      <div class="card p-4 shadow-sm text-center h-100 dashboard-card card-admin">
         <h5>Gestion de Ayuntamientos</h5>
-        <button onclick="ir('ayuntamientos.html')" class="btn btn-warning mt-3">
+        <button onclick="ir('ayuntamientos.html')" class="btn btn-warning mt-3 gecom-btn">
           Ir
         </button>
       </div>
@@ -102,9 +109,9 @@
 
     <!-- Gestión de Usuarios (solo admin) -->
     <div class="col-md-4" id="cardAdminUsuarios" style="display:none;">
-      <div class="card p-4 shadow text-center">
+      <div class="card p-4 shadow-sm text-center h-100 dashboard-card card-admin">
         <h5>Gestión de Usuarios</h5>
-        <button onclick="ir('usuarios.html')" class="btn btn-secondary mt-3">
+        <button onclick="ir('usuarios.html')" class="btn btn-secondary mt-3 gecom-btn">
           Ir
         </button>
       </div>
@@ -112,9 +119,9 @@
 
     <!-- Gestión de Juntas (solo ayuntamiento) -->
     <div class="col-md-4" id="cardAyunt" style="display:none;">
-      <div class="card p-4 shadow text-center">
+      <div class="card p-4 shadow-sm text-center h-100 dashboard-card card-ayuntamiento">
         <h5>Gestión de Juntas</h5>
-        <button onclick="ir('juntas.html')" class="btn btn-secondary mt-3">
+        <button onclick="ir('juntas.html')" class="btn btn-secondary mt-3 gecom-btn">
           Ir
         </button>
       </div>
@@ -122,9 +129,9 @@
 
     <!-- Registrar Denuncia (solo ayuntamiento) -->
     <div class="col-md-4" id="cardCrearDenunciaAyunt" style="display:none;">
-      <div class="card p-4 shadow text-center">
+      <div class="card p-4 shadow-sm text-center h-100 dashboard-card card-ayuntamiento">
         <h5>Registrar Denuncia</h5>
-        <button onclick="ir('crear.html')" class="btn btn-primary mt-3">
+        <button onclick="ir('crear.html')" class="btn btn-primary mt-3 gecom-btn">
           Ir
         </button>
       </div>

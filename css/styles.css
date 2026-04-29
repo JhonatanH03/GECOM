@@ -1,14 +1,14 @@
-/* Ocultar todas las tarjetas del dashboard por defecto */
-#cardCrearDenuncia,
-#cardJunta,
-#cardHistorial,
-#cardAdmin,
-#cardAyunt,
-#cardAdminAyunt,
-#cardAdminUsuarios,
-#cardCrearDenunciaAyunt,
-#cardVerDenuncias {
-  display: none !important;
+/* Ocultar tarjetas del dashboard por defecto y permitir que JS las muestre por rol */
+.dashboard-page #cardCrearDenuncia,
+.dashboard-page #cardJunta,
+.dashboard-page #cardHistorial,
+.dashboard-page #cardAdmin,
+.dashboard-page #cardAyunt,
+.dashboard-page #cardAdminAyunt,
+.dashboard-page #cardAdminUsuarios,
+.dashboard-page #cardCrearDenunciaAyunt,
+.dashboard-page #cardVerDenuncias {
+  display: none;
 }
 /* Animación de entrada para el mensaje de error */
 @keyframes slideIn {
@@ -105,4 +105,156 @@ h3 {
 /* Estilos para el párrafo descriptivo */
 .text-muted {
   font-size: 14px;
+}
+
+/* Dashboard theme system */
+.dashboard-page {
+  --gecom-bg: #eef3f7;
+  --gecom-surface: #ffffff;
+  --gecom-stroke: #dce5ee;
+  --gecom-text: #12304a;
+  --gecom-subtext: #5d7286;
+  --gecom-shadow: 0 14px 30px rgba(20, 55, 90, 0.08);
+  background:
+    radial-gradient(circle at 12% 14%, rgba(45, 125, 198, 0.12), transparent 34%),
+    radial-gradient(circle at 88% 86%, rgba(46, 137, 94, 0.12), transparent 35%),
+    var(--gecom-bg);
+  color: var(--gecom-text);
+  font-family: "Manrope", "Segoe UI", Tahoma, sans-serif;
+  min-height: 100vh;
+}
+
+[data-bs-theme="dark"] .dashboard-page {
+  --gecom-bg: #0f1720;
+  --gecom-surface: #16202d;
+  --gecom-stroke: #233447;
+  --gecom-text: #dce8f5;
+  --gecom-subtext: #92a7bc;
+  --gecom-shadow: 0 18px 34px rgba(0, 0, 0, 0.34);
+}
+
+.dashboard-shell {
+  padding-bottom: 18px;
+}
+
+.dashboard-header {
+  background: color-mix(in srgb, var(--gecom-surface) 92%, transparent);
+  border: 1px solid var(--gecom-stroke);
+  border-radius: 18px;
+  padding: 18px 20px;
+  box-shadow: var(--gecom-shadow);
+}
+
+.dashboard-title {
+  font-size: 1.7rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--gecom-text);
+}
+
+.dashboard-subtitle {
+  color: var(--gecom-subtext) !important;
+  font-size: 0.95rem;
+}
+
+.dashboard-grid .dashboard-card {
+  border-radius: 18px;
+  border: 1px solid var(--gecom-stroke);
+  background: var(--gecom-surface);
+  box-shadow: var(--gecom-shadow) !important;
+  transition: transform 0.28s ease, box-shadow 0.28s ease, border-color 0.28s ease;
+}
+
+.dashboard-grid .dashboard-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 36px rgba(16, 52, 84, 0.14) !important;
+}
+
+[data-bs-theme="dark"] .dashboard-grid .dashboard-card:hover {
+  box-shadow: 0 20px 36px rgba(0, 0, 0, 0.42) !important;
+}
+
+.dashboard-grid .dashboard-card h5 {
+  font-weight: 700;
+  color: var(--gecom-text);
+  margin-bottom: 0.9rem;
+}
+
+.dashboard-card.card-junta {
+  border-top: 4px solid #2b8f6f;
+}
+
+.dashboard-card.card-admin {
+  border-top: 4px solid #ce8b25;
+}
+
+.dashboard-card.card-ayuntamiento {
+  border-top: 4px solid #3377c8;
+}
+
+.dashboard-card.card-general {
+  border-top: 4px solid #4f8ca5;
+}
+
+.dashboard-page .gecom-btn {
+  min-width: 132px;
+  border-radius: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.dashboard-page .gecom-btn:hover {
+  transform: translateY(-1px);
+}
+
+.dashboard-page #btnPaletaTema,
+.dashboard-page .btn-notificaciones,
+.dashboard-page .btn-danger {
+  border-radius: 11px;
+}
+
+.dashboard-page .btn-notificaciones.tiene-no-leidas {
+  box-shadow: 0 0 0 0.25rem rgba(220, 53, 69, 0.16);
+}
+
+.dashboard-page .btn-notificaciones.animar-campana {
+  animation: notifBellShake 0.5s ease;
+}
+
+@keyframes notifBellShake {
+  0% { transform: rotate(0deg); }
+  20% { transform: rotate(-10deg); }
+  40% { transform: rotate(8deg); }
+  60% { transform: rotate(-6deg); }
+  80% { transform: rotate(4deg); }
+  100% { transform: rotate(0deg); }
+}
+
+.dashboard-page .notificaciones-menu {
+  border-radius: 14px;
+  border: 1px solid var(--gecom-stroke);
+  box-shadow: var(--gecom-shadow);
+  padding: 6px;
+}
+
+.dashboard-page .notif-item {
+  border-radius: 10px;
+  transition: background-color 0.18s ease;
+}
+
+.dashboard-page .notif-item:hover {
+  background-color: rgba(79, 140, 165, 0.1);
+}
+
+@media (max-width: 768px) {
+  .dashboard-header {
+    align-items: flex-start !important;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .dashboard-page .gecom-btn {
+    min-width: 120px;
+  }
 }

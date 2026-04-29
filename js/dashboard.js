@@ -19,6 +19,7 @@ const uid = localStorage.getItem("uid");
 const rolLocal = localStorage.getItem("rol");
 const db = getFirestore(app);
 const auth = getAuth(app);
+let ultimoConteoSinLeer = 0;
 
 function aplicarTemaDashboard() {
   const html = document.getElementById("htmlRoot");
@@ -92,6 +93,7 @@ function renderizarNotificaciones(items) {
   const wrap = document.getElementById("notificacionesWrap");
   const badge = document.getElementById("badgeNotificaciones");
   const lista = document.getElementById("listaNotificaciones");
+  const btnNotificaciones = document.getElementById("btnNotificaciones");
   if (!wrap || !badge || !lista) return;
 
   wrap.style.display = "block";
@@ -99,6 +101,22 @@ function renderizarNotificaciones(items) {
   const sinLeer = items.filter((item) => !item.leida).length;
   badge.textContent = String(sinLeer);
   badge.style.display = sinLeer > 0 ? "inline-block" : "none";
+
+  if (btnNotificaciones) {
+    btnNotificaciones.classList.toggle("tiene-no-leidas", sinLeer > 0);
+    btnNotificaciones.setAttribute("aria-label", sinLeer > 0
+      ? `Notificaciones (${sinLeer} sin leer)`
+      : "Notificaciones");
+
+    if (sinLeer > ultimoConteoSinLeer) {
+      btnNotificaciones.classList.remove("animar-campana");
+      // Reiniciar animación para nuevas llegadas.
+      void btnNotificaciones.offsetWidth;
+      btnNotificaciones.classList.add("animar-campana");
+    }
+  }
+
+  ultimoConteoSinLeer = sinLeer;
 
   if (!items.length) {
     lista.innerHTML = '<li class="dropdown-item-text text-muted">No tienes notificaciones.</li>';
@@ -111,7 +129,7 @@ function renderizarNotificaciones(items) {
     const fecha = convertirAFecha(item.createdAt);
     const fechaTexto = fecha ? fecha.toLocaleString() : "Sin fecha";
     li.innerHTML = `
-      <div class="d-flex align-items-start px-3 py-2 gap-2">
+      <div class="d-flex align-items-start px-3 py-2 gap-2 notif-item">
         <button class="dropdown-item p-0 flex-grow-1 text-start ${item.leida ? "" : "fw-semibold"}" data-id="${item.id}" type="button">
           <div class="small text-muted">${fechaTexto}</div>
           <div>${item.mensaje || "Tienes una nueva notificación."}</div>
@@ -209,6 +227,7 @@ if (!uid || !rolLocal) {
 
   if (rolLocal === "ayuntamiento") {
     document.getElementById("cardAyunt").style.display = "block";
+    document.getElementById("cardCrearDenunciaAyunt").style.display = "block";
   }
 
   // Esperar a que Firebase Auth restaure la sesión antes de iniciar el listener
