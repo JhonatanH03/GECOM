@@ -22,6 +22,99 @@ const auth = getAuth(app);
 const rol = localStorage.getItem("rol");
 const provinciasMap = {};
 let perfilUsuario = null;
+let evidenciaPreviewUrl = null;
+
+const MAX_EVIDENCIA_BYTES = 8 * 1024 * 1024;
+const UMBRAL_COMPRESION_BYTES = 1.5 * 1024 * 1024;
+const MAX_DIMENSION_EVIDENCIA = 1920;
+const CALIDAD_COMPRESION = 0.82;
+
+function formatearBytes(bytes) {
+  if (!Number.isFinite(bytes) || bytes <= 0) return "0 B";
+  const unidades = ["B", "KB", "MB", "GB"];
+  const indice = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), unidades.length - 1);
+  const valor = bytes / (1024 ** indice);
+  return `${valor.toFixed(indice === 0 ? 0 : 1)} ${unidades[indice]}`;
+}
+
+function validarArchivoEvidencia(archivo) {
+  if (!archivo) return;
+
+  if (!archivo.type || !archivo.type.startsWith("image/")) {
+    throw new Error("El archivo de evidencia debe ser una imagen valida (JPG, PNG, WEBP o similar).");
+  }
+
+  if (archivo.size > MAX_EVIDENCIA_BYTES) {
+    throw new Error(
+      `La evidencia excede el tamano maximo permitido (${formatearBytes(MAX_EVIDENCIA_BYTES)}).`
+    );
+  }
+}
+
+function cargarImagenDesdeArchivo(archivo) {
+  return new Promise((resolve, reject) => {
+    const objectUrl = URL.createObjectURL(archivo);
+    const img = new Image();
+
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve(img);
+    };
+
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error("No se pudo procesar la imagen seleccionada."));
+    };
+
+    img.src = objectUrl;
+  });
+}
+
+function canvasToBlob(canvas, mimeType, calidad) {
+  return new Promise((resolve) => {
+    canvas.toBlob((blob) => resolve(blob), mimeType, calidad);
+  });
+}
+
+async function comprimirImagenSiAplica(archivo) {
+  if (!archivo || archivo.size <= UMBRAL_COMPRESION_BYTES) {
+    return archivo;
+  }
+
+  // Mantener GIF sin procesar para evitar perder animacion.
+  if (archivo.type === "image/gif") {
+    return archivo;
+  }
+
+  const img = await cargarImagenDesdeArchivo(archivo);
+  const factorEscala = Math.min(
+    1,
+    MAX_DIMENSION_EVIDENCIA / Math.max(img.width, img.height)
+  );
+
+  const ancho = Math.max(1, Math.round(img.width * factorEscala));
+  const alto = Math.max(1, Math.round(img.height * factorEscala));
+
+  const canvas = document.createElement("canvas");
+  canvas.width = ancho;
+  canvas.height = alto;
+
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return archivo;
+
+  ctx.drawImage(img, 0, 0, ancho, alto);
+  const blobComprimido = await canvasToBlob(canvas, "image/jpeg", CALIDAD_COMPRESION);
+
+  if (!blobComprimido || blobComprimido.size >= archivo.size) {
+    return archivo;
+  }
+
+  const nombreBase = (archivo.name || "evidencia").replace(/\.[^.]+$/, "");
+  return new File([blobComprimido], `${nombreBase}.jpg`, {
+    type: "image/jpeg",
+    lastModified: Date.now()
+  });
+}
 
 async function subirEvidenciaACloudinary(archivo, uid) {
   if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_UPLOAD_PRESET) {
@@ -70,6 +163,33 @@ function habilitarEnvioFormulario(estaHabilitado) {
   const submitBtn = document.querySelector("#formDenuncia button[type='submit']");
   if (!submitBtn) return;
   submitBtn.disabled = !estaHabilitado;
+}
+
+function limpiarPreviewEvidencia() {
+  if (evidenciaPreviewUrl) {
+    URL.revokeObjectURL(evidenciaPreviewUrl);
+    evidenciaPreviewUrl = null;
+  }
+
+  const previewWrap = document.getElementById("evidenciaPreviewWrap");
+  const previewImg = document.getElementById("evidenciaPreviewImg");
+  if (!previewWrap || !previewImg) return;
+
+  previewImg.src = "";
+  previewWrap.classList.add("d-none");
+}
+
+function actualizarPreviewEvidencia(archivo) {
+  const previewWrap = document.getElementById("evidenciaPreviewWrap");
+  const previewImg = document.getElementById("evidenciaPreviewImg");
+  if (!previewWrap || !previewImg) return;
+
+  limpiarPreviewEvidencia();
+  if (!archivo) return;
+
+  evidenciaPreviewUrl = URL.createObjectURL(archivo);
+  previewImg.src = evidenciaPreviewUrl;
+  previewWrap.classList.remove("d-none");
 }
 
 async function obtenerPerfilUsuario(uid) {
@@ -179,6 +299,39 @@ window.addEventListener("DOMContentLoaded", () => {
     municipioSelect.addEventListener("change", actualizarDistritos);
   }
 
+  const evidenciaInput = document.getElementById("evidencia");
+  if (evidenciaInput) {
+    evidenciaInput.addEventListener("change", () => {
+      const archivo = evidenciaInput.files?.[0];
+      if (!archivo) {
+        limpiarPreviewEvidencia();
+        return;
+      }
+
+      try {
+        validarArchivoEvidencia(archivo);
+        actualizarPreviewEvidencia(archivo);
+        limpiarMensajeFormulario();
+      } catch (error) {
+        evidenciaInput.value = "";
+        limpiarPreviewEvidencia();
+        mostrarMensajeFormulario(error.message, "danger");
+      }
+    });
+  }
+
+  const btnQuitarEvidencia = document.getElementById("btnQuitarEvidencia");
+  if (btnQuitarEvidencia) {
+    btnQuitarEvidencia.addEventListener("click", () => {
+      const input = document.getElementById("evidencia");
+      if (input) {
+        input.value = "";
+      }
+      limpiarPreviewEvidencia();
+      mostrarMensajeFormulario("Imagen eliminada del formulario.", "info");
+    });
+  }
+
   auth.onAuthStateChanged((user) => {
     if (user && user.uid === localStorage.getItem("uid")) {
       cargarUbicacionDesdePerfil();
@@ -255,7 +408,9 @@ window.crearDenuncia = async function () {
     let evidenciaURL = "";
     if (evidenciaFile) {
       try {
-        evidenciaURL = await subirEvidenciaACloudinary(evidenciaFile, uid);
+        validarArchivoEvidencia(evidenciaFile);
+        const evidenciaProcesada = await comprimirImagenSiAplica(evidenciaFile);
+        evidenciaURL = await subirEvidenciaACloudinary(evidenciaProcesada, uid);
       } catch (uploadError) {
         console.error("Error en carga de archivo:", uploadError);
         const continuarSinEvidencia = window.confirm(
@@ -288,6 +443,7 @@ window.crearDenuncia = async function () {
 
     alert("Denuncia creada correctamente");
     document.getElementById("formDenuncia").reset();
+    limpiarPreviewEvidencia();
     const campoTipoOtro = document.getElementById("tipo_otro");
     if (campoTipoOtro) {
       campoTipoOtro.classList.add("d-none");

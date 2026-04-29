@@ -19,6 +19,57 @@ const uid = localStorage.getItem("uid");
 const rolLocal = localStorage.getItem("rol");
 const db = getFirestore(app);
 const auth = getAuth(app);
+let ultimoConteoSinLeer = 0;
+
+function aplicarTemaDashboard() {
+  const html = document.getElementById("htmlRoot");
+  const body = document.getElementById("bodyRoot");
+  const menuTema = document.getElementById("menuTema");
+  if (!html || !body || !menuTema) return;
+
+  const tema = localStorage.getItem("tema") || "sistema";
+  let temaFinal = tema;
+
+  if (tema === "sistema") {
+    temaFinal = window.matchMedia("(prefers-color-scheme: dark)").matches ? "oscuro" : "claro";
+  }
+
+  if (temaFinal === "oscuro") {
+    html.setAttribute("data-bs-theme", "dark");
+    body.classList.remove("bg-light");
+    body.classList.add("bg-dark");
+  } else {
+    html.setAttribute("data-bs-theme", "light");
+    body.classList.remove("bg-dark");
+    body.classList.add("bg-light");
+  }
+
+  menuTema.querySelectorAll("a[data-tema]").forEach((a) => {
+    a.classList.remove("active");
+    if (a.dataset.tema === tema) a.classList.add("active");
+  });
+}
+
+function inicializarSelectorTemaDashboard() {
+  const menuTema = document.getElementById("menuTema");
+  if (!menuTema) return;
+
+  aplicarTemaDashboard();
+
+  menuTema.querySelectorAll("a[data-tema]").forEach((a) => {
+    a.addEventListener("click", (e) => {
+      e.preventDefault();
+      localStorage.setItem("tema", a.dataset.tema);
+      aplicarTemaDashboard();
+    });
+  });
+
+  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+    if ((localStorage.getItem("tema") || "sistema") === "sistema") {
+      aplicarTemaDashboard();
+    }
+  });
+}
 
 window.ir = function (ruta) {
   window.location.href = ruta;
@@ -42,6 +93,7 @@ function renderizarNotificaciones(items) {
   const wrap = document.getElementById("notificacionesWrap");
   const badge = document.getElementById("badgeNotificaciones");
   const lista = document.getElementById("listaNotificaciones");
+  const btnNotificaciones = document.getElementById("btnNotificaciones");
   if (!wrap || !badge || !lista) return;
 
   wrap.style.display = "block";
@@ -49,6 +101,22 @@ function renderizarNotificaciones(items) {
   const sinLeer = items.filter((item) => !item.leida).length;
   badge.textContent = String(sinLeer);
   badge.style.display = sinLeer > 0 ? "inline-block" : "none";
+
+  if (btnNotificaciones) {
+    btnNotificaciones.classList.toggle("tiene-no-leidas", sinLeer > 0);
+    btnNotificaciones.setAttribute("aria-label", sinLeer > 0
+      ? `Notificaciones (${sinLeer} sin leer)`
+      : "Notificaciones");
+
+    if (sinLeer > ultimoConteoSinLeer) {
+      btnNotificaciones.classList.remove("animar-campana");
+      // Reiniciar animación para nuevas llegadas.
+      void btnNotificaciones.offsetWidth;
+      btnNotificaciones.classList.add("animar-campana");
+    }
+  }
+
+  ultimoConteoSinLeer = sinLeer;
 
   if (!items.length) {
     lista.innerHTML = '<li class="dropdown-item-text text-muted">No tienes notificaciones.</li>';
@@ -61,7 +129,7 @@ function renderizarNotificaciones(items) {
     const fecha = convertirAFecha(item.createdAt);
     const fechaTexto = fecha ? fecha.toLocaleString() : "Sin fecha";
     li.innerHTML = `
-      <div class="d-flex align-items-start px-3 py-2 gap-2">
+      <div class="d-flex align-items-start px-3 py-2 gap-2 notif-item">
         <button class="dropdown-item p-0 flex-grow-1 text-start ${item.leida ? "" : "fw-semibold"}" data-id="${item.id}" type="button">
           <div class="small text-muted">${fechaTexto}</div>
           <div>${item.mensaje || "Tienes una nueva notificación."}</div>
@@ -96,14 +164,26 @@ function renderizarNotificaciones(items) {
   });
 
   lista.querySelectorAll("button.notif-delete").forEach((btn) => {
-    btn.addEventListener("click", async (e) => {
+    btn.addEventListener("click", (e) => {
       e.stopPropagation();
       const id = btn.dataset.id;
-      try {
-        await deleteDoc(doc(db, "notificaciones", id));
-      } catch (error) {
-        console.error("No se pudo eliminar la notificación:", error);
-      }
+      const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById("modalEliminarNotif"));
+      const confirmar = document.getElementById("btnConfirmarEliminarNotif");
+
+      // Reemplazar listener previo para evitar acumulación
+      const nuevoConfirmar = confirmar.cloneNode(true);
+      confirmar.parentNode.replaceChild(nuevoConfirmar, confirmar);
+
+      nuevoConfirmar.addEventListener("click", async () => {
+        modal.hide();
+        try {
+          await deleteDoc(doc(db, "notificaciones", id));
+        } catch (error) {
+          console.error("No se pudo eliminar la notificación:", error);
+        }
+      });
+
+      modal.show();
     });
   });
 }
@@ -131,6 +211,7 @@ function iniciarSuscripcionNotificaciones() {
 if (!uid || !rolLocal) {
   window.location.href = "index.html";
 } else {
+  inicializarSelectorTemaDashboard();
   document.getElementById("cardVerDenuncias").style.display = "block";
 
   if (rolLocal === "admin") {
@@ -146,6 +227,7 @@ if (!uid || !rolLocal) {
 
   if (rolLocal === "ayuntamiento") {
     document.getElementById("cardAyunt").style.display = "block";
+    document.getElementById("cardCrearDenunciaAyunt").style.display = "block";
   }
 
   // Esperar a que Firebase Auth restaure la sesión antes de iniciar el listener

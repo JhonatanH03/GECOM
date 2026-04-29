@@ -4,7 +4,10 @@ import {
   collection,
   getDocs,
   query,
-  orderBy
+  where,
+  orderBy,
+  limit,
+  startAfter
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import {
   getAuth,
@@ -16,9 +19,11 @@ const auth = getAuth(app);
 const uid = localStorage.getItem("uid");
 const rol = localStorage.getItem("rol");
 
-const ITEMS_POR_PAGINA = 20;
-let todosLosEntries = [];
+const LIMITE = 20;
 let paginaActual = 1;
+// iniciosDePagina[i] = cursor para cargar la página (i+1); null = desde el principio
+const iniciosDePagina = [null];
+let hayPaginaSiguiente = false;
 
 function validarSesion() {
   if (!uid || rol !== "junta") {
@@ -44,65 +49,88 @@ function convertirAFecha(ts) {
   return null;
 }
 
-function obtenerFiltro() {
-  return document.getElementById("filtroEstado")?.value || "Todos";
+function resetPaginacion() {
+  paginaActual = 1;
+  iniciosDePagina.length = 1;
+  iniciosDePagina[0] = null;
+  hayPaginaSiguiente = false;
 }
 
-function obtenerEntriesFiltrados() {
-  const filtro = obtenerFiltro();
-  if (filtro === "Todos") return todosLosEntries;
-  return todosLosEntries.filter((e) => e.estado === filtro);
+function construirQuery() {
+  const filtro = document.getElementById("filtroEstado")?.value || "Todos";
+  const col = collection(db, "JuntasDeVecinos", uid, "historial");
+  const partes = [];
+  if (filtro !== "Todos") partes.push(where("estado", "==", filtro));
+  partes.push(orderBy("createdAt", "desc"));
+  const cursor = iniciosDePagina[paginaActual - 1];
+  if (cursor) partes.push(startAfter(cursor));
+  partes.push(limit(LIMITE));
+  return query(col, ...partes);
 }
 
-function renderizarPagina() {
+async function cargarPagina() {
   const tabla = document.getElementById("tablaHistorial");
-  const filtrados = obtenerEntriesFiltrados();
-  const totalPaginas = Math.max(1, Math.ceil(filtrados.length / ITEMS_POR_PAGINA));
-  if (paginaActual > totalPaginas) paginaActual = totalPaginas;
+  tabla.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">Cargando...</td></tr>`;
+  try {
+    const snap = await getDocs(construirQuery());
+    const docs = snap.docs;
 
-  const inicio = (paginaActual - 1) * ITEMS_POR_PAGINA;
-  const pagina = filtrados.slice(inicio, inicio + ITEMS_POR_PAGINA);
+    hayPaginaSiguiente = docs.length === LIMITE;
 
+    // Guardar cursor de inicio para la página siguiente si no lo tenemos aún
+    if (hayPaginaSiguiente && iniciosDePagina[paginaActual] === undefined) {
+      iniciosDePagina[paginaActual] = docs[docs.length - 1];
+    }
+
+    renderizarTabla(docs.map((d) => ({ id: d.id, data: d.data() })));
+    renderizarPaginacion();
+  } catch (error) {
+    console.error("Error cargando historial:", error);
+    tabla.innerHTML = `<tr><td colspan="6" class="text-center text-danger py-4">Error al cargar el historial.</td></tr>`;
+  }
+}
+
+function renderizarTabla(entries) {
+  const tabla = document.getElementById("tablaHistorial");
   tabla.innerHTML = "";
 
-  if (pagina.length === 0) {
+  if (entries.length === 0) {
     tabla.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">No hay entradas para mostrar.</td></tr>`;
-  } else {
-    pagina.forEach(({ data, id }) => {
-      const fecha = convertirAFecha(data.createdAt);
-      const fechaTexto = fecha ? fecha.toLocaleString() : "Sin fecha";
-      const estadoBadge = {
-        Pendiente: "secondary",
-        "En proceso": "warning",
-        Resuelta: "success",
-        Rechazada: "danger"
-      }[data.estado] || "secondary";
-
-      const fila = document.createElement("tr");
-      fila.innerHTML = `
-        <td class="small text-nowrap">${escapeHtml(fechaTexto)}</td>
-        <td>
-          ${data.denunciaId
-            ? `<a href="ver.html?denuncia=${encodeURIComponent(data.denunciaId)}">${escapeHtml(data.tituloDenuncia || data.denunciaId)}</a>`
-            : escapeHtml(data.tituloDenuncia || "—")}
-        </td>
-        <td><span class="badge bg-${estadoBadge}">${escapeHtml(data.estado || "—")}</span></td>
-        <td>${escapeHtml(data.plazo_estimado || "—")}</td>
-        <td>${escapeHtml(data.presupuesto_estimado || "—")}</td>
-        <td class="small">${escapeHtml(data.respuesta || "—")}</td>
-      `;
-      tabla.appendChild(fila);
-    });
+    return;
   }
 
-  renderizarPaginacion(totalPaginas);
+  entries.forEach(({ data }) => {
+    const fecha = convertirAFecha(data.createdAt);
+    const fechaTexto = fecha ? fecha.toLocaleString() : "Sin fecha";
+    const estadoBadge = {
+      Pendiente: "secondary",
+      "En proceso": "warning",
+      Resuelta: "success",
+      Rechazada: "danger"
+    }[data.estado] || "secondary";
+
+    const fila = document.createElement("tr");
+    fila.innerHTML = `
+      <td class="small text-nowrap">${escapeHtml(fechaTexto)}</td>
+      <td>
+        ${data.denunciaId
+          ? `<a href="ver.html?denuncia=${encodeURIComponent(data.denunciaId)}">${escapeHtml(data.tituloDenuncia || data.denunciaId)}</a>`
+          : escapeHtml(data.tituloDenuncia || "—")}
+      </td>
+      <td><span class="badge bg-${estadoBadge}">${escapeHtml(data.estado || "—")}</span></td>
+      <td>${escapeHtml(data.plazo_estimado || "—")}</td>
+      <td>${escapeHtml(data.presupuesto_estimado || "—")}</td>
+      <td class="small">${escapeHtml(data.respuesta || "—")}</td>
+    `;
+    tabla.appendChild(fila);
+  });
 }
 
-function renderizarPaginacion(totalPaginas) {
+function renderizarPaginacion() {
   const nav = document.getElementById("paginacionWrap");
   const ul = document.getElementById("paginacion");
 
-  if (totalPaginas <= 1) {
+  if (paginaActual === 1 && !hayPaginaSiguiente) {
     nav.style.display = "none";
     return;
   }
@@ -114,42 +142,22 @@ function renderizarPaginacion(totalPaginas) {
   prev.className = `page-item ${paginaActual === 1 ? "disabled" : ""}`;
   prev.innerHTML = `<button class="page-link">Anterior</button>`;
   prev.addEventListener("click", () => {
-    if (paginaActual > 1) { paginaActual--; renderizarPagina(); }
+    if (paginaActual > 1) { paginaActual--; cargarPagina(); }
   });
   ul.appendChild(prev);
 
-  for (let i = 1; i <= totalPaginas; i++) {
-    const li = document.createElement("li");
-    li.className = `page-item ${i === paginaActual ? "active" : ""}`;
-    li.innerHTML = `<button class="page-link">${i}</button>`;
-    li.addEventListener("click", () => { paginaActual = i; renderizarPagina(); });
-    ul.appendChild(li);
-  }
+  const info = document.createElement("li");
+  info.className = "page-item disabled";
+  info.innerHTML = `<span class="page-link">Página ${paginaActual}</span>`;
+  ul.appendChild(info);
 
   const next = document.createElement("li");
-  next.className = `page-item ${paginaActual === totalPaginas ? "disabled" : ""}`;
+  next.className = `page-item ${!hayPaginaSiguiente ? "disabled" : ""}`;
   next.innerHTML = `<button class="page-link">Siguiente</button>`;
   next.addEventListener("click", () => {
-    if (paginaActual < totalPaginas) { paginaActual++; renderizarPagina(); }
+    if (hayPaginaSiguiente) { paginaActual++; cargarPagina(); }
   });
   ul.appendChild(next);
-}
-
-async function cargarHistorial() {
-  try {
-    const q = query(
-      collection(db, "JuntasDeVecinos", uid, "historial"),
-      orderBy("createdAt", "desc")
-    );
-    const snap = await getDocs(q);
-    todosLosEntries = snap.docs.map((d) => ({ id: d.id, data: d.data() }));
-    paginaActual = 1;
-    renderizarPagina();
-  } catch (error) {
-    console.error("Error cargando historial:", error);
-    document.getElementById("tablaHistorial").innerHTML =
-      `<tr><td colspan="6" class="text-center text-danger py-4">Error al cargar el historial.</td></tr>`;
-  }
 }
 
 window.addEventListener("DOMContentLoaded", () => {
@@ -157,13 +165,14 @@ window.addEventListener("DOMContentLoaded", () => {
 
   onAuthStateChanged(auth, (user) => {
     if (user && user.uid === uid) {
-      cargarHistorial();
+      cargarPagina();
       document.getElementById("filtroEstado").addEventListener("change", () => {
-        paginaActual = 1;
-        renderizarPagina();
+        resetPaginacion();
+        cargarPagina();
       });
     } else {
       window.location.href = "index.html";
     }
   });
 });
+
