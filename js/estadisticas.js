@@ -7,7 +7,13 @@ import {
   getDocs
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
+import {
+  getAuth,
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
 const db = getFirestore(app);
+const auth = getAuth(app);
 
 let chartBarras;
 let chartPastel;
@@ -21,7 +27,7 @@ async function cargarUsuarios() {
   const snapshot = await getDocs(collection(db, "JuntasDeVecinos"));
   snapshot.forEach(doc => {
     const data = doc.data();
-    usuarios[doc.id] = data.correo || data.email || doc.id;
+    usuarios[doc.id] = data.municipio || data.correo || data.email || doc.id;
   });
   // Llenar select de usuarios
   const select = document.getElementById("usuarioFiltro");
@@ -59,14 +65,19 @@ function crearGraficos(datos) {
   });
 }
 
-// 🔥 TIEMPO REAL
-onSnapshot(collection(db, "denuncias"), (snapshot) => {
-  denuncias = [];
-  snapshot.forEach(doc => {
-    denuncias.push({ id: doc.id, ...doc.data() });
+// 🔥 TIEMPO REAL (se inicia solo tras autenticarse)
+let unsubscribeDenuncias = null;
+
+function iniciarEscucha() {
+  if (unsubscribeDenuncias) return; // ya activo
+  unsubscribeDenuncias = onSnapshot(collection(db, "denuncias"), (snapshot) => {
+    denuncias = [];
+    snapshot.forEach(doc => {
+      denuncias.push({ id: doc.id, ...doc.data() });
+    });
+    actualizarEstadisticas();
   });
-  actualizarEstadisticas();
-});
+}
 
 // Función para aplicar filtros y actualizar estadísticas
 function actualizarEstadisticas() {
@@ -243,8 +254,14 @@ function exportarCSV() {
 }
 
 // Inicializar
-document.addEventListener("DOMContentLoaded", async () => {
-  await cargarUsuarios();
+document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("aplicarFiltros").addEventListener("click", actualizarEstadisticas);
   document.getElementById("exportarCSV").addEventListener("click", exportarCSV);
+
+  onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      await cargarUsuarios();
+      iniciarEscucha();
+    }
+  });
 });
