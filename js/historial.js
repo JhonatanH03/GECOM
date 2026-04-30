@@ -70,7 +70,15 @@ function construirQuery() {
 
 async function cargarPagina() {
   const tabla = document.getElementById("tablaHistorial");
-  tabla.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">Cargando...</td></tr>`;
+  const skRow6 = `<tr class="skeleton-row">
+    <td><span class="skeleton-cell skeleton-narrow"></span></td>
+    <td><span class="skeleton-cell skeleton-wide"></span></td>
+    <td><span class="skeleton-cell skeleton-pill"></span></td>
+    <td><span class="skeleton-cell skeleton-medium"></span></td>
+    <td><span class="skeleton-cell skeleton-medium"></span></td>
+    <td><span class="skeleton-cell skeleton-wide"></span></td>
+  </tr>`;
+  tabla.innerHTML = skRow6.repeat(5);
   try {
     const snap = await getDocs(construirQuery());
     const docs = snap.docs;
@@ -86,7 +94,11 @@ async function cargarPagina() {
     renderizarPaginacion();
   } catch (error) {
     console.error("Error cargando historial:", error);
-    tabla.innerHTML = `<tr><td colspan="6" class="text-center text-danger py-4">Error al cargar el historial.</td></tr>`;
+    tabla.innerHTML = `
+      <tr class="table-feedback-row">
+        <td colspan="6"><div class="empty-state text-danger">Error al cargar el historial.</div></td>
+      </tr>
+    `;
   }
 }
 
@@ -95,32 +107,43 @@ function renderizarTabla(entries) {
   tabla.innerHTML = "";
 
   if (entries.length === 0) {
-    tabla.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">No hay entradas para mostrar.</td></tr>`;
+    tabla.innerHTML = `
+      <tr class="table-feedback-row">
+        <td colspan="6"><div class="empty-state">No hay entradas para mostrar.</div></td>
+      </tr>
+    `;
     return;
   }
 
   entries.forEach(({ data }) => {
     const fecha = convertirAFecha(data.createdAt);
     const fechaTexto = fecha ? fecha.toLocaleString() : "Sin fecha";
-    const estadoBadge = {
-      Pendiente: "secondary",
-      "En proceso": "warning",
-      Resuelta: "success",
-      Rechazada: "danger"
-    }[data.estado] || "secondary";
+    const estadoClass = {
+      Pendiente: "status-pendiente",
+      "En proceso": "status-proceso",
+      Resuelta: "status-resuelta",
+      Rechazada: "status-rechazada"
+    }[data.estado] || "status-pendiente";
+
+    const chipIcon = {
+      Pendiente: "bi-hourglass-split",
+      "En proceso": "bi-arrow-repeat",
+      Resuelta: "bi-check-circle-fill",
+      Rechazada: "bi-x-circle-fill"
+    }[data.estado] || "bi-hourglass-split";
 
     const fila = document.createElement("tr");
     fila.innerHTML = `
-      <td class="small text-nowrap">${escapeHtml(fechaTexto)}</td>
-      <td>
+      <td class="small text-nowrap" data-label="Fecha">${escapeHtml(fechaTexto)}</td>
+      <td data-label="Denuncia">
         ${data.denunciaId
           ? `<a href="ver.html?denuncia=${encodeURIComponent(data.denunciaId)}">${escapeHtml(data.tituloDenuncia || data.denunciaId)}</a>`
           : escapeHtml(data.tituloDenuncia || "—")}
       </td>
-      <td><span class="badge bg-${estadoBadge}">${escapeHtml(data.estado || "—")}</span></td>
-      <td>${escapeHtml(data.plazo_estimado || "—")}</td>
-      <td>${escapeHtml(data.presupuesto_estimado || "—")}</td>
-      <td class="small">${escapeHtml(data.respuesta || "—")}</td>
+      <td data-label="Estado"><span class="status-chip ${estadoClass}"><i class="bi ${chipIcon} chip-icon"></i>${escapeHtml(data.estado || "—")}</span></td>
+      <td data-label="Plazo estimado">${escapeHtml(data.plazo_estimado || "—")}</td>
+      <td data-label="Presupuesto">${escapeHtml(data.presupuesto_estimado || "—")}</td>
+      <td class="small" data-label="Respuesta del Ayuntamiento">${escapeHtml(data.respuesta || "—")}</td>
     `;
     tabla.appendChild(fila);
   });

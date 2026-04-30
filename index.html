@@ -3,6 +3,7 @@
 <html lang="es" id="htmlRoot">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>GECOM - Login</title>
 
   <!-- Bootstrap -->
@@ -17,11 +18,9 @@
   <link rel="stylesheet" href="css/styles.css">
 </head>
 
-<body id="bodyRoot" class="bg-light">
+<body id="bodyRoot" class="bg-light app-page">
 
-<button id="btnModoOscuro" class="btn btn-outline-dark btn-sm position-absolute" style="top: 20px; right: 20px; z-index: 1050;">
-
-<div class="dropdown position-absolute" style="top: 20px; right: 20px; z-index: 1050;">
+<div class="dropdown position-absolute theme-picker" style="top: 20px; right: 20px; z-index: 1050;">
   <button id="btnPaletaTema" class="btn btn-outline-dark btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Elegir tema">
     🎨
   </button>
@@ -32,8 +31,8 @@
   </ul>
 </div>
 
-<div class="container d-flex justify-content-center align-items-center vh-100">
-  <div class="card p-4 shadow" style="width: 350px;">
+<div class="container d-flex justify-content-center align-items-center vh-100 auth-shell">
+  <div class="card p-4 shadow auth-card" style="width: min(100%, 380px);">
 
 
 
@@ -42,20 +41,20 @@
 
 
 <div class="mb-3">
-  <label>Usuario</label>
-  <input type="text" id="usuario" class="form-control" placeholder="nombre de usuario">
+  <label class="form-label">Usuario</label>
+  <input type="text" id="usuario" class="form-control" placeholder="nombre de usuario" autocomplete="username">
 </div>
 
 <div class="mb-3">
-  <label>Contraseña</label>
-  <input type="password" id="password" class="form-control">
+  <label class="form-label">Contraseña</label>
+  <input type="password" id="password" class="form-control" autocomplete="current-password">
 </div>
 
 
 
-<div class="d-flex justify-content-between">
+<div class="d-grid gap-2">
   <button onclick="login()" class="btn btn-primary w-100" id="btnLogin">Ingresar</button>
-  <button onclick="mostrarRegistro()" class="btn btn-success w-100 mt-2" id="btnRegistrar" style="display:none">Registrar usuario</button>
+  <button onclick="mostrarRegistro()" class="btn btn-success w-100" id="btnRegistrar" style="display:none">Registrar usuario</button>
 
 
 </div>
@@ -195,51 +194,9 @@ window.mostrarRegistro = function() {
 
 <!-- JS -->
 <script src="js/auth.js?v=5"></script>
+<script src="js/tema.js"></script>
 <script>
-// Selector de tema con menú tipo paleta
-const html = document.getElementById('htmlRoot');
-const body = document.getElementById('bodyRoot');
-const menuTema = document.getElementById('menuTema');
-function aplicarTema() {
-  const tema = localStorage.getItem('tema') || 'sistema';
-  let temaFinal = tema;
-  if (tema === 'sistema') {
-    // Detectar preferencia del sistema
-    if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      temaFinal = 'oscuro';
-    } else {
-      temaFinal = 'claro';
-    }
-  }
-  if (temaFinal === 'oscuro') {
-    html.setAttribute('data-bs-theme', 'dark');
-    body.classList.remove('bg-light');
-    body.classList.add('bg-dark');
-  } else {
-    html.setAttribute('data-bs-theme', 'light');
-    body.classList.remove('bg-dark');
-    body.classList.add('bg-light');
-  }
-  // Marcar opción activa
-  menuTema.querySelectorAll('a').forEach(a => {
-    a.classList.remove('active');
-    if (a.dataset.tema === tema) a.classList.add('active');
-  });
-}
-aplicarTema();
-menuTema.querySelectorAll('a').forEach(a => {
-  a.addEventListener('click', e => {
-    e.preventDefault();
-    localStorage.setItem('tema', a.dataset.tema);
-    aplicarTema();
-  });
-});
-// Escuchar cambios del sistema en tiempo real
-window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-  if ((localStorage.getItem('tema') || 'sistema') === 'sistema') {
-    aplicarTema();
-  }
-});
+initThemeSelector();
 </script>
 
 

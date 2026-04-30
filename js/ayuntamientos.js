@@ -179,12 +179,23 @@ form.addEventListener("submit", async (event) => {
 });
 
 async function cargarAyuntamientos() {
-  ayuntamientosBody.innerHTML = "";
+  const _skRow9 = `<tr class="skeleton-row">
+    <td><span class="skeleton-cell skeleton-wide"></span></td>
+    <td><span class="skeleton-cell skeleton-medium"></span></td>
+    <td><span class="skeleton-cell skeleton-wide"></span></td>
+    <td><span class="skeleton-cell skeleton-narrow"></span></td>
+    <td><span class="skeleton-cell skeleton-wide"></span></td>
+    <td><span class="skeleton-cell skeleton-medium"></span></td>
+    <td><span class="skeleton-cell skeleton-medium"></span></td>
+    <td><span class="skeleton-cell skeleton-pill"></span></td>
+    <td><span class="skeleton-cell skeleton-btn"></span></td>
+  </tr>`;
+  ayuntamientosBody.innerHTML = _skRow9.repeat(5);
   try {
     const snapshot = await db.collection("Ayuntamientos").get();
     
     if (snapshot.empty) {
-      ayuntamientosBody.innerHTML = "<tr><td colspan=\"9\" class=\"text-center\">No hay ayuntamientos</td></tr>";
+      ayuntamientosBody.innerHTML = '<tr class="table-feedback-row"><td colspan="9"><div class="empty-state">No hay ayuntamientos registrados.</div></td></tr>';
       return;
     }
     
@@ -196,19 +207,22 @@ async function cargarAyuntamientos() {
     });
     
     ayuntamientos.sort((a, b) => (a.nombre || "").toLowerCase().localeCompare((b.nombre || "").toLowerCase()));
-    
+
+    ayuntamientosBody.innerHTML = "";
     ayuntamientos.forEach((data) => {
       const label = data.estado ? "Activo" : "Inactivo";
+      const estadoClass = data.estado ? "status-resuelta" : "status-pendiente";
+      const chipIcon = data.estado ? "bi-check-circle-fill" : "bi-x-circle-fill";
       ayuntamientosBody.innerHTML += `<tr>
-        <td>${escapeHtml(data.nombre)}</td>
-        <td>${escapeHtml(data.usuario || "")}</td>
-        <td>${escapeHtml(data.correo)}</td>
-        <td>${escapeHtml(data.telefono || "")}</td>
-        <td>${escapeHtml(data.direccion || "")}</td>
-        <td>${escapeHtml(data.provincia || "")}</td>
-        <td>${escapeHtml(data.municipio || "")}</td>
-        <td>${escapeHtml(label)}</td>
-        <td class="text-center">
+        <td data-label="Nombre">${escapeHtml(data.nombre)}</td>
+        <td data-label="Usuario">${escapeHtml(data.usuario || "")}</td>
+        <td data-label="Correo">${escapeHtml(data.correo)}</td>
+        <td data-label="Teléfono">${escapeHtml(data.telefono || "")}</td>
+        <td data-label="Dirección">${escapeHtml(data.direccion || "")}</td>
+        <td data-label="Provincia">${escapeHtml(data.provincia || "")}</td>
+        <td data-label="Municipio">${escapeHtml(data.municipio || "")}</td>
+        <td data-label="Estado"><span class="status-chip ${estadoClass}"><i class="bi ${chipIcon} chip-icon"></i>${escapeHtml(label)}</span></td>
+        <td class="text-center" data-label="Acciones">
           <button class="btn btn-sm btn-warning me-1 px-2" onclick="editarAyuntamiento('${data.id}')"><i class="bi bi-pencil"></i></button>
           <button class="btn btn-sm btn-info me-1 px-2" onclick="reestablecerContrasenaAyuntamiento('${data.id}', '${escapeHtml(data.nombre)}')" title="Restablecer contraseña"><i class="bi bi-key"></i></button>
           <button class="btn btn-sm btn-danger px-2" onclick="eliminarAyuntamiento('${data.id}', '${escapeHtml(data.nombre)}')"><i class="bi bi-trash"></i></button>
@@ -217,7 +231,7 @@ async function cargarAyuntamientos() {
     });
   } catch (error) {
     console.error("Error al cargar ayuntamientos:", error);
-    ayuntamientosBody.innerHTML = "<tr><td colspan=\"9\" class=\"text-center text-danger\">Error al cargar ayuntamientos</td></tr>";
+    ayuntamientosBody.innerHTML = '<tr class="table-feedback-row"><td colspan="9"><div class="empty-state text-danger">Error al cargar ayuntamientos.</div></td></tr>';
   }
 }
 
