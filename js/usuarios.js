@@ -211,12 +211,24 @@ function actualizarMunicipios() {
 }
 
 async function cargarUsuarios() {
-  usuariosBody.innerHTML = '<tr><td colspan="9" class="text-center py-5">Cargando usuarios...</td></tr>';
+  const _skRow10 = `<tr class="skeleton-row">
+    <td><span class="skeleton-cell skeleton-wide"></span></td>
+    <td><span class="skeleton-cell skeleton-medium"></span></td>
+    <td><span class="skeleton-cell skeleton-wide"></span></td>
+    <td><span class="skeleton-cell skeleton-medium"></span></td>
+    <td><span class="skeleton-cell skeleton-narrow"></span></td>
+    <td><span class="skeleton-cell skeleton-medium"></span></td>
+    <td><span class="skeleton-cell skeleton-medium"></span></td>
+    <td><span class="skeleton-cell skeleton-medium"></span></td>
+    <td><span class="skeleton-cell skeleton-pill"></span></td>
+    <td><span class="skeleton-cell skeleton-btn"></span></td>
+  </tr>`;
+  usuariosBody.innerHTML = _skRow10.repeat(5);
 
   try {
     const snapshot = await getDocs(collection(db, "JuntasDeVecinos"));
     if (snapshot.empty) {
-      usuariosBody.innerHTML = '<tr><td colspan="9" class="text-center py-5">No hay juntas registradas.</td></tr>';
+      usuariosBody.innerHTML = '<tr class="table-feedback-row"><td colspan="10"><div class="empty-state">No hay juntas registradas.</div></td></tr>';
       return;
     }
 
@@ -227,18 +239,21 @@ async function cargarUsuarios() {
     usuariosBody.innerHTML = "";
 
     usuarios.forEach((data) => {
+      const estadoLabel = data.estado ? "Activo" : "Inactivo";
+      const estadoClass = data.estado ? "status-resuelta" : "status-pendiente";
+      const chipIcon = data.estado ? "bi-check-circle-fill" : "bi-x-circle-fill";
       const fila = document.createElement("tr");
       fila.innerHTML = `
-        <td>${escapeHtml(data.nombre)}</td>
-        <td>${escapeHtml(data.usuario || "")}</td>
-        <td>${escapeHtml(data.correo)}</td>
-        <td>${escapeHtml(data.cedula)}</td>
-        <td>${escapeHtml(data.telefono)}</td>
-        <td>${escapeHtml(data.provincia)}</td>
-        <td>${escapeHtml(data.municipio)}</td>
-        <td>${escapeHtml(data.sector || data.comunidad)}</td>
-        <td>${escapeHtml(data.estado ? "Activo" : "Inactivo")}</td>
-        <td class="text-center">
+        <td data-label="Nombre de la Junta">${escapeHtml(data.nombre)}</td>
+        <td data-label="Usuario">${escapeHtml(data.usuario || "")}</td>
+        <td data-label="Correo">${escapeHtml(data.correo)}</td>
+        <td data-label="Cédula">${escapeHtml(data.cedula)}</td>
+        <td data-label="Teléfono">${escapeHtml(data.telefono)}</td>
+        <td data-label="Provincia">${escapeHtml(data.provincia)}</td>
+        <td data-label="Municipio">${escapeHtml(data.municipio)}</td>
+        <td data-label="Sector">${escapeHtml(data.sector || data.comunidad)}</td>
+        <td data-label="Estado"><span class="status-chip ${estadoClass}"><i class="bi ${chipIcon} chip-icon"></i>${escapeHtml(estadoLabel)}</span></td>
+        <td class="text-center" data-label="Acciones">
           <button class="btn btn-sm btn-warning me-1 px-2" onclick="editarUsuario('${data.id}')" title="Editar">
             <i class="bi bi-pencil"></i>
           </button>
@@ -251,7 +266,7 @@ async function cargarUsuarios() {
     });
   } catch (error) {
     console.error("Error al cargar usuarios:", error);
-    usuariosBody.innerHTML = '<tr><td colspan="9" class="text-center py-5 text-danger">No se pudo cargar la lista.</td></tr>';
+    usuariosBody.innerHTML = '<tr class="table-feedback-row"><td colspan="10"><div class="empty-state text-danger">No se pudo cargar la lista.</div></td></tr>';
   }
 }
 

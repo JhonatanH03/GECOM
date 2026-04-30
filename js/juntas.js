@@ -291,13 +291,23 @@ form.addEventListener("submit", async (event) => {
 });
 
 async function cargarJuntas() {
-  juntasBody.innerHTML = "";
+  const _skRow8 = `<tr class="skeleton-row">
+    <td><span class="skeleton-cell skeleton-wide"></span></td>
+    <td><span class="skeleton-cell skeleton-medium"></span></td>
+    <td><span class="skeleton-cell skeleton-wide"></span></td>
+    <td><span class="skeleton-cell skeleton-narrow"></span></td>
+    <td><span class="skeleton-cell skeleton-medium"></span></td>
+    <td><span class="skeleton-cell skeleton-medium"></span></td>
+    <td><span class="skeleton-cell skeleton-pill"></span></td>
+    <td><span class="skeleton-cell skeleton-btn"></span></td>
+  </tr>`;
+  juntasBody.innerHTML = _skRow8.repeat(5);
   try {
     const q = db.collection("JuntasDeVecinos").where("creada_por", "==", uid);
     const snapshot = await q.get();
     
     if (snapshot.empty) {
-      juntasBody.innerHTML = "<tr><td colspan=\"7\" class=\"text-center\">No hay juntas</td></tr>";
+      juntasBody.innerHTML = '<tr class="table-feedback-row"><td colspan="8"><div class="empty-state">No hay juntas registradas en tu alcance.</div></td></tr>';
       return;
     }
     
@@ -310,18 +320,26 @@ async function cargarJuntas() {
     });
     
     juntas.sort((a, b) => (a.nombre || "").toLowerCase().localeCompare((b.nombre || "").toLowerCase()));
-    
+
+    if (!juntas.length) {
+      juntasBody.innerHTML = '<tr class="table-feedback-row"><td colspan="8"><div class="empty-state">No hay juntas en tu territorio.</div></td></tr>';
+      return;
+    }
+
+    juntasBody.innerHTML = "";
     juntas.forEach((data) => {
       const label = data.estado ? "Activa" : "Inactiva";
+      const estadoClass = data.estado ? "status-resuelta" : "status-pendiente";
+      const chipIcon = data.estado ? "bi-check-circle-fill" : "bi-x-circle-fill";
       juntasBody.innerHTML += `<tr>
-        <td>${escapeHtml(data.nombre)}</td>
-        <td>${escapeHtml(data.usuario || "")}</td>
-        <td>${escapeHtml(data.correo)}</td>
-        <td>${escapeHtml(data.telefono || "")}</td>
-        <td>${escapeHtml((data.provincia || "") + " / " + (data.municipio || ""))}</td>
-        <td>${escapeHtml(data.comunidad || "")}</td>
-        <td>${escapeHtml(label)}</td>
-        <td class="text-center">
+        <td data-label="Nombre">${escapeHtml(data.nombre)}</td>
+        <td data-label="Usuario">${escapeHtml(data.usuario || "")}</td>
+        <td data-label="Correo">${escapeHtml(data.correo)}</td>
+        <td data-label="Teléfono">${escapeHtml(data.telefono || "")}</td>
+        <td data-label="Ubicación">${escapeHtml((data.provincia || "") + " / " + (data.municipio || ""))}</td>
+        <td data-label="Comunidad">${escapeHtml(data.comunidad || "")}</td>
+        <td data-label="Estado"><span class="status-chip ${estadoClass}"><i class="bi ${chipIcon} chip-icon"></i>${escapeHtml(label)}</span></td>
+        <td class="text-center" data-label="Acciones">
           <button class="btn btn-sm btn-warning me-1 px-2" onclick="editarJunta('${data.id}')"><i class="bi bi-pencil"></i></button>
           <button class="btn btn-sm btn-danger px-2" onclick="eliminarJunta('${data.id}', '${escapeHtml(data.nombre)}')"><i class="bi bi-trash"></i></button>
         </td>
@@ -329,7 +347,7 @@ async function cargarJuntas() {
     });
   } catch (error) {
     console.error("Error al cargar juntas:", error);
-    juntasBody.innerHTML = "<tr><td colspan=\"7\" class=\"text-center text-danger\">Error al cargar juntas</td></tr>";
+    juntasBody.innerHTML = '<tr class="table-feedback-row"><td colspan="8"><div class="empty-state text-danger">Error al cargar juntas.</div></td></tr>';
   }
 }
 

@@ -327,30 +327,41 @@ function renderizarPagina() {
   tabla.innerHTML = "";
 
   if (pagina.length === 0) {
-    tabla.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-3">No hay denuncias para mostrar.</td></tr>`;
+    tabla.innerHTML = `
+      <tr class="table-feedback-row">
+        <td colspan="7"><div class="empty-state">No hay denuncias para mostrar con los filtros actuales.</div></td>
+      </tr>
+    `;
   } else {
     pagina.forEach(({ id, data }) => {
-      const estadoBadge = {
-        Pendiente: "secondary",
-        "En proceso": "warning",
-        Resuelta: "success",
-        Rechazada: "danger"
-      }[data.estado || "Pendiente"] || "secondary";
+      const estadoClass = {
+        Pendiente: "status-pendiente",
+        "En proceso": "status-proceso",
+        Resuelta: "status-resuelta",
+        Rechazada: "status-rechazada"
+      }[data.estado || "Pendiente"] || "status-pendiente";
+
+      const chipIcon = {
+        Pendiente: "bi-hourglass-split",
+        "En proceso": "bi-arrow-repeat",
+        Resuelta: "bi-check-circle-fill",
+        Rechazada: "bi-x-circle-fill"
+      }[data.estado || "Pendiente"] || "bi-hourglass-split";
 
       const tieneRespuesta = !!data.respuesta_ayuntamiento;
 
       const fila = document.createElement("tr");
       fila.innerHTML = `
-        <td>
+        <td data-label="Título">
           ${escapeHtml(data.titulo || "Sin título")}
-          ${tieneRespuesta ? '<span class="badge bg-info ms-1" title="Tiene respuesta oficial">R</span>' : ""}
+          ${tieneRespuesta ? '<span class="badge bg-info ms-1" title="Tiene respuesta oficial"><i class="bi bi-chat-text-fill"></i></span>' : ""}
         </td>
-        <td>${escapeHtml((data.descripcion || "Sin descripción").slice(0, 80))}${data.descripcion && data.descripcion.length > 80 ? "..." : ""}</td>
-        <td>${escapeHtml(data.comunidad || "Sin comunidad")}</td>
-        <td><span class="badge bg-${estadoBadge}">${escapeHtml(data.estado || "Pendiente")}</span></td>
-        <td>${escapeHtml(obtenerTextoDiasEnProceso(data))}</td>
-        <td>${data.fecha ? new Date(data.fecha.seconds * 1000).toLocaleDateString() : "Sin fecha"}</td>
-        <td><button class="btn btn-sm btn-primary ver-btn" data-id="${id}">Ver</button></td>
+        <td data-label="Descripción">${escapeHtml((data.descripcion || "Sin descripción").slice(0, 80))}${data.descripcion && data.descripcion.length > 80 ? "..." : ""}</td>
+        <td data-label="Comunidad">${escapeHtml(data.comunidad || "Sin comunidad")}</td>
+        <td data-label="Estado"><span class="status-chip ${estadoClass}"><i class="bi ${chipIcon} chip-icon"></i>${escapeHtml(data.estado || "Pendiente")}</span></td>
+        <td data-label="Días en proceso">${escapeHtml(obtenerTextoDiasEnProceso(data))}</td>
+        <td data-label="Fecha">${data.fecha ? new Date(data.fecha.seconds * 1000).toLocaleDateString() : "Sin fecha"}</td>
+        <td data-label="Acciones"><button class="btn btn-sm btn-primary ver-btn" data-id="${id}">Ver detalle</button></td>
       `;
       tabla.appendChild(fila);
     });
@@ -482,6 +493,18 @@ async function descargarDenunciaSeleccionada() {
 }
 
 async function cargarDenuncias() {
+  const tabla = document.getElementById("tablaDenuncias");
+  const skRow7 = `<tr class="skeleton-row">
+    <td><span class="skeleton-cell skeleton-wide"></span></td>
+    <td><span class="skeleton-cell skeleton-medium"></span></td>
+    <td><span class="skeleton-cell skeleton-medium"></span></td>
+    <td><span class="skeleton-cell skeleton-pill"></span></td>
+    <td><span class="skeleton-cell skeleton-narrow"></span></td>
+    <td><span class="skeleton-cell skeleton-narrow"></span></td>
+    <td><span class="skeleton-cell skeleton-btn"></span></td>
+  </tr>`;
+  tabla.innerHTML = skRow7.repeat(5);
+
   try {
     let q;
 
@@ -520,8 +543,11 @@ async function cargarDenuncias() {
     renderizarPagina();
   } catch (error) {
     console.error("Error cargando denuncias:", error);
-    const tabla = document.getElementById("tablaDenuncias");
-    tabla.innerHTML = `<tr><td colspan="7" class="text-center text-danger py-3">Error al cargar denuncias: ${escapeHtml(error.message)}</td></tr>`;
+    tabla.innerHTML = `
+      <tr class="table-feedback-row">
+        <td colspan="7"><div class="empty-state text-danger">Error al cargar denuncias: ${escapeHtml(error.message)}</div></td>
+      </tr>
+    `;
   }
 }
 
