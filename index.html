@@ -5,9 +5,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>GECOM - Login</title>
+  <link rel="icon" href="assets/LOGO GECOM PNG.png" type="image/png">
 
   <!-- Bootstrap -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
   
   <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
@@ -18,45 +21,130 @@
   <link rel="stylesheet" href="css/styles.css">
 </head>
 
-<body id="bodyRoot" class="bg-light app-page">
+<body id="bodyRoot" class="app-page login-page" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; align-items: center;">
 
-<div class="dropdown position-absolute theme-picker" style="top: 20px; right: 20px; z-index: 1050;">
-  <button id="btnPaletaTema" class="btn btn-outline-dark btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Elegir tema">
-    🎨
-  </button>
-  <ul class="dropdown-menu dropdown-menu-end" id="menuTema">
-    <li><a class="dropdown-item" href="#" data-tema="claro">☀️ Claro</a></li>
-    <li><a class="dropdown-item" href="#" data-tema="oscuro">🌙 Oscuro</a></li>
-    <li><a class="dropdown-item" href="#" data-tema="sistema">💻 Sistema</a></li>
-  </ul>
+<!-- Tema picker mejorado -->
+<div class="position-absolute" style="top: 20px; right: 20px; z-index: 1050;">
+  <div class="dropdown">
+    <button id="btnPaletaTema" class="btn btn-light btn-sm dropdown-toggle shadow-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Elegir tema" style="border-radius: 50%; width: 40px; height: 40px; padding: 0; display: flex; align-items: center; justify-content: center;">
+      <i class="bi bi-palette"></i>
+    </button>
+    <ul class="dropdown-menu dropdown-menu-end" id="menuTema">
+      <li><a class="dropdown-item" href="#" data-tema="claro"><i class="bi bi-sun"></i> Claro</a></li>
+      <li><a class="dropdown-item" href="#" data-tema="oscuro"><i class="bi bi-moon"></i> Oscuro</a></li>
+      <li><a class="dropdown-item" href="#" data-tema="sistema"><i class="bi bi-display"></i> Sistema</a></li>
+    </ul>
+  </div>
 </div>
 
-<div class="container d-flex justify-content-center align-items-center vh-100 auth-shell">
-  <div class="card p-4 shadow auth-card" style="width: min(100%, 380px);">
+<!-- Main container -->
+<div class="container-fluid vh-100 d-flex align-items-center" style="padding: 0;">
+  <div class="row w-100 g-0" style="min-height: 100vh;">
+    
+    <!-- Hero section (izquierda) -->
+    <div class="col-lg-6 d-none d-lg-flex flex-column justify-content-center align-items-center p-5 animate__animated animate__fadeInLeft" style="background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);">
+      <div class="text-center text-white" style="max-width: 450px;">
+        <div style="width: 120px; height: 120px; background: white; border-radius: 20px; display: flex; align-items: center; justify-content: center; margin: 0 auto 30px; box-shadow: 0 12px 32px rgba(0,0,0,0.3);">
+          <img src="assets/LOGO GECOM PNG.png" alt="GECOM Logo" style="width: 90px; height: 90px;">
+        </div>
+        <h2 class="mb-3" style="font-size: 2rem; font-weight: 700; line-height: 1.3;">Gestión Comunitaria</h2>
+        <p class="mb-4" style="font-size: 1.1rem; opacity: 0.9; line-height: 1.6;">
+          Sistema centralizado para la gestión eficiente de denuncias y comunicación comunitaria en la República Dominicana.
+        </p>
+        <div class="d-flex flex-column gap-3 mt-4 text-start">
+          <div class="d-flex align-items-center gap-3">
+            <div style="width:38px;height:38px;background:rgba(255,255,255,0.15);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <i class="bi bi-file-earmark-text" style="font-size:1.1rem;"></i>
+            </div>
+            <div>
+              <div style="font-weight:700;font-size:0.95rem;">Gestión de Denuncias</div>
+              <small style="opacity:0.75;">Registro y seguimiento de denuncias comunitarias</small>
+            </div>
+          </div>
+          <div class="d-flex align-items-center gap-3">
+            <div style="width:38px;height:38px;background:rgba(255,255,255,0.15);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <i class="bi bi-people" style="font-size:1.1rem;"></i>
+            </div>
+            <div>
+              <div style="font-weight:700;font-size:0.95rem;">Comunicación entre Entidades</div>
+              <small style="opacity:0.75;">Juntas, ayuntamientos y administración conectados</small>
+            </div>
+          </div>
+          <div class="d-flex align-items-center gap-3">
+            <div style="width:38px;height:38px;background:rgba(255,255,255,0.15);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <i class="bi bi-bar-chart-line" style="font-size:1.1rem;"></i>
+            </div>
+            <div>
+              <div style="font-weight:700;font-size:0.95rem;">Estadísticas en Tiempo Real</div>
+              <small style="opacity:0.75;">Reportes y métricas actualizadas constantemente</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
+    <!-- Form section (derecha) -->
+    <div class="col-lg-6 d-flex flex-column justify-content-center align-items-center p-4 p-lg-5 animate__animated animate__fadeInRight">
+      <div style="width: 100%; max-width: 420px;">
+        
+        <!-- Card del formulario -->
+        <div class="card border-0 shadow-lg" style="backdrop-filter: blur(10px); background: rgba(255, 255, 255, 0.95);">
+          <div class="card-body p-5">
+            
+            <!-- Header -->
+            <div class="text-center mb-5">
+              <div style="width: 70px; height: 70px; background: white; border-radius: 14px; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);">
+                <img src="assets/LOGO GECOM PNG.png" alt="GECOM" style="width: 55px; height: 55px;">
+              </div>
+              <h4 class="mb-2" style="font-weight: 700; color: var(--bs-body-color);">Bienvenido</h4>
+              <p class="text-muted mb-0">Inicia sesión en tu cuenta</p>
+            </div>
 
+            <!-- Form -->
+            <form id="loginForm" style="animation: fadeInUp 0.6s ease-in-out 0.1s both;">
+              
+              <!-- Usuario input -->
+              <div class="mb-4 position-relative">
+                <div class="input-group">
+                  <span class="input-group-text" style="background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-right: none;">
+                    <i class="bi bi-person" style="color: #667eea;"></i>
+                  </span>
+                  <input type="text" id="usuario" class="form-control" placeholder="Usuario" autocomplete="username" style="border: 1px solid rgba(102, 126, 234, 0.2); border-left: none; padding: 10px 14px;">
+                </div>
+              </div>
 
-<h3 class="text-center mb-3">GECOM</h3>
-<p class="text-center text-muted">Iniciar sesión</p>
+              <!-- Password input -->
+              <div class="mb-4 position-relative">
+                <div class="input-group">
+                  <span class="input-group-text" style="background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-right: none;">
+                    <i class="bi bi-lock" style="color: #667eea;"></i>
+                  </span>
+                  <input type="password" id="password" class="form-control" placeholder="Contraseña" autocomplete="current-password" style="border: 1px solid rgba(102, 126, 234, 0.2); border-left: none; padding: 10px 14px;">
+                </div>
+              </div>
 
+              <!-- Buttons -->
+              <div class="d-grid gap-2 mb-3">
+                <button type="button" onclick="login()" class="btn btn-lg" id="btnLogin" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; font-weight: 700; border-radius: 10px; padding: 12px; transition: all 0.3s ease; box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);">
+                  <i class="bi bi-box-arrow-in-right me-2"></i> Ingresar
+                </button>
+                <button type="button" onclick="mostrarRegistro()" class="btn btn-outline-primary" id="btnRegistrar" style="display:none; border-radius: 10px; border-color: #667eea; color: #667eea; font-weight: 700; padding: 12px; transition: all 0.3s ease;">
+                  <i class="bi bi-person-plus me-2"></i> Registrar usuario
+                </button>
+              </div>
+            </form>
 
-<div class="mb-3">
-  <label class="form-label">Usuario</label>
-  <input type="text" id="usuario" class="form-control" placeholder="nombre de usuario" autocomplete="username">
-</div>
+            <!-- Footer -->
+            <p class="text-center text-muted small mb-0" style="font-size: 0.85rem;">
+              © 2026 GECOM. Todos los derechos reservados.
+            </p>
+          </div>
+        </div>
 
-<div class="mb-3">
-  <label class="form-label">Contraseña</label>
-  <input type="password" id="password" class="form-control" autocomplete="current-password">
-</div>
+      </div>
+    </div>
 
-
-
-<div class="d-grid gap-2">
-  <button onclick="login()" class="btn btn-primary w-100" id="btnLogin">Ingresar</button>
-  <button onclick="mostrarRegistro()" class="btn btn-success w-100" id="btnRegistrar" style="display:none">Registrar usuario</button>
-
-
+  </div>
 </div>
 
 <!-- Modal de registro solo para admins -->

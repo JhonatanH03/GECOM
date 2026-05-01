@@ -974,6 +974,184 @@ tr.skeleton-row td {
 
 /* Puente invisible para evitar que se cierre al cruzar el mouse */
 .pm-submenu::after {
+  content: '';
+  position: absolute;
+  right: 100%;
+  top: -10px;
+  bottom: -10px;
+  width: 10px;
+}
+
+/* ============================================
+   ANIMATE.CSS - Clase de utilidad para animaciones
+   ============================================ */
+
+/* Cards animadas al cargar */
+.card {
+  animation: animate__fadeIn 0.6s ease-in-out;
+}
+
+/* Títulos con slide */
+h1, h2, h3, h4, h5, h6 {
+  animation: animate__slideInLeft 0.5s ease-in-out;
+}
+
+/* Botones con bounce suave */
+.btn {
+  transition: all 0.3s ease;
+}
+
+.btn:hover {
+  animation: animate__pulse 0.6s ease-in-out;
+}
+
+/* Filas de tabla animadas */
+.table tbody tr {
+  animation: animate__fadeInUp 0.4s ease-in-out;
+}
+
+.table tbody tr:nth-child(1) { animation-delay: 0.05s; }
+.table tbody tr:nth-child(2) { animation-delay: 0.1s; }
+.table tbody tr:nth-child(3) { animation-delay: 0.15s; }
+.table tbody tr:nth-child(n+4) { animation-delay: 0.2s; }
+
+/* Formularios animados */
+.form-group, .mb-3 {
+  animation: animate__fadeInUp 0.5s ease-in-out;
+}
+
+/* Alertas animadas */
+.alert {
+  animation: animate__slideInDown 0.4s ease-in-out;
+}
+
+/* Cards del dashboard */
+.kpi-card, .dashboard-card {
+  animation: animate__zoomIn 0.5s ease-in-out;
+}
+
+/* Inputs con focus animation */
+.form-control:focus, .form-select:focus {
+  animation: animate__pulse 0.3s ease-in-out;
+}
+
+/* ============================================
+   LOGIN PAGE - Diseño moderno y profesional
+   ============================================ */
+
+.login-page {
+  overflow: hidden;
+}
+
+.login-page .form-control,
+.login-page .form-select {
+  border-radius: 8px;
+  padding: 10px 14px !important;
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+  background-color: rgba(255, 255, 255, 0.98);
+}
+
+.login-page .form-control:focus,
+.login-page .form-select:focus {
+  border-color: #667eea !important;
+  box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.15) !important;
+  background-color: white;
+}
+
+.login-page .form-control::placeholder {
+  color: #999;
+  opacity: 0.8;
+}
+
+.login-page .form-label {
+  color: #333;
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin-bottom: 8px;
+  letter-spacing: 0.3px;
+}
+
+.login-page .input-group-text {
+  background: rgba(102, 126, 234, 0.08);
+  border: 1px solid rgba(102, 126, 234, 0.2) !important;
+  color: #667eea;
+}
+
+.login-page .btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(102, 126, 234, 0.35) !important;
+}
+
+.login-page .btn-primary:active {
+  transform: translateY(0);
+}
+
+.login-page .btn-outline-primary {
+  border-color: rgba(102, 126, 234, 0.3);
+  color: #667eea;
+}
+
+.login-page .btn-outline-primary:hover {
+  background-color: rgba(102, 126, 234, 0.05);
+  border-color: #667eea;
+  color: #667eea;
+}
+
+/* Hero section animado */
+.login-page .text-white {
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Responsive para mobile */
+@media (max-width: 991px) {
+  .login-page {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  }
+  
+  .login-page .card {
+    margin-top: 2rem;
+  }
+}
+
+/* Dark mode support para login */
+[data-bs-theme="dark"] .login-page {
+  background: linear-gradient(135deg, #1e1b4b 0%, #2d1b4e 100%) !important;
+}
+
+[data-bs-theme="dark"] .login-page .card {
+  background: rgba(30, 30, 50, 0.95) !important;
+}
+
+[data-bs-theme="dark"] .login-page .form-label {
+  color: #e0e0e0;
+}
+
+[data-bs-theme="dark"] .login-page .form-control {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  color: #e0e0e0;
+  border-color: rgba(102, 126, 234, 0.2) !important;
+}
+
+[data-bs-theme="dark"] .login-page .form-control:focus {
+  background-color: rgba(255, 255, 255, 0.12) !important;
+  border-color: #667eea !important;
+}
+
+[data-bs-theme="dark"] .login-page .input-group-text {
+  background: rgba(102, 126, 234, 0.1);
+  border-color: rgba(102, 126, 234, 0.2) !important;
+}
+
+[data-bs-theme="dark"] .login-page .text-muted {
+  color: #999 !important;
+}
+
+/* Card adaptativa para dark mode */
+[data-bs-theme="dark"] .login-page .card {
+  background: rgba(30, 30, 50, 0.95) !important;
+  color: #e0e0e0;
+}
   content: "";
   position: absolute;
   top: 0;
