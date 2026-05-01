@@ -1,6 +1,9 @@
 (function () {
-  // Roles legibles
-  const ROLES = { admin: "Administrador", ayuntamiento: "Ayuntamiento", junta: "Junta de Vecinos" };
+  // Roles legibles por idioma
+  const ROLES = {
+    es: { admin: "Administrador", ayuntamiento: "Ayuntamiento", junta: "Junta de Vecinos" },
+    en: { admin: "Administrator", ayuntamiento: "City Hall", junta: "Neighborhood Board" },
+  };
 
   // Traducciones básicas ES/EN
   const I18N = {
@@ -34,8 +37,9 @@
     return (I18N[getLang()] || I18N["es"])[key] || key;
   }
 
-  function getRolLabel(rol) {
-    return ROLES[rol] || rol || "—";
+  function getRolLabel(rol, lang) {
+    const byLang = ROLES[lang] || ROLES.es;
+    return byLang[rol] || rol || "—";
   }
 
   function getInitial(usuario) {
@@ -87,6 +91,7 @@
     const tema = localStorage.getItem("tema") || "sistema";
     const lang = getLang();
     const initial = getInitial(usuario);
+    const rolLabel = getRolLabel(rol, lang);
 
     const wrap = document.createElement("div");
     wrap.id = "perfilMenuWrap";
@@ -99,7 +104,7 @@
           <div class="pm-avatar-lg"><span>${initial}</span></div>
           <div class="pm-user-info">
             <div class="pm-username">${usuario}</div>
-            <div class="pm-rol">${getRolLabel(rol)}</div>
+            <div class="pm-rol">${rolLabel}</div>
           </div>
         </div>
         <div class="pm-divider"></div>
@@ -200,6 +205,9 @@
         pmItemLabel.forEach(function(el, i){ el.textContent = t(keys[i]); });
         wrap.querySelector("#pmItemPerfil span").textContent = t("perfil");
         wrap.querySelector("#pmItemLogout span").textContent = t("cerrarSesion");
+        var currentLang = getLang();
+        var nextRolLabel = getRolLabel(rol, currentLang);
+        wrap.querySelector(".pm-rol").textContent = nextRolLabel;
         wrap.querySelectorAll(".pm-sub-opt[data-tema]").forEach(function(b){
           var temaKey = b.dataset.tema;
           b.childNodes[b.childNodes.length - 1].textContent = " " + t(temaKey);

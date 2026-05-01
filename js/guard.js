@@ -5,6 +5,7 @@
   const rol = localStorage.getItem("rol");
   const uid = localStorage.getItem("uid");
   const usuario = localStorage.getItem("usuario");
+  const showSessionBanner = localStorage.getItem("gecomDebugSessionBanner") === "true";
 
   function getIdiomaUI() {
     return (localStorage.getItem("idioma") || "es") === "en" ? "en" : "es";
@@ -60,13 +61,15 @@
   // Si hay autenticación válida, mostrar la página
   if (rol && uid) {
     document.documentElement.style.display = 'block';
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", insertarBannerSesion);
-    } else {
-      insertarBannerSesion();
-    }
+    if (showSessionBanner) {
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", insertarBannerSesion);
+      } else {
+        insertarBannerSesion();
+      }
 
-    window.addEventListener("gecom:language-changed", actualizarBannerSesion);
+      window.addEventListener("gecom:language-changed", actualizarBannerSesion);
+    }
   } else {
     // Si no hay autenticación, redirigir a login
     window.location.replace("index.html");
