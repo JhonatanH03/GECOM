@@ -1054,8 +1054,8 @@ h1, h2, h3, h4, h5, h6 {
 
 .login-page .form-control:focus,
 .login-page .form-select:focus {
-  border-color: #667eea !important;
-  box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.15) !important;
+  border-color: #1565c0 !important;
+  box-shadow: 0 0 0 0.2rem rgba(21, 101, 192, 0.15) !important;
   background-color: white;
 }
 
@@ -1073,14 +1073,14 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .login-page .input-group-text {
-  background: rgba(102, 126, 234, 0.08);
-  border: 1px solid rgba(102, 126, 234, 0.2) !important;
-  color: #667eea;
+  background: rgba(21, 101, 192, 0.08);
+  border: 1px solid rgba(21, 101, 192, 0.2) !important;
+  color: #1565c0;
 }
 
 .login-page .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 12px 24px rgba(102, 126, 234, 0.35) !important;
+  box-shadow: 0 12px 24px rgba(21, 101, 192, 0.35) !important;
 }
 
 .login-page .btn-primary:active {
@@ -1116,7 +1116,7 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Dark mode support para login */
 [data-bs-theme="dark"] .login-page {
-  background: linear-gradient(135deg, #1e1b4b 0%, #2d1b4e 100%) !important;
+  background: linear-gradient(160deg, #071a45 0%, #0a2a6e 60%, #0d3a8e 100%) !important;
 }
 
 [data-bs-theme="dark"] .login-page .card {

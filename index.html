@@ -21,7 +21,7 @@
   <link rel="stylesheet" href="css/styles.css">
 </head>
 
-<body id="bodyRoot" class="app-page login-page" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; align-items: center;">
+<body id="bodyRoot" class="app-page login-page" style="background: linear-gradient(160deg, #0a2a6e 0%, #1565c0 60%, #1976d2 100%); min-height: 100vh; display: flex; align-items: center;">
 
 <!-- Tema picker mejorado -->
 <div class="position-absolute" style="top: 20px; right: 20px; z-index: 1050;">
@@ -42,47 +42,23 @@
   <div class="row w-100 g-0" style="min-height: 100vh;">
     
     <!-- Hero section (izquierda) -->
-    <div class="col-lg-6 d-none d-lg-flex flex-column justify-content-center align-items-center p-5 animate__animated animate__fadeInLeft" style="background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);">
-      <div class="text-center text-white" style="max-width: 450px;">
-        <div style="width: 120px; height: 120px; background: white; border-radius: 20px; display: flex; align-items: center; justify-content: center; margin: 0 auto 30px; box-shadow: 0 12px 32px rgba(0,0,0,0.3);">
-          <img src="assets/LOGO GECOM PNG.png" alt="GECOM Logo" style="width: 90px; height: 90px;">
-        </div>
-        <h2 class="mb-3" style="font-size: 2rem; font-weight: 700; line-height: 1.3;">Gestión Comunitaria</h2>
-        <p class="mb-4" style="font-size: 1.1rem; opacity: 0.9; line-height: 1.6;">
-          Sistema centralizado para la gestión eficiente de denuncias y comunicación comunitaria en la República Dominicana.
+    <div class="col-lg-6 d-none d-lg-flex flex-column justify-content-center align-items-center p-5 animate__animated animate__fadeInLeft" style="background: rgba(0,0,0,0.12);">
+      <div class="text-center text-white" style="max-width: 420px;">
+
+        <!-- Escudo de la República Dominicana -->
+        <img src="assets/LOGO SHIELD RD.png" alt="Escudo de la República Dominicana" style="width: 110px; height: 110px; margin-bottom: 24px; filter: drop-shadow(0 8px 20px rgba(0,0,0,0.4));">
+
+        <!-- Separador -->
+        <hr style="border-color: rgba(255,255,255,0.25); margin: 0 auto 24px; width: 80px; border-width: 1px;">
+
+        <h1 class="mb-1" style="font-size: 2.4rem; font-weight: 800; letter-spacing: 3px; color: #ffffff;">GECOM</h1>
+        <h5 class="mb-3" style="font-weight: 400; color: rgba(255,255,255,0.82); letter-spacing: 0.5px; font-size: 1rem;">Gestión Comunitaria</h5>
+        <hr style="border-color: rgba(255,255,255,0.25); margin: 16px auto; width: 50px; border-width: 2px;">
+        <p style="font-size: 0.9rem; color: rgba(255,255,255,0.68); line-height: 1.8;">
+          Sistema oficial para la gestión de denuncias y comunicación entre juntas de vecinos y ayuntamientos de la República Dominicana.
         </p>
-        <div class="d-flex flex-column gap-3 mt-4 text-start">
-          <div class="d-flex align-items-center gap-3">
-            <div style="width:38px;height:38px;background:rgba(255,255,255,0.15);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-              <i class="bi bi-file-earmark-text" style="font-size:1.1rem;"></i>
-            </div>
-            <div>
-              <div style="font-weight:700;font-size:0.95rem;">Gestión de Denuncias</div>
-              <small style="opacity:0.75;">Registro y seguimiento de denuncias comunitarias</small>
-            </div>
-          </div>
-          <div class="d-flex align-items-center gap-3">
-            <div style="width:38px;height:38px;background:rgba(255,255,255,0.15);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-              <i class="bi bi-people" style="font-size:1.1rem;"></i>
-            </div>
-            <div>
-              <div style="font-weight:700;font-size:0.95rem;">Comunicación entre Entidades</div>
-              <small style="opacity:0.75;">Juntas, ayuntamientos y administración conectados</small>
-            </div>
-          </div>
-          <div class="d-flex align-items-center gap-3">
-            <div style="width:38px;height:38px;background:rgba(255,255,255,0.15);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-              <i class="bi bi-bar-chart-line" style="font-size:1.1rem;"></i>
-            </div>
-            <div>
-              <div style="font-weight:700;font-size:0.95rem;">Estadísticas en Tiempo Real</div>
-              <small style="opacity:0.75;">Reportes y métricas actualizadas constantemente</small>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
-
     <!-- Form section (derecha) -->
     <div class="col-lg-6 d-flex flex-column justify-content-center align-items-center p-4 p-lg-5 animate__animated animate__fadeInRight">
       <div style="width: 100%; max-width: 420px;">
@@ -93,9 +69,7 @@
             
             <!-- Header -->
             <div class="text-center mb-5">
-              <div style="width: 70px; height: 70px; background: white; border-radius: 14px; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);">
-                <img src="assets/LOGO GECOM PNG.png" alt="GECOM" style="width: 55px; height: 55px;">
-              </div>
+              <img src="assets/LOGO SHIELD RD.png" alt="Escudo RD" style="width: 72px; height: 72px; margin-bottom: 16px; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.15));">
               <h4 class="mb-2" style="font-weight: 700; color: var(--bs-body-color);">Bienvenido</h4>
               <p class="text-muted mb-0">Inicia sesión en tu cuenta</p>
             </div>
@@ -106,29 +80,29 @@
               <!-- Usuario input -->
               <div class="mb-4 position-relative">
                 <div class="input-group">
-                  <span class="input-group-text" style="background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-right: none;">
-                    <i class="bi bi-person" style="color: #667eea;"></i>
+                  <span class="input-group-text" style="background: rgba(21, 101, 192, 0.08); border: 1px solid rgba(21, 101, 192, 0.2); border-right: none;">
+                    <i class="bi bi-person" style="color: #1565c0;"></i>
                   </span>
-                  <input type="text" id="usuario" class="form-control" placeholder="Usuario" autocomplete="username" style="border: 1px solid rgba(102, 126, 234, 0.2); border-left: none; padding: 10px 14px;">
+                  <input type="text" id="usuario" class="form-control" placeholder="Usuario" autocomplete="username" style="border: 1px solid rgba(21, 101, 192, 0.2); border-left: none; padding: 10px 14px;">
                 </div>
               </div>
 
               <!-- Password input -->
               <div class="mb-4 position-relative">
                 <div class="input-group">
-                  <span class="input-group-text" style="background: rgba(102, 126, 234, 0.08); border: 1px solid rgba(102, 126, 234, 0.2); border-right: none;">
-                    <i class="bi bi-lock" style="color: #667eea;"></i>
+                  <span class="input-group-text" style="background: rgba(21, 101, 192, 0.08); border: 1px solid rgba(21, 101, 192, 0.2); border-right: none;">
+                    <i class="bi bi-lock" style="color: #1565c0;"></i>
                   </span>
-                  <input type="password" id="password" class="form-control" placeholder="Contraseña" autocomplete="current-password" style="border: 1px solid rgba(102, 126, 234, 0.2); border-left: none; padding: 10px 14px;">
+                  <input type="password" id="password" class="form-control" placeholder="Contraseña" autocomplete="current-password" style="border: 1px solid rgba(21, 101, 192, 0.2); border-left: none; padding: 10px 14px;">
                 </div>
               </div>
 
               <!-- Buttons -->
               <div class="d-grid gap-2 mb-3">
-                <button type="button" onclick="login()" class="btn btn-lg" id="btnLogin" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; font-weight: 700; border-radius: 10px; padding: 12px; transition: all 0.3s ease; box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);">
+                <button type="button" onclick="login()" class="btn btn-lg" id="btnLogin" style="background: linear-gradient(135deg, #1565c0 0%, #0a2a6e 100%); color: white; border: none; font-weight: 700; border-radius: 10px; padding: 12px; transition: all 0.3s ease; box-shadow: 0 8px 20px rgba(21, 101, 192, 0.35);">
                   <i class="bi bi-box-arrow-in-right me-2"></i> Ingresar
                 </button>
-                <button type="button" onclick="mostrarRegistro()" class="btn btn-outline-primary" id="btnRegistrar" style="display:none; border-radius: 10px; border-color: #667eea; color: #667eea; font-weight: 700; padding: 12px; transition: all 0.3s ease;">
+                <button type="button" onclick="mostrarRegistro()" class="btn btn-outline-primary" id="btnRegistrar" style="display:none; border-radius: 10px; border-color: #1565c0; color: #1565c0; font-weight: 700; padding: 12px; transition: all 0.3s ease;">
                   <i class="bi bi-person-plus me-2"></i> Registrar usuario
                 </button>
               </div>
