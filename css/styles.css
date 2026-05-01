@@ -1162,13 +1162,6 @@ h1, h2, h3, h4, h5, h6 {
   background: rgba(30, 30, 50, 0.95) !important;
   color: #e0e0e0;
 }
-  content: "";
-  position: absolute;
-  top: 0;
-  right: -8px;
-  width: 8px;
-  height: 100%;
-}
 
 .pm-item-sub:hover .pm-submenu { display: flex; }
 

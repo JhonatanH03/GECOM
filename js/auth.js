@@ -221,10 +221,23 @@ window.login = async function () {
       return;
     }
 
-    // Autenticarse derivando el email del nombre de usuario
+    // Buscar el email real del usuario en Firestore por el campo "usuario"
     try {
-      const emailDerivado = usuarioNormalizado.replace(/[^a-z0-9_]/g, '') + '@gecom.internal';
-      const userCredential = await auth.signInWithEmailAndPassword(emailDerivado, password);
+      const colecciones = ["Administradores", "Ayuntamientos", "JuntasDeVecinos"];
+      let emailReal = null;
+      for (const col of colecciones) {
+        const snap = await db.collection(col).where("usuario", "==", usuarioNormalizado).limit(1).get();
+        if (!snap.empty) {
+          const data = snap.docs[0].data();
+          emailReal = data.correo || data.email || null;
+          break;
+        }
+      }
+      // Si no se encontró correo real, intentar con el email derivado (usuarios admin legacy)
+      if (!emailReal) {
+        emailReal = usuarioNormalizado.replace(/[^a-z0-9_]/g, '') + '@gecom.internal';
+      }
+      const userCredential = await auth.signInWithEmailAndPassword(emailReal, password);
       const perfil = await obtenerPerfilPorUid(userCredential.user.uid);
 
       if (!perfil) {
@@ -266,6 +279,8 @@ window.login = async function () {
         mensaje = "Usuario deshabilitado";
       } else if (authError.code === "auth/too-many-requests") {
         mensaje = "Demasiados intentos. Intenta más tarde.";
+      } else if (authError.code === "auth/internal-error" || authError.code === "auth/invalid-credential") {
+        mensaje = "Usuario o contraseña incorrectos.";
       } else if (authError.code === "permission-denied" || authError.code === "failed-precondition") {
         mensaje = "El inicio de sesión por usuario está restringido. Usa tu correo electrónico.";
       } else if (authError.code === "not-found") {
