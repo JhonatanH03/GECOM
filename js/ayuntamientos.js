@@ -24,25 +24,6 @@ const submitBtn = document.getElementById("submitBtn");
 const ayuntamientoIdInput = document.getElementById("ayuntamientoId");
 const passwordField = document.getElementById("passwordField");
 
-async function sincronizarLoginIndex({ uid, usuario, correo, rol }) {
-  const usuarioNormalizado = String(usuario || "").trim().toLowerCase();
-  const email = String(correo || "").trim();
-  if (!uid || !usuarioNormalizado || !email || !rol) return;
-
-  await db.collection("loginIndex").doc(usuarioNormalizado).set({
-    uid,
-    email,
-    rol,
-    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-  }, { merge: true });
-}
-
-async function eliminarLoginIndex(usuario) {
-  const usuarioNormalizado = String(usuario || "").trim().toLowerCase();
-  if (!usuarioNormalizado) return;
-  await db.collection("loginIndex").doc(usuarioNormalizado).delete();
-}
-
 function generarContrasenaTemporal(length = 12) {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%";
   const cryptoApi = window.crypto || window.msCrypto;
@@ -87,13 +68,13 @@ form.addEventListener("submit", async (event) => {
   const ayuntamientoId = ayuntamientoIdInput.value;
   const nombre = document.getElementById("nombre").value.trim();
   const usuario = document.getElementById("usuario").value.trim();
-  const correo = document.getElementById("correo").value.trim();
+  const correo = document.getElementById("correo").value.trim() || (usuario.toLowerCase().replace(/[^a-z0-9_]/g, '') + '@gecom.internal');
   const telefono = document.getElementById("telefono").value.trim();
   const direccion = document.getElementById("direccion").value.trim();
   const provincia = document.getElementById("provincia").value;
   const municipio = document.getElementById("municipio").value;
   
-  if (!nombre || !usuario || !correo || !telefono || !direccion || !provincia || !municipio) {
+  if (!nombre || !usuario || !telefono || !direccion || !provincia || !municipio) {
     showModalAlert("Todos los campos son obligatorios.", "danger");
     return;
   }
@@ -121,10 +102,6 @@ form.addEventListener("submit", async (event) => {
         municipio
       };
       await db.collection("Ayuntamientos").doc(ayuntamientoId).set(ayuntamientoData, { merge: true });
-      await sincronizarLoginIndex({ uid: ayuntamientoId, usuario, correo, rol: "ayuntamiento" });
-      if (previoData.usuario && previoData.usuario.toLowerCase() !== usuarioNormalizado) {
-        await eliminarLoginIndex(previoData.usuario);
-      }
       showAlert("Ayuntamiento actualizado correctamente.", "success");
     } else {
       const existingSnap = await db.collection("Ayuntamientos").get();
@@ -160,7 +137,6 @@ form.addEventListener("submit", async (event) => {
       };
       
       await db.collection("Ayuntamientos").doc(nuevoUid).set(ayuntamientoData);
-      await sincronizarLoginIndex({ uid: nuevoUid, usuario, correo, rol: "ayuntamiento" });
       showAlert(`Ayuntamiento creado correctamente. Usuario: ${usuario}, Contraseña temporal: ${contrasenaTemporal}`, "success");
     }
     
@@ -216,7 +192,7 @@ async function cargarAyuntamientos() {
       ayuntamientosBody.innerHTML += `<tr>
         <td data-label="Nombre">${escapeHtml(data.nombre)}</td>
         <td data-label="Usuario">${escapeHtml(data.usuario || "")}</td>
-        <td data-label="Correo">${escapeHtml(data.correo)}</td>
+        <td data-label="Correo" style="display:none">${escapeHtml(data.correo)}</td>
         <td data-label="Teléfono">${escapeHtml(data.telefono || "")}</td>
         <td data-label="Dirección">${escapeHtml(data.direccion || "")}</td>
         <td data-label="Provincia">${escapeHtml(data.provincia || "")}</td>
@@ -285,7 +261,6 @@ window.eliminarAyuntamiento = async function(id, nombre) {
       const docSnap = await db.collection("Ayuntamientos").doc(id).get();
       const data = docSnap.exists ? (docSnap.data() || {}) : {};
       await db.collection("Ayuntamientos").doc(id).delete();
-      await eliminarLoginIndex(data.usuario);
       showAlert("Ayuntamiento eliminado.", "success");
       await cargarAyuntamientos();
     } catch (error) {

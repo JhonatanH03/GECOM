@@ -33,19 +33,6 @@ const app = firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth(app);
 const db = firebase.firestore(app);
 
-async function sincronizarLoginIndex({ uid, usuario, email, rol }) {
-  const usuarioNormalizado = String(usuario || "").trim().toLowerCase();
-  const correo = String(email || "").trim();
-  if (!uid || !usuarioNormalizado || !correo || !rol) return;
-
-  await db.collection("loginIndex").doc(usuarioNormalizado).set({
-    uid,
-    email: correo,
-    rol,
-    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-  }, { merge: true });
-}
-
 async function obtenerPerfilPorUid(uid) {
   const colecciones = [
     { nombre: "Administradores", rol: "admin" },
@@ -68,23 +55,6 @@ async function obtenerPerfilPorUid(uid) {
   }
 
   return null;
-}
-
-async function buscarUsuarioPorIdentificador(usuarioNormalizado) {
-  const docSnap = await db.collection("loginIndex").doc(usuarioNormalizado).get();
-  if (!docSnap.exists) {
-    return null;
-  }
-
-  const data = docSnap.data() || {};
-  if (!data.email) return null;
-
-  return {
-    uid: data.uid,
-    rol: data.rol,
-    userEmail: data.email,
-    collectionMatched: null
-  };
 }
 
 // Limpieza de colecciones antiguas (solo admin)
@@ -121,7 +91,7 @@ document.addEventListener("DOMContentLoaded", function () {
 window.registrarDesdeAdmin = async function () {
   try {
     const usuario = document.getElementById("reg_usuario").value.trim();
-    const email = document.getElementById("reg_email").value.trim();
+    const email = usuario.toLowerCase().replace(/[^a-z0-9_]/g, '') + '@gecom.internal';
     const password = document.getElementById("reg_password").value;
     const rol = document.getElementById("reg_rol").value;
 
@@ -140,7 +110,6 @@ window.registrarDesdeAdmin = async function () {
       [
         [userData.usuario, "Usuario"],
         [userData.nombre, "Nombre de la Junta"],
-        [userData.email, "Correo"],
         [userData.comunidad, "Comunidad"],
         [userData.telefono, "Teléfono"]
       ].forEach(([val, label]) => { if (!val) camposFaltantes.push(label); });
@@ -156,7 +125,6 @@ window.registrarDesdeAdmin = async function () {
       [
         [userData.usuario, "Usuario"],
         [userData.nombre, "Nombre del Ayuntamiento"],
-        [userData.email, "Correo"],
         [userData.telefono, "Teléfono"],
         [userData.direccion, "Dirección"],
         [userData.municipio, "Municipio"],
@@ -171,13 +139,12 @@ window.registrarDesdeAdmin = async function () {
       [
         [userData.usuario, "Usuario"],
         [userData.nombre, "Nombre"],
-        [userData.email, "Correo"],
         [userData.telefono, "Teléfono"]
       ].forEach(([val, label]) => { if (!val) camposFaltantes.push(label); });
     }
 
-    if (!usuario || !email || !password || !rol) {
-      mostrarError("Usuario, correo, contraseña y rol son obligatorios.");
+    if (!usuario || !password || !rol) {
+      mostrarError("Usuario, contraseña y rol son obligatorios.");
       return;
     }
     if (camposFaltantes.length > 0) {
@@ -207,7 +174,6 @@ window.registrarDesdeAdmin = async function () {
     const uid = userCredential.user.uid;
     if (collectionName) {
       await db.collection(collectionName).doc(uid).set(userData);
-      await sincronizarLoginIndex({ uid, usuario, email, rol });
     } else {
       throw new Error("Rol no válido");
     }
@@ -255,19 +221,11 @@ window.login = async function () {
       return;
     }
 
-    // Autenticarse con el email encontrado
+    // Autenticarse derivando el email del nombre de usuario
     try {
-      let userCredential = null;
-      let perfil = null;
-
-      const resultadoBusqueda = await buscarUsuarioPorIdentificador(usuarioNormalizado);
-      if (!resultadoBusqueda || !resultadoBusqueda.userEmail) {
-        mostrarError("Usuario no encontrado. Verifica tu nombre de usuario.");
-        return;
-      }
-
-      userCredential = await auth.signInWithEmailAndPassword(resultadoBusqueda.userEmail, password);
-      perfil = await obtenerPerfilPorUid(userCredential.user.uid);
+      const emailDerivado = usuarioNormalizado.replace(/[^a-z0-9_]/g, '') + '@gecom.internal';
+      const userCredential = await auth.signInWithEmailAndPassword(emailDerivado, password);
+      const perfil = await obtenerPerfilPorUid(userCredential.user.uid);
 
       if (!perfil) {
         await auth.signOut();
@@ -275,28 +233,12 @@ window.login = async function () {
         return;
       }
 
-      let { uid, rol, userDoc, collectionMatched } = perfil;
-      const usuarioMigrado = perfil.usuario || (userCredential.user.email && userCredential.user.email.includes("@")
-        ? userCredential.user.email.split("@")[0]
-        : usuarioNormalizado);
-
-      // Migración automática: si el documento no tenía usuario, se crea al iniciar sesión.
-      if (collectionMatched && uid && !userDoc.usuario) {
-        await db.collection(collectionMatched).doc(uid).set({ usuario: usuarioMigrado }, { merge: true });
-        userDoc.usuario = usuarioMigrado;
-      }
-
-      await sincronizarLoginIndex({
-        uid,
-        usuario: userDoc.usuario || usuarioMigrado,
-        email: userCredential.user.email || userDoc.email || userDoc.correo,
-        rol
-      });
+      const { uid, rol, userDoc } = perfil;
 
       // Guardar sesión
       localStorage.setItem("uid", uid);
       localStorage.setItem("rol", rol);
-      localStorage.setItem("usuario", userDoc.usuario || usuarioMigrado);
+      localStorage.setItem("usuario", userDoc.usuario || usuarioNormalizado);
       localStorage.setItem("primerLogin", userDoc.primerLogin ? "true" : "false");
 
       // limpiar campos

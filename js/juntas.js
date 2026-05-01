@@ -28,25 +28,6 @@ let municipioAyuntamiento = null;
 const municipiosSelect = document.getElementById("municipio");
 const provinciaSelect = document.getElementById("provincia");
 
-async function sincronizarLoginIndex({ uid, usuario, correo, rol }) {
-  const usuarioNormalizado = String(usuario || "").trim().toLowerCase();
-  const email = String(correo || "").trim();
-  if (!uid || !usuarioNormalizado || !email || !rol) return;
-
-  await db.collection("loginIndex").doc(usuarioNormalizado).set({
-    uid,
-    email,
-    rol,
-    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-  }, { merge: true });
-}
-
-async function eliminarLoginIndex(usuario) {
-  const usuarioNormalizado = String(usuario || "").trim().toLowerCase();
-  if (!usuarioNormalizado) return;
-  await db.collection("loginIndex").doc(usuarioNormalizado).delete();
-}
-
 function generarContrasenaTemporal(length = 12) {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%";
   const cryptoApi = window.crypto || window.msCrypto;
@@ -190,7 +171,7 @@ form.addEventListener("submit", async (event) => {
   const juntaId = juntaIdInput.value;
   const nombre = document.getElementById("nombre").value.trim();
   const usuario = document.getElementById("usuario").value.trim();
-  const correo = document.getElementById("correo").value.trim();
+  const correo = document.getElementById("correo").value.trim() || (usuario.toLowerCase().replace(/[^a-z0-9_]/g, '') + '@gecom.internal');
   const telefono = document.getElementById("telefono").value.trim();
   const comunidad = document.getElementById("comunidad").value.trim();
   const provincia = document.getElementById("provincia").value;
@@ -199,7 +180,7 @@ form.addEventListener("submit", async (event) => {
   const municipioFinal = rolLocal === "ayuntamiento" ? (municipioAyuntamiento || "") : municipio;
   const cedula = document.getElementById("cedula").value.trim();
   
-  if (!nombre || !usuario || !correo || !telefono || !comunidad || !provinciaFinal || !municipioFinal) {
+  if (!nombre || !usuario || !telefono || !comunidad || !provinciaFinal || !municipioFinal) {
     showModalAlert("Todos los campos son obligatorios.", "danger");
     return;
   }
@@ -228,10 +209,6 @@ form.addEventListener("submit", async (event) => {
         cedula
       };
       await db.collection("JuntasDeVecinos").doc(juntaId).set(juntaData, { merge: true });
-      await sincronizarLoginIndex({ uid: juntaId, usuario, correo, rol: "junta" });
-      if (previoData.usuario && previoData.usuario.toLowerCase() !== usuarioNormalizado) {
-        await eliminarLoginIndex(previoData.usuario);
-      }
       showAlert("Junta actualizada correctamente.", "success");
     } else {
       const existingSnap = await db.collection("JuntasDeVecinos").get();
@@ -270,7 +247,6 @@ form.addEventListener("submit", async (event) => {
       };
       
       await db.collection("JuntasDeVecinos").doc(nuevoUid).set(juntaData);
-      await sincronizarLoginIndex({ uid: nuevoUid, usuario, correo, rol: "junta" });
       showAlert(`Junta creada correctamente. Usuario: ${usuario}, Contraseña temporal: ${contrasenaTemporal}`, "success");
     }
     
@@ -334,7 +310,7 @@ async function cargarJuntas() {
       juntasBody.innerHTML += `<tr>
         <td data-label="Nombre">${escapeHtml(data.nombre)}</td>
         <td data-label="Usuario">${escapeHtml(data.usuario || "")}</td>
-        <td data-label="Correo">${escapeHtml(data.correo)}</td>
+        <td data-label="Correo" style="display:none">${escapeHtml(data.correo)}</td>
         <td data-label="Teléfono">${escapeHtml(data.telefono || "")}</td>
         <td data-label="Ubicación">${escapeHtml((data.provincia || "") + " / " + (data.municipio || ""))}</td>
         <td data-label="Comunidad">${escapeHtml(data.comunidad || "")}</td>
@@ -411,7 +387,6 @@ window.eliminarJunta = async function(id, nombre) {
         return;
       }
       await db.collection("JuntasDeVecinos").doc(id).delete();
-      await eliminarLoginIndex((docSnap.data() || {}).usuario);
       showAlert("Junta eliminada.", "success");
       await cargarJuntas();
     } catch (error) {
