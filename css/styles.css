@@ -299,6 +299,38 @@ h3 {
   100% { transform: rotate(0deg); }
 }
 
+/* ── Password eye toggle ── */
+.pwd-eye-btn {
+  cursor: pointer;
+  user-select: none;
+  background: rgba(21, 101, 192, 0.06);
+  border-color: rgba(21, 101, 192, 0.2);
+  border-left: none;
+  color: #1565c0;
+  transition: background 0.18s ease, color 0.18s ease;
+}
+
+.pwd-eye-btn:hover {
+  background: rgba(21, 101, 192, 0.16);
+  color: #0a2a6e;
+}
+
+[data-bs-theme="dark"] .pwd-eye-btn {
+  background: rgba(100, 160, 230, 0.08);
+  border-color: rgba(100, 160, 230, 0.25);
+  color: #90bbee;
+}
+
+[data-bs-theme="dark"] .pwd-eye-btn:hover {
+  background: rgba(100, 160, 230, 0.18);
+  color: #c8dff8;
+}
+
+/* Remove dropdown caret from palette theme button */
+#btnPaletaTema::after {
+  display: none !important;
+}
+
 .dashboard-page .notificaciones-menu {
   border-radius: 14px;
   border: 1px solid var(--gecom-stroke);
