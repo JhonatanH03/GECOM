@@ -983,17 +983,27 @@ tr.skeleton-row td {
 }
 
 /* ============================================
-   ANIMATE.CSS - Clase de utilidad para animaciones
+   ANIMATE.CSS - Forzar animaciones (override prefers-reduced-motion)
    ============================================ */
+
+/* Brave y algunos sistemas tienen prefers-reduced-motion activado,
+   lo que hace que Animate.css deshabilite todo. Lo anulamos aquí. */
+@media (prefers-reduced-motion: reduce) {
+  .animate__animated {
+    animation-duration: var(--animate-duration) !important;
+    transition-duration: 0.3s !important;
+    animation-iteration-count: 1 !important;
+  }
+}
 
 /* Cards animadas al cargar */
 .card {
-  animation: animate__fadeIn 0.6s ease-in-out;
+  animation: fadeIn 0.6s ease-in-out;
 }
 
 /* Títulos con slide */
 h1, h2, h3, h4, h5, h6 {
-  animation: animate__slideInLeft 0.5s ease-in-out;
+  animation: slideInLeft 0.5s ease-in-out;
 }
 
 /* Botones con bounce suave */
@@ -1002,12 +1012,12 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .btn:hover {
-  animation: animate__pulse 0.6s ease-in-out;
+  animation: pulse 0.6s ease-in-out;
 }
 
 /* Filas de tabla animadas */
 .table tbody tr {
-  animation: animate__fadeInUp 0.4s ease-in-out;
+  animation: fadeInUp 0.4s ease-in-out;
 }
 
 .table tbody tr:nth-child(1) { animation-delay: 0.05s; }
@@ -1017,22 +1027,22 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Formularios animados */
 .form-group, .mb-3 {
-  animation: animate__fadeInUp 0.5s ease-in-out;
+  animation: fadeInUp 0.5s ease-in-out;
 }
 
 /* Alertas animadas */
 .alert {
-  animation: animate__slideInDown 0.4s ease-in-out;
+  animation: slideInDown 0.4s ease-in-out;
 }
 
 /* Cards del dashboard */
 .kpi-card, .dashboard-card {
-  animation: animate__zoomIn 0.5s ease-in-out;
+  animation: zoomIn 0.5s ease-in-out;
 }
 
 /* Inputs con focus animation */
 .form-control:focus, .form-select:focus {
-  animation: animate__pulse 0.3s ease-in-out;
+  animation: pulse 0.3s ease-in-out;
 }
 
 /* ============================================
