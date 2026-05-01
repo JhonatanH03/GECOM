@@ -331,6 +331,28 @@ h3 {
   display: none !important;
 }
 
+/* ── Leyenda de estados de denuncias ── */
+.badge-leyenda {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--bs-body-color);
+  background: var(--bs-body-bg);
+  border: 1px solid var(--bs-border-color);
+  border-radius: 20px;
+  padding: 4px 12px 4px 8px;
+}
+
+.badge-leyenda-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
 .dashboard-page .notificaciones-menu {
   border-radius: 14px;
   border: 1px solid var(--gecom-stroke);
