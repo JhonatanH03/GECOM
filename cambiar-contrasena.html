@@ -79,7 +79,12 @@
   <div class="row g-4 justify-content-center">
     <div class="col-12 col-lg-7">
       <div class="card p-4 shadow-sm h-100 perfil-card">
-        <h3 class="mb-2" id="perfilTitulo">Mi Perfil</h3>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h3 class="mb-0" id="perfilTitulo">Mi Perfil</h3>
+          <button onclick="history.back()" class="btn p-0" id="btnVolver" style="font-size: 1.5rem; color: var(--bs-primary); transition: transform 0.2s ease;" onmouseover="this.style.transform='translateX(-4px)'" onmouseout="this.style.transform='translateX(0)'">
+            <i class="bi bi-chevron-left"></i>
+          </button>
+        </div>
         <p class="text-muted mb-3" id="perfilSubtitulo">Consulta tus datos personales y de contacto.</p>
         <div class="alert alert-info py-2 px-3 mb-4 d-flex align-items-start gap-2" style="font-size:.875rem">
           <i class="bi bi-info-circle-fill mt-1 flex-shrink-0"></i>
@@ -337,11 +342,27 @@ window.addEventListener("DOMContentLoaded", async () => {
       document.getElementById("reqLower"),
       document.getElementById("reqNumber")
     ];
+    const checks = [
+      pwd.length >= 6,
+      /[A-Z]/.test(pwd),
+      /[a-z]/.test(pwd),
+      /\d/.test(pwd)
+    ];
+    const labels = [
+      "Al menos 6 caracteres",
+      "Una letra mayúscula",
+      "Una letra minúscula",
+      "Un número"
+    ];
     
-    if (req[0]) req[0].innerHTML = pwd.length >= 6 ? "✓ Al menos 6 caracteres" : "✗ Al menos 6 caracteres";
-    if (req[1]) req[1].innerHTML = /[A-Z]/.test(pwd) ? "✓ Una letra mayúscula" : "✗ Una letra mayúscula";
-    if (req[2]) req[2].innerHTML = /[a-z]/.test(pwd) ? "✓ Una letra minúscula" : "✗ Una letra minúscula";
-    if (req[3]) req[3].innerHTML = /\d/.test(pwd) ? "✓ Un número" : "✗ Un número";
+    for (let i = 0; i < req.length; i++) {
+      if (req[i]) {
+        const isValid = checks[i];
+        req[i].innerHTML = isValid ? `✓ ${labels[i]}` : `✗ ${labels[i]}`;
+        req[i].classList.remove(isValid ? "text-danger" : "text-success");
+        req[i].classList.add(isValid ? "text-success" : "text-danger");
+      }
+    }
   });
 });
 
