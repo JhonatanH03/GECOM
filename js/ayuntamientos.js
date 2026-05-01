@@ -11,7 +11,6 @@ const firebaseConfig = {
 const app = firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth(app);
 const db = firebase.firestore(app);
-const functionsClient = firebase.functions(app);
 const uid = localStorage.getItem("uid");
 const rolLocal = localStorage.getItem("rol");
 const alertContainer = document.getElementById("alertContainer");
@@ -281,29 +280,9 @@ const resetModalAyunt = new bootstrap.Modal(document.getElementById('modalResetC
 
 document.getElementById('modalResetContrasenaAyuntamiento').addEventListener('hidden.bs.modal', () => {
   document.getElementById('resetAyuntCallerPassword').value = '';
-  document.getElementById('resetAyuntNewPassword').value = '';
-  document.getElementById('resetAyuntConfirmPassword').value = '';
   document.getElementById('resetAyuntModalAlert').innerHTML = '';
   document.getElementById('btnConfirmarResetAyunt').disabled = false;
   document.getElementById('btnConfirmarResetAyunt').textContent = 'Restablecer';
-  ['areqLength','areqUpper','areqLower','areqNumber'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.className = 'text-danger';
-  });
-});
-
-document.getElementById('resetAyuntNewPassword').addEventListener('input', (e) => {
-  const pwd = e.target.value;
-  const checks = [pwd.length >= 6, /[A-Z]/.test(pwd), /[a-z]/.test(pwd), /\d/.test(pwd)];
-  const ids = ['areqLength','areqUpper','areqLower','areqNumber'];
-  const labels = ['Al menos 6 caracteres','Mayúscula','Minúscula','Número'];
-  ids.forEach((id, i) => {
-    const el = document.getElementById(id);
-    if (el) {
-      el.textContent = (checks[i] ? '✓ ' : '✗ ') + labels[i];
-      el.className = checks[i] ? 'text-success' : 'text-danger';
-    }
-  });
 });
 
 window.abrirModalResetContrasenaAyuntamiento = function(id, nombre) {
@@ -315,8 +294,6 @@ window.abrirModalResetContrasenaAyuntamiento = function(id, nombre) {
 window.confirmarResetContrasenaAyuntamiento = async function() {
   const targetUid = document.getElementById('resetAyuntTargetUid').value;
   const callerPassword = document.getElementById('resetAyuntCallerPassword').value;
-  const newPassword = document.getElementById('resetAyuntNewPassword').value;
-  const confirmPassword = document.getElementById('resetAyuntConfirmPassword').value;
   const alertEl = document.getElementById('resetAyuntModalAlert');
   const btn = document.getElementById('btnConfirmarResetAyunt');
 
@@ -325,37 +302,33 @@ window.confirmarResetContrasenaAyuntamiento = async function() {
   }
 
   if (!callerPassword) return showResetError('Debes ingresar tu contraseña actual.');
-  if (!newPassword || !confirmPassword) return showResetError('Debes ingresar y confirmar la nueva contraseña.');
-  if (newPassword !== confirmPassword) return showResetError('Las contraseñas no coinciden.');
-  if (newPassword.length < 6) return showResetError('La contraseña debe tener al menos 6 caracteres.');
-  if (!/[A-Z]/.test(newPassword)) return showResetError('La contraseña debe tener al menos una mayúscula.');
-  if (!/[a-z]/.test(newPassword)) return showResetError('La contraseña debe tener al menos una minúscula.');
-  if (!/\d/.test(newPassword)) return showResetError('La contraseña debe tener al menos un número.');
 
   btn.disabled = true;
   btn.textContent = 'Restableciendo...';
   alertEl.innerHTML = '';
 
   try {
-    const user = auth.currentUser;
-    if (!user) throw new Error('Sesión no válida.');
-
-    // Re-autenticar con la contraseña propia
-    const credential = firebase.auth.EmailAuthProvider.credential(user.email, callerPassword);
-    await user.reauthenticateWithCredential(credential);
-
-    // Llamar Cloud Function (admin SDK actualiza el password del ayuntamiento)
-    const resetFn = functionsClient.httpsCallable('resetAyuntamientoPassword');
-    await resetFn({ ayuntamientoUid: targetUid, temporaryPassword: newPassword });
+    const result = await window.gecomResetManagedUserPassword({
+      auth,
+      callerPassword,
+      targetUid,
+      targetRole: 'ayuntamiento'
+    });
 
     resetModalAyunt.hide();
-    showAlert('Contraseña restablecida correctamente. El ayuntamiento deberá cambiarla en su próximo acceso.', 'success');
+    showAlert(`Contraseña restablecida correctamente. Contraseña temporal: ${result.temporaryPassword}`, 'success');
   } catch (error) {
     let msg = 'Error al restablecer la contraseña.';
     if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
       msg = 'Tu contraseña actual es incorrecta.';
     } else if (error.code === 'auth/too-many-requests') {
       msg = 'Demasiados intentos fallidos. Intenta más tarde.';
+    } else if (error.name === 'TypeError' || error.code === 'request-failed') {
+      msg = 'No se pudo conectar con el backend de restablecimiento. Verifica que esté ejecutándose en la URL configurada.';
+    } else if (error.code === 'recent-login-required') {
+      msg = 'Debes confirmar tu contraseña nuevamente antes de continuar.';
+    } else if (error.code === 'permission-denied') {
+      msg = 'No tienes permiso para restablecer esta contraseña.';
     } else if (error.message) {
       msg = error.message;
     }

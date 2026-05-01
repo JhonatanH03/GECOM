@@ -14,7 +14,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-functions-compat.js"></script>
   
   <script src="js/guard.js"></script>
 </head>
@@ -153,8 +152,6 @@ fetch('js/provincias.json')
     });
   });
 </script>
-<script src="js/ayuntamientos.js"></script>
-
 <!-- Modal Restablecer Contraseña Ayuntamiento -->
 <div class="modal fade" id="modalResetContrasenaAyuntamiento" tabindex="-1" aria-labelledby="modalResetContrasenaAyuntamientoLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
@@ -168,6 +165,11 @@ fetch('js/provincias.json')
         <input type="hidden" id="resetAyuntTargetUid">
         <p class="text-muted mb-3">Restableciendo contraseña de: <strong id="resetAyuntTargetNombre"></strong></p>
 
+        <div class="alert alert-info py-2 px-3 mb-3 d-flex gap-2" style="font-size:.85rem">
+          <i class="bi bi-info-circle-fill mt-1 flex-shrink-0"></i>
+          <span>La cuenta se restablecerá a una contraseña temporal genérica del sistema y luego deberá cambiarla al iniciar sesión.</span>
+        </div>
+
         <div class="alert alert-warning py-2 px-3 mb-3 d-flex gap-2" style="font-size:.85rem">
           <i class="bi bi-shield-lock-fill mt-1 flex-shrink-0"></i>
           <span>Por seguridad, debes confirmar <strong>tu propia contraseña</strong> para continuar.</span>
@@ -177,20 +179,6 @@ fetch('js/provincias.json')
           <label class="form-label">Tu contraseña actual</label>
           <input type="password" id="resetAyuntCallerPassword" class="form-control" placeholder="Tu contraseña de acceso">
         </div>
-        <div class="mb-3">
-          <label class="form-label">Nueva contraseña temporal para el ayuntamiento</label>
-          <input type="password" id="resetAyuntNewPassword" class="form-control">
-          <div class="mt-1" style="font-size:.8rem">
-            <span id="areqLength" class="text-danger">✗ Al menos 6 caracteres</span> &nbsp;
-            <span id="areqUpper" class="text-danger">✗ Mayúscula</span> &nbsp;
-            <span id="areqLower" class="text-danger">✗ Minúscula</span> &nbsp;
-            <span id="areqNumber" class="text-danger">✗ Número</span>
-          </div>
-        </div>
-        <div class="mb-3">
-          <label class="form-label">Confirmar nueva contraseña</label>
-          <input type="password" id="resetAyuntConfirmPassword" class="form-control">
-        </div>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
@@ -199,6 +187,9 @@ fetch('js/provincias.json')
     </div>
   </div>
 </div>
+
+<script src="js/backend-reset.js"></script>
+<script src="js/ayuntamientos.js"></script>
 
 </body>
 </html>

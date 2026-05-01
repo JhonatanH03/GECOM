@@ -11,7 +11,6 @@ const firebaseConfig = {
 const app = firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth(app);
 const db = firebase.firestore(app);
-const functionsClient = firebase.functions(app);
 const uid = localStorage.getItem("uid");
 const rolLocal = localStorage.getItem("rol");
 const alertContainer = document.getElementById("alertContainer");
@@ -280,8 +279,9 @@ async function cargarJuntas() {
   </tr>`;
   juntasBody.innerHTML = _skRow8.repeat(5);
   try {
-    const q = db.collection("JuntasDeVecinos").where("creada_por", "==", uid);
-    const snapshot = await q.get();
+    const snapshot = rolLocal === "admin"
+      ? await db.collection("JuntasDeVecinos").get()
+      : await db.collection("JuntasDeVecinos").where("creada_por", "==", uid).get();
     
     if (snapshot.empty) {
       juntasBody.innerHTML = '<tr class="table-feedback-row"><td colspan="8"><div class="empty-state">No hay juntas registradas en tu alcance.</div></td></tr>';
@@ -381,28 +381,9 @@ const resetModalJunta = new bootstrap.Modal(document.getElementById('modalResetC
 
 document.getElementById('modalResetContrasenaJunta').addEventListener('hidden.bs.modal', () => {
   document.getElementById('resetCallerPassword').value = '';
-  document.getElementById('resetNewPassword').value = '';
-  document.getElementById('resetConfirmPassword').value = '';
   document.getElementById('resetModalAlert').innerHTML = '';
   document.getElementById('btnConfirmarReset').disabled = false;
-  ['rreqLength','rreqUpper','rreqLower','rreqNumber'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) { el.className = 'text-danger'; }
-  });
-});
-
-document.getElementById('resetNewPassword').addEventListener('input', (e) => {
-  const pwd = e.target.value;
-  const checks = [pwd.length >= 6, /[A-Z]/.test(pwd), /[a-z]/.test(pwd), /\d/.test(pwd)];
-  const ids = ['rreqLength','rreqUpper','rreqLower','rreqNumber'];
-  const labels = ['Al menos 6 caracteres','Mayúscula','Minúscula','Número'];
-  ids.forEach((id, i) => {
-    const el = document.getElementById(id);
-    if (el) {
-      el.textContent = (checks[i] ? '✓ ' : '✗ ') + labels[i];
-      el.className = checks[i] ? 'text-success' : 'text-danger';
-    }
-  });
+  document.getElementById('btnConfirmarReset').textContent = 'Restablecer';
 });
 
 window.abrirModalResetContrasenaJunta = function(id, nombre) {
@@ -414,8 +395,6 @@ window.abrirModalResetContrasenaJunta = function(id, nombre) {
 window.confirmarResetContrasenaJunta = async function() {
   const targetUid = document.getElementById('resetTargetUid').value;
   const callerPassword = document.getElementById('resetCallerPassword').value;
-  const newPassword = document.getElementById('resetNewPassword').value;
-  const confirmPassword = document.getElementById('resetConfirmPassword').value;
   const alertEl = document.getElementById('resetModalAlert');
   const btn = document.getElementById('btnConfirmarReset');
 
@@ -424,37 +403,33 @@ window.confirmarResetContrasenaJunta = async function() {
   }
 
   if (!callerPassword) return showResetError('Debes ingresar tu contraseña actual.');
-  if (!newPassword || !confirmPassword) return showResetError('Debes ingresar y confirmar la nueva contraseña.');
-  if (newPassword !== confirmPassword) return showResetError('Las contraseñas no coinciden.');
-  if (newPassword.length < 6) return showResetError('La contraseña debe tener al menos 6 caracteres.');
-  if (!/[A-Z]/.test(newPassword)) return showResetError('La contraseña debe tener al menos una mayúscula.');
-  if (!/[a-z]/.test(newPassword)) return showResetError('La contraseña debe tener al menos una minúscula.');
-  if (!/\d/.test(newPassword)) return showResetError('La contraseña debe tener al menos un número.');
 
   btn.disabled = true;
   btn.textContent = 'Restableciendo...';
   alertEl.innerHTML = '';
 
   try {
-    const user = auth.currentUser;
-    if (!user) throw new Error('Sesión no válida.');
-
-    // Re-autenticar con la contraseña propia
-    const credential = firebase.auth.EmailAuthProvider.credential(user.email, callerPassword);
-    await user.reauthenticateWithCredential(credential);
-
-    // Llamar Cloud Function
-    const resetFn = functionsClient.httpsCallable('resetJuntaPassword');
-    await resetFn({ juntaUid: targetUid, newPassword });
+    const result = await window.gecomResetManagedUserPassword({
+      auth,
+      callerPassword,
+      targetUid,
+      targetRole: 'junta'
+    });
 
     resetModalJunta.hide();
-    showAlert(`Contraseña restablecida correctamente. La junta deberá cambiarla en su próximo acceso.`, 'success');
+    showAlert(`Contraseña restablecida correctamente. Contraseña temporal: ${result.temporaryPassword}`, 'success');
   } catch (error) {
     let msg = 'Error al restablecer la contraseña.';
     if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
       msg = 'Tu contraseña actual es incorrecta.';
     } else if (error.code === 'auth/too-many-requests') {
       msg = 'Demasiados intentos fallidos. Intenta más tarde.';
+    } else if (error.name === 'TypeError' || error.code === 'request-failed') {
+      msg = 'No se pudo conectar con el backend de restablecimiento. Verifica que esté ejecutándose en la URL configurada.';
+    } else if (error.code === 'recent-login-required') {
+      msg = 'Debes confirmar tu contraseña nuevamente antes de continuar.';
+    } else if (error.code === 'permission-denied') {
+      msg = 'No tienes permiso para restablecer esta contraseña.';
     } else if (error.message) {
       msg = error.message;
     }
