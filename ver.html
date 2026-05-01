@@ -175,13 +175,13 @@
                       <option value="Rechazada">Rechazada</option>
                     </select>
                   </div>
-                  <div class="mb-3">
+                  <div class="mb-3" id="wrapPlazo">
                     <label class="form-label">Tiempo estimado</label>
-                    <input type="text" id="respuestaPlazo" class="form-control" placeholder="Ej. 7 días" required>
+                    <input type="text" id="respuestaPlazo" class="form-control" placeholder="Ej. 7 días">
                   </div>
-                  <div class="mb-3">
+                  <div class="mb-3" id="wrapPresupuesto">
                     <label class="form-label">Presupuesto estimado</label>
-                    <input type="text" id="respuestaPresupuesto" class="form-control" placeholder="Ej. RD$ 12,000" required>
+                    <input type="text" id="respuestaPresupuesto" class="form-control" placeholder="Ej. RD$ 12,000">
                   </div>
                   <div class="mb-3">
                     <label class="form-label">Respuesta oficial</label>
@@ -214,6 +214,37 @@
 <script src="js/tema.js"></script>
 <script>
   initThemeSelector();
+</script>
+<script>
+  (function () {
+    function actualizarCamposRechazo() {
+      const estado = document.getElementById("respuestaEstado");
+      const wrapPlazo = document.getElementById("wrapPlazo");
+      const wrapPresupuesto = document.getElementById("wrapPresupuesto");
+      const plazo = document.getElementById("respuestaPlazo");
+      const presupuesto = document.getElementById("respuestaPresupuesto");
+      const respuestaTexto = document.getElementById("respuestaTexto");
+      if (!estado) return;
+      const esRechazo = estado.value === "Rechazada";
+      wrapPlazo.classList.toggle("d-none", esRechazo);
+      wrapPresupuesto.classList.toggle("d-none", esRechazo);
+      plazo.required = !esRechazo;
+      presupuesto.required = !esRechazo;
+      if (esRechazo) {
+        plazo.value = "";
+        presupuesto.value = "";
+        respuestaTexto.placeholder = "Explica el motivo del rechazo";
+      } else {
+        respuestaTexto.placeholder = "Describe cómo se atenderá la denuncia";
+      }
+    }
+    document.addEventListener("DOMContentLoaded", function () {
+      const estadoSelect = document.getElementById("respuestaEstado");
+      if (estadoSelect) {
+        estadoSelect.addEventListener("change", actualizarCamposRechazo);
+      }
+    });
+  })();
 </script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>

@@ -580,7 +580,12 @@ async function responderDenuncia(event) {
   const presupuesto = document.getElementById("respuestaPresupuesto").value.trim();
   const respuesta = document.getElementById("respuestaTexto").value.trim();
 
-  if (!plazo || !presupuesto || !respuesta) {
+  if (estado === "Rechazada") {
+    if (!respuesta) {
+      mostrarModalFeedback("Debes indicar el motivo del rechazo en la respuesta oficial.", "danger");
+      return;
+    }
+  } else if (!plazo || !presupuesto || !respuesta) {
     mostrarModalFeedback("Todos los campos de respuesta son obligatorios.", "danger");
     return;
   }

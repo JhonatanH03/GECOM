@@ -57,8 +57,8 @@ async function obtenerPerfilPorUid(uid) {
   return null;
 }
 
-// Limpieza de colecciones antiguas (solo admin)
-window.limpiarFirebase = async function () {
+// Limpieza de colecciones antiguas (solo admin, acceso restringido)
+async function limpiarFirebase() {
   if (!confirm("¿Seguro que deseas borrar todas las colecciones antiguas? Esta acción no se puede deshacer.")) return;
   const colecciones = ["provincias", "municipios", "sectores", "ayuntamientos", "juntas"];
   let total = 0;
@@ -70,7 +70,7 @@ window.limpiarFirebase = async function () {
     }
   }
   mostrarExito(`Limpieza completada. Documentos eliminados: ${total}`);
-};
+}
 
 // Permitir login con ENTER desde el campo de contraseña
 document.addEventListener("DOMContentLoaded", function () {
