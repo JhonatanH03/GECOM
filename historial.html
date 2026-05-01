@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="es" id="htmlRoot">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GECOM - Historial de Cambios</title>
+  <link rel="icon" href="assets/LOGO GECOM PNG.png" type="image/png">
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="stylesheet" href="css/animate.min.css">
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/guard.js"></script>
+</head>
+
+<body id="bodyRoot" class="bg-light app-page">
+
+<div class="container mt-5">
+
+  <div class="mb-4 d-flex justify-content-between align-items-center">
+    <a href="dashboard.html" class="btn btn-secondary">← Volver al Dashboard</a>
+    <h4 class="mb-0">Historial de Cambios</h4>
+    <div class="dropdown">
+      <button id="btnPaletaTema" class="btn btn-outline-dark btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Elegir tema">
+        🎨
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end" id="menuTema">
+        <li><a class="dropdown-item" href="#" data-tema="claro">☀️ Claro</a></li>
+        <li><a class="dropdown-item" href="#" data-tema="oscuro">🌙 Oscuro</a></li>
+        <li><a class="dropdown-item" href="#" data-tema="sistema">💻 Sistema</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Filtro estado -->
+  <div class="row mb-3">
+    <div class="col-md-4">
+      <label class="form-label">Filtrar por estado:</label>
+      <select id="filtroEstado" class="form-select">
+        <option value="Todos">Todos</option>
+        <option value="Pendiente">Pendiente</option>
+        <option value="En proceso">En proceso</option>
+        <option value="Resuelta">Resuelta</option>
+        <option value="Rechazada">Rechazada</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Feedback -->
+  <div id="feedbackHistorial"></div>
+
+  <!-- Tabla -->
+  <div class="table-responsive">
+    <table class="table table-striped table-hover align-middle table-mobile-cards">
+      <thead class="table-dark">
+        <tr>
+          <th>Fecha</th>
+          <th>Denuncia</th>
+          <th>Estado</th>
+          <th>Plazo estimado</th>
+          <th>Presupuesto</th>
+          <th>Respuesta del Ayuntamiento</th>
+        </tr>
+      </thead>
+      <tbody id="tablaHistorial">
+        <tr><td colspan="6" class="text-center text-muted py-4">Cargando...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Paginación -->
+  <nav id="paginacionWrap" style="display:none;">
+    <ul class="pagination justify-content-center" id="paginacion"></ul>
+  </nav>
+
+</div>
+
+<script type="module" src="js/historial.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/perfil-menu.js"></script>
+<script src="js/tema.js"></script>
+<script>
+  initThemeSelector();
+</script>
+
+</body>
+</html>

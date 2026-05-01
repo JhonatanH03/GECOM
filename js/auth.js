@@ -1,22 +1,78 @@
-import app from "./firebase.js";
+// Funciones para mostrar mensajes de éxito y error en el login
+function mostrarExito(mensaje) {
+  let alert = document.createElement('div');
+  alert.className = 'alert alert-success alert-dismissible fade show';
+  alert.role = 'alert';
+  alert.innerHTML = `<strong>${mensaje}</strong><button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>`;
+  const container = document.querySelector('.card') || document.body;
+  container.prepend(alert);
+  setTimeout(() => { alert.remove(); }, 3000);
+}
 
-import {
-  getAuth,
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+function mostrarError(mensaje) {
+  let alert = document.createElement('div');
+  alert.className = 'alert alert-danger alert-dismissible fade show';
+  alert.role = 'alert';
+  alert.innerHTML = `<strong>${mensaje}</strong><button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>`;
+  const container = document.querySelector('.card') || document.body;
+  container.prepend(alert);
+  setTimeout(() => { alert.remove(); }, 4000);
+}
 
-import {
-  getFirestore,
-  doc,
-  setDoc,
-  getDoc
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+// Firebase config
+const firebaseConfig = {
+  apiKey: "AIzaSyCoJ_1CWWVkPQsTTYby8nsUKAQrK1bY26I",
+  authDomain: "gecom-a721e.firebaseapp.com",
+  projectId: "gecom-a721e",
+  storageBucket: "gecom-a721e.firebasestorage.app",
+  messagingSenderId: "1058349745158",
+  appId: "1:1058349745158:web:924e4b88bcc538598e2f87"
+};
 
-const auth = getAuth(app);
-const db = getFirestore(app);
+const app = firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth(app);
+const db = firebase.firestore(app);
 
-// ⌨️ Permitir login con ENTER desde el campo de contraseña
+async function obtenerPerfilPorUid(uid) {
+  const colecciones = [
+    { nombre: "Administradores", rol: "admin" },
+    { nombre: "Ayuntamientos", rol: "ayuntamiento" },
+    { nombre: "JuntasDeVecinos", rol: "junta" }
+  ];
+
+  for (const col of colecciones) {
+    const docSnap = await db.collection(col.nombre).doc(uid).get();
+    if (docSnap.exists) {
+      const data = docSnap.data() || {};
+      return {
+        uid,
+        rol: data.rol || col.rol,
+        usuario: data.usuario || ((data.email || data.correo || "").split("@")[0] || ""),
+        userDoc: data,
+        collectionMatched: col.nombre
+      };
+    }
+  }
+
+  return null;
+}
+
+// Limpieza de colecciones antiguas (solo admin)
+window.limpiarFirebase = async function () {
+  if (!confirm("¿Seguro que deseas borrar todas las colecciones antiguas? Esta acción no se puede deshacer.")) return;
+  const colecciones = ["provincias", "municipios", "sectores", "ayuntamientos", "juntas"];
+  let total = 0;
+  for (const col of colecciones) {
+    const snapshot = await db.collection(col).get();
+    for (const docu of snapshot.docs) {
+      await docu.ref.delete();
+      total++;
+    }
+  }
+  mostrarExito(`Limpieza completada. Documentos eliminados: ${total}`);
+};
+
+// Permitir login con ENTER desde el campo de contraseña
 document.addEventListener("DOMContentLoaded", function () {
   const passwordInput = document.getElementById("password");
   if (passwordInput) {
@@ -28,150 +84,197 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 });
 
-// 🔐 REGISTRO
-window.registrar = async function () {
+
+// El registro normal queda deshabilitado en el login
+
+// Registro desde el panel de admin
+window.registrarDesdeAdmin = async function () {
   try {
-    const email = document.getElementById("email").value;
-    const password = document.getElementById("password").value;
-    const rol = document.getElementById("rol").value;
+    const usuario = document.getElementById("reg_usuario").value.trim();
+    const email = usuario.toLowerCase().replace(/[^a-z0-9_]/g, '') + '@gecom.internal';
+    const password = document.getElementById("reg_password").value;
+    const rol = document.getElementById("reg_rol").value;
 
-    const userCredential = await createUserWithEmailAndPassword(
-      auth,
-      email,
-      password
-    );
+    let userData = { usuario, email, rol };
+    let collectionName = "";
+    let camposFaltantes = [];
 
-    const uid = userCredential.user.uid;
-
-    // 🔥 Guardar usuario en Firestore
-    const userData = {
-      email: email,
-      rol: rol
-    };
-
-    await setDoc(doc(db, "usuarios", uid), userData);
-
-    mostrarExito("✅ Usuario registrado correctamente");
-
-    // limpiar campos
-    document.getElementById("email").value = "";
-    document.getElementById("password").value = "";
-
-  } catch (error) {
-    console.error("ERROR:", error.message);
-    
-    // Mapear mensajes de error de Firebase
-    let mensajeError = "Error en el registro";
-    
-    if (error.code === "auth/email-already-in-use") {
-      mensajeError = "❌ Este correo ya está registrado";
-    } else if (error.code === "auth/weak-password") {
-      mensajeError = "❌ La contraseña es muy débil";
-    } else if (error.code === "auth/invalid-email") {
-      mensajeError = "❌ Correo inválido";
+    if (rol === "junta") {
+      // JuntasDeVecinos
+      collectionName = "JuntasDeVecinos";
+      userData.nombre = document.getElementById("reg_nombreJunta")?.value.trim() || "";
+      userData.comunidad = document.getElementById("reg_comunidad")?.value.trim() || "";
+      userData.telefono = document.getElementById("reg_telefonoJunta")?.value.trim() || "";
+      userData.creadoEn = new Date();
+      // Validar campos obligatorios
+      [
+        [userData.usuario, "Usuario"],
+        [userData.nombre, "Nombre de la Junta"],
+        [userData.comunidad, "Comunidad"],
+        [userData.telefono, "Teléfono"]
+      ].forEach(([val, label]) => { if (!val) camposFaltantes.push(label); });
+    } else if (rol === "ayuntamiento") {
+      // Ayuntamientos
+      collectionName = "Ayuntamientos";
+      userData.nombre = document.getElementById("reg_nombreAyuntamiento")?.value.trim() || "";
+      userData.telefono = document.getElementById("reg_telefonoAyuntamiento")?.value.trim() || "";
+      userData.direccion = document.getElementById("reg_direccionAyuntamiento")?.value.trim() || "";
+      userData.municipio = document.getElementById("reg_municipioAyuntamiento")?.value.trim() || "";
+      userData.provincia = document.getElementById("reg_provinciaAyuntamiento")?.value.trim() || "";
+      userData.creadoEn = new Date();
+      [
+        [userData.usuario, "Usuario"],
+        [userData.nombre, "Nombre del Ayuntamiento"],
+        [userData.telefono, "Teléfono"],
+        [userData.direccion, "Dirección"],
+        [userData.municipio, "Municipio"],
+        [userData.provincia, "Provincia"]
+      ].forEach(([val, label]) => { if (!val) camposFaltantes.push(label); });
+    } else if (rol === "admin") {
+      // Administradores
+      collectionName = "Administradores";
+      userData.nombre = document.getElementById("reg_nombreAdmin")?.value.trim() || "";
+      userData.telefono = document.getElementById("reg_telefonoAdmin")?.value.trim() || "";
+      userData.creadoEn = new Date();
+      [
+        [userData.usuario, "Usuario"],
+        [userData.nombre, "Nombre"],
+        [userData.telefono, "Teléfono"]
+      ].forEach(([val, label]) => { if (!val) camposFaltantes.push(label); });
     }
-    
-    mostrarError(mensajeError);
-  }
-};
 
-// 🔐 LOGIN
-window.login = async function () {
-  try {
-    const email = document.getElementById("email").value;
-    const password = document.getElementById("password").value;
+    if (!usuario || !password || !rol) {
+      mostrarError("Usuario, contraseña y rol son obligatorios.");
+      return;
+    }
+    if (camposFaltantes.length > 0) {
+      mostrarError("Faltan campos obligatorios: " + camposFaltantes.join(", "));
 
-    const userCredential = await signInWithEmailAndPassword(
-      auth,
-      email,
-      password
-    );
-
-    const uid = userCredential.user.uid;
-
-    // 🔍 Obtener rol desde Firestore
-    const docSnap = await getDoc(doc(db, "usuarios", uid));
-
-    if (!docSnap.exists()) {
-      mostrarError("Usuario sin rol asignado");
       return;
     }
 
-    const rol = docSnap.data().rol;
+    const usuarioNormalizado = usuario.toLowerCase();
+    const existentes = await db.collection(collectionName).get();
+    const usuarioDuplicado = existentes.docs.some((docSnap) => {
+      const data = docSnap.data() || {};
+      const rolDoc = (data.rol || rol).toLowerCase();
+      const usuarioDoc = (data.usuario || "").toLowerCase();
+      return rolDoc === rol.toLowerCase() && usuarioDoc === usuarioNormalizado;
+    });
+    if (usuarioDuplicado) {
+      mostrarError("Ya existe un usuario con ese nombre y ese rol.");
+      return;
+    }
 
-    // 💾 Guardar sesión
-    localStorage.setItem("uid", uid);
-    localStorage.setItem("rol", rol);
+    const userCredential = await auth.createUserWithEmailAndPassword(
+      email,
+      password
+    );
+
+    const uid = userCredential.user.uid;
+    if (collectionName) {
+      await db.collection(collectionName).doc(uid).set(userData);
+    } else {
+      throw new Error("Rol no válido");
+    }
+
+    mostrarExito("Usuario registrado correctamente");
 
     // limpiar campos
-    document.getElementById("email").value = "";
-    document.getElementById("password").value = "";
+    [
+      "reg_usuario","reg_email","reg_password",
+      "reg_nombreJunta","reg_comunidad","reg_telefonoJunta",
+      "reg_nombreAyuntamiento","reg_telefonoAyuntamiento","reg_direccionAyuntamiento","reg_municipioAyuntamiento","reg_provinciaAyuntamiento",
+      "reg_nombreAdmin","reg_telefonoAdmin"
+    ].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = "";
+    });
 
-    // 🔁 Redirigir
-    window.location.href = "dashboard.html";
+    // Cerrar modal
+    const modal = bootstrap.Modal.getInstance(document.getElementById('modalRegistro'));
+    modal.hide();
 
   } catch (error) {
     console.error("ERROR:", error.message);
-    
-    // Mapear mensajes de error de Firebase
-    let mensajeError = "Error de autenticación";
-    
-    if (error.code === "auth/user-not-found") {
-      mensajeError = "❌ Usuario no encontrado";
-    } else if (error.code === "auth/wrong-password") {
-      mensajeError = "❌ Contraseña incorrecta";
+    let mensajeError = "Error en el registro";
+    if (error.code === "auth/email-already-in-use") {
+      mensajeError = "Este correo ya está registrado";
+    } else if (error.code === "auth/weak-password") {
+      mensajeError = "La contraseña es muy débil";
     } else if (error.code === "auth/invalid-email") {
-      mensajeError = "❌ Correo inválido";
-    } else if (error.code === "auth/user-disabled") {
-      mensajeError = "❌ Usuario deshabilitado";
-    } else if (error.code === "auth/too-many-requests") {
-      mensajeError = "❌ Demasiados intentos. Intente más tarde";
+      mensajeError = "Correo inválido";
     }
-    
     mostrarError(mensajeError);
   }
 };
 
-// Función para mostrar errores
-function mostrarError(mensaje) {
-  const errorAlert = document.getElementById("errorAlert");
-  const errorMessage = document.getElementById("errorMessage");
-  errorMessage.textContent = mensaje;
-  errorAlert.style.display = "block";
-  
-  // Auto cerrar después de 5 segundos
-  setTimeout(() => {
-    errorAlert.style.display = "none";
-  }, 5000);
-}
+// LOGIN
+window.login = async function () {
+  try {
+    const usuario = document.getElementById("usuario").value.trim();
+    const usuarioNormalizado = usuario.toLowerCase();
+    const password = document.getElementById("password").value;
 
-// Función para mostrar éxito
-function mostrarExito(mensaje) {
-  // Crear un alert temporal de éxito
-  const successAlert = document.createElement("div");
-  successAlert.className = "alert alert-success alert-dismissible fade show";
-  successAlert.setAttribute("role", "alert");
-  successAlert.innerHTML = `
-    <svg class="bi flex-shrink-0 me-2" width="24" height="24" viewBox="0 0 16 16" fill="currentColor" role="img" aria-label="Éxito:">
-      <path d="M10.854 7.146a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 1 1 .708-.708L7.5 9.793l2.646-2.647a.5.5 0 0 1 .708 0z"/>
-      <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
-    </svg>
-    <strong>${mensaje}</strong>
-    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-  `;
-  
-  const alertContainer = document.getElementById("alertContainer");
-  if (alertContainer) {
-    alertContainer.appendChild(successAlert);
-  } else {
-    const container = document.querySelector(".card");
-    if (container) {
-      container.insertAdjacentHTML("afterbegin", successAlert.outerHTML);
+    if (!usuario || !password) {
+      mostrarError("Debes ingresar usuario y contraseña.");
+      return;
     }
+
+    // Autenticarse derivando el email del nombre de usuario
+    try {
+      const emailDerivado = usuarioNormalizado.replace(/[^a-z0-9_]/g, '') + '@gecom.internal';
+      const userCredential = await auth.signInWithEmailAndPassword(emailDerivado, password);
+      const perfil = await obtenerPerfilPorUid(userCredential.user.uid);
+
+      if (!perfil) {
+        await auth.signOut();
+        mostrarError("Tu cuenta no tiene un perfil válido. Contacta al administrador.");
+        return;
+      }
+
+      const { uid, rol, userDoc } = perfil;
+
+      // Guardar sesión
+      localStorage.setItem("uid", uid);
+      localStorage.setItem("rol", rol);
+      localStorage.setItem("usuario", userDoc.usuario || usuarioNormalizado);
+      localStorage.setItem("primerLogin", userDoc.primerLogin ? "true" : "false");
+
+      // limpiar campos
+      document.getElementById("usuario").value = "";
+      document.getElementById("password").value = "";
+
+      mostrarExito("Inicio de sesión exitoso. Redirigiendo...");
+      
+      // Si es primer login, redirigir a cambiar contraseña
+      if (userDoc.primerLogin) {
+        setTimeout(() => {
+          window.location.href = "cambiar-contrasena.html?v=3";
+        }, 800);
+      } else {
+        setTimeout(() => {
+          window.location.href = "dashboard.html?v=3";
+        }, 800);
+      }
+    } catch (authError) {
+      console.error("Error de autenticación:", authError.code);
+      let mensaje = "Contraseña incorrecta";
+      if (authError.code === "auth/wrong-password") {
+        mensaje = "Contraseña incorrecta";
+      } else if (authError.code === "auth/user-disabled") {
+        mensaje = "Usuario deshabilitado";
+      } else if (authError.code === "auth/too-many-requests") {
+        mensaje = "Demasiados intentos. Intenta más tarde.";
+      } else if (authError.code === "permission-denied" || authError.code === "failed-precondition") {
+        mensaje = "El inicio de sesión por usuario está restringido. Usa tu correo electrónico.";
+      } else if (authError.code === "not-found") {
+        mensaje = "Usuario o correo no encontrado.";
+      }
+      mostrarError(mensaje);
+    }
+  } catch (error) {
+    console.error("ERROR LOGIN:", error);
+    mostrarError("Error al iniciar sesión. Por favor intenta de nuevo.");
   }
-  
-  // Auto cerrar después de 3 segundos
-  setTimeout(() => {
-    successAlert.remove();
-  }, 3000);
 }

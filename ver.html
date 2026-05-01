@@ -1,14 +1,19 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" id="htmlRoot">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>GECOM - Denuncias</title>
+  <link rel="icon" href="assets/LOGO GECOM PNG.png" type="image/png">
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="stylesheet" href="css/animate.min.css">
+  <link rel="stylesheet" href="css/styles.css">
   <script src="js/guard.js"></script>
 </head>
 
-<body class="bg-light">
+<body id="bodyRoot" class="bg-light app-page">
 
 <div class="container mt-5">
 
@@ -16,28 +21,63 @@
     <a href="dashboard.html" class="btn btn-secondary">
       <i class="bi bi-arrow-left"></i> Volver al Dashboard
     </a>
-    <div class="w-50">
+    <div class="w-50" id="filtroEstadoWrap">
       <label class="form-label">Filtrar por estado:</label>
       <select id="filtroEstado" class="form-select">
         <option value="Todos">Todos</option>
+        <option value="Sin respuesta">Sin respuesta</option>
         <option value="Pendiente">Pendiente</option>
         <option value="En proceso">En proceso</option>
         <option value="Resuelta">Resuelta</option>
         <option value="Rechazada">Rechazada</option>
       </select>
     </div>
+    <div class="dropdown ms-3">
+      <button id="btnPaletaTema" class="btn btn-outline-dark btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Elegir tema">
+        🎨
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end" id="menuTema">
+        <li><a class="dropdown-item" href="#" data-tema="claro">☀️ Claro</a></li>
+        <li><a class="dropdown-item" href="#" data-tema="oscuro">🌙 Oscuro</a></li>
+        <li><a class="dropdown-item" href="#" data-tema="sistema">💻 Sistema</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-3 d-none" id="filtrosZonaAdmin">
+    <div class="col-md-4">
+      <label class="form-label">Filtrar por provincia:</label>
+      <select id="filtroProvincia" class="form-select">
+        <option value="Todos">Todos</option>
+      </select>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Filtrar por municipio:</label>
+      <select id="filtroMunicipio" class="form-select">
+        <option value="Todos">Todos</option>
+      </select>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Filtrar por comunidad:</label>
+      <select id="filtroComunidad" class="form-select">
+        <option value="Todos">Todos</option>
+      </select>
+    </div>
   </div>
 
   <h2 class="text-center mb-4">Listado de Denuncias</h2>
 
+  <div id="paginaFeedback"></div>
+
   <div class="table-responsive">
-    <table class="table table-bordered table-striped">
+    <table class="table table-bordered table-striped table-mobile-cards">
       <thead class="table-dark">
         <tr>
           <th>Título</th>
           <th>Descripción</th>
           <th>Comunidad</th>
           <th>Estado</th>
+          <th>Días en proceso</th>
           <th>Fecha</th>
           <th>Acciones</th>
         </tr>
@@ -45,6 +85,11 @@
       <tbody id="tablaDenuncias"></tbody>
     </table>
   </div>
+
+  <nav id="paginacionContainer" class="d-flex justify-content-between align-items-center mt-3 d-none">
+    <span id="paginacionInfo" class="text-muted small"></span>
+    <ul class="pagination pagination-sm mb-0" id="paginacionControles"></ul>
+  </nav>
 </div>
 
 <!-- Modal Detalle de Denuncia -->
@@ -68,6 +113,7 @@
                 <p class="mb-1"><strong>Ubicación:</strong> <span id="detalleUbicacion"></span></p>
                 <p class="mb-1"><strong>Fecha incidente:</strong> <span id="detalleFechaIncidente"></span></p>
                 <p class="mb-1"><strong>Fecha de registro:</strong> <span id="detalleFechaRegistro"></span></p>
+                <p class="mb-1"><strong>Días en proceso:</strong> <span id="detalleDiasEnProceso">No aplica</span></p>
                 <hr>
                 <p class="mb-1"><strong>Descripción:</strong></p>
                 <p id="detalleDescripcion"></p>
@@ -125,6 +171,13 @@
         </div>
       </div>
       <div class="modal-footer">
+        <div class="d-flex gap-2 align-items-center me-auto">
+          <select id="formatoDescargaDetalle" class="form-select form-select-sm" style="width:120px;">
+            <option value="excel">Excel</option>
+            <option value="pdf">PDF</option>
+          </select>
+          <button type="button" id="btnDescargarDetalle" class="btn btn-success btn-sm">Descargar</button>
+        </div>
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="modalCerrar">Cerrar</button>
       </div>
     </div>
@@ -132,7 +185,16 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script type="module" src="js/ver.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/perfil-menu.js"></script>
+<script src="js/tema.js"></script>
+<script>
+  initThemeSelector();
+</script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+<script type="module" src="js/ver.js?v=2"></script>
 
 </body>
 </html>

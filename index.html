@@ -1,45 +1,263 @@
 <!DOCTYPE html>
 
-<html lang="es">
+<html lang="es" id="htmlRoot">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>GECOM - Login</title>
+  <link rel="icon" href="assets/LOGO GECOM PNG.png" type="image/png">
 
   <!-- Bootstrap -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="css/animate.min.css">
+  
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
   
   <!-- Estilos Personalizados -->
   <link rel="stylesheet" href="css/styles.css">
 </head>
 
-<body class="bg-light">
+<body id="bodyRoot" class="app-page login-page" style="background: linear-gradient(160deg, #0a2a6e 0%, #1565c0 60%, #1976d2 100%); min-height: 100vh; display: flex; align-items: center;">
 
-<div class="container d-flex justify-content-center align-items-center vh-100">
-  <div class="card p-4 shadow" style="width: 350px;">
-
-
-<h3 class="text-center mb-3">GECOM</h3>
-<p class="text-center text-muted">Iniciar sesión</p>
-
-<div class="mb-3">
-  <label>Correo</label>
-  <input type="email" id="email" class="form-control">
+<!-- Tema picker mejorado -->
+<div class="position-absolute" style="top: 20px; right: 20px; z-index: 1050;">
+  <div class="dropdown">
+    <button id="btnPaletaTema" class="btn btn-light btn-sm dropdown-toggle shadow-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Elegir tema" style="border-radius: 50%; width: 40px; height: 40px; padding: 0; display: flex; align-items: center; justify-content: center;">
+      <i class="bi bi-palette"></i>
+    </button>
+    <ul class="dropdown-menu dropdown-menu-end" id="menuTema">
+      <li><a class="dropdown-item" href="#" data-tema="claro"><i class="bi bi-sun"></i> Claro</a></li>
+      <li><a class="dropdown-item" href="#" data-tema="oscuro"><i class="bi bi-moon"></i> Oscuro</a></li>
+      <li><a class="dropdown-item" href="#" data-tema="sistema"><i class="bi bi-display"></i> Sistema</a></li>
+    </ul>
+  </div>
 </div>
 
-<div class="mb-3">
-  <label>Contraseña</label>
-  <input type="password" id="password" class="form-control">
+<!-- Main container -->
+<div class="container-fluid vh-100 d-flex align-items-center" style="padding: 0;">
+  <div class="row w-100 g-0" style="min-height: 100vh;">
+    
+    <!-- Hero section (izquierda) -->
+    <div class="col-lg-6 d-none d-lg-flex flex-column justify-content-center align-items-center p-5 animate__animated animate__fadeInLeft" style="background: rgba(0,0,0,0.12);">
+      <div class="text-center text-white" style="max-width: 420px;">
+
+        <!-- Escudo de la República Dominicana -->
+        <img src="assets/LOGO SHIELD RD.png" alt="Escudo de la República Dominicana" style="width: 110px; height: 110px; margin-bottom: 24px; filter: drop-shadow(0 8px 20px rgba(0,0,0,0.4));">
+
+        <!-- Separador -->
+        <hr style="border-color: rgba(255,255,255,0.25); margin: 0 auto 24px; width: 80px; border-width: 1px;">
+
+        <h1 class="mb-1" style="font-size: 2.4rem; font-weight: 800; letter-spacing: 3px; color: #ffffff;">GECOM</h1>
+        <h5 class="mb-3" style="font-weight: 400; color: rgba(255,255,255,0.82); letter-spacing: 0.5px; font-size: 1rem;">Gestión Comunitaria</h5>
+        <hr style="border-color: rgba(255,255,255,0.25); margin: 16px auto; width: 50px; border-width: 2px;">
+        <p style="font-size: 0.9rem; color: rgba(255,255,255,0.68); line-height: 1.8;">
+          Sistema oficial para la gestión de denuncias y comunicación entre juntas de vecinos y ayuntamientos de la República Dominicana.
+        </p>
+        <div class="d-flex justify-content-center flex-wrap gap-2 mt-4">
+          <span style="background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.85); font-size: 0.78rem; padding: 5px 14px; border-radius: 20px; letter-spacing: 0.3px;">
+            <i class="bi bi-people me-1"></i> Juntas de Vecinos
+          </span>
+          <span style="background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.85); font-size: 0.78rem; padding: 5px 14px; border-radius: 20px; letter-spacing: 0.3px;">
+            <i class="bi bi-building me-1"></i> Ayuntamientos
+          </span>
+          <span style="background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.85); font-size: 0.78rem; padding: 5px 14px; border-radius: 20px; letter-spacing: 0.3px;">
+            <i class="bi bi-file-earmark-text me-1"></i> Denuncias
+          </span>
+        </div>
+      </div>
+    </div>
+    <!-- Form section (derecha) -->
+    <div class="col-lg-6 d-flex flex-column justify-content-center align-items-center p-4 p-lg-5 animate__animated animate__fadeInRight">
+      <div style="width: 100%; max-width: 420px;">
+        
+        <!-- Card del formulario -->
+        <div class="card border-0 shadow-lg" style="backdrop-filter: blur(10px); background: rgba(255, 255, 255, 0.95);">
+          <div class="card-body p-5">
+            
+            <!-- Header -->
+            <div class="text-center mb-5">
+              <img src="assets/LOGO SHIELD RD.png" alt="Escudo RD" style="width: 72px; height: 72px; margin-bottom: 16px; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.15));">
+              <h4 class="mb-2" style="font-weight: 700; color: var(--bs-body-color);">Bienvenido</h4>
+              <p class="text-muted mb-0">Inicia sesión en tu cuenta</p>
+            </div>
+
+            <!-- Form -->
+            <form id="loginForm" style="animation: fadeInUp 0.6s ease-in-out 0.1s both;">
+              
+              <!-- Usuario input -->
+              <div class="mb-4 position-relative">
+                <div class="input-group">
+                  <span class="input-group-text" style="background: rgba(21, 101, 192, 0.08); border: 1px solid rgba(21, 101, 192, 0.2); border-right: none;">
+                    <i class="bi bi-person" style="color: #1565c0;"></i>
+                  </span>
+                  <input type="text" id="usuario" class="form-control" placeholder="Usuario" autocomplete="username" style="border: 1px solid rgba(21, 101, 192, 0.2); border-left: none; padding: 10px 14px;">
+                </div>
+              </div>
+
+              <!-- Password input -->
+              <div class="mb-4 position-relative">
+                <div class="input-group">
+                  <span class="input-group-text" style="background: rgba(21, 101, 192, 0.08); border: 1px solid rgba(21, 101, 192, 0.2); border-right: none;">
+                    <i class="bi bi-lock" style="color: #1565c0;"></i>
+                  </span>
+                  <input type="password" id="password" class="form-control" placeholder="Contraseña" autocomplete="current-password" style="border: 1px solid rgba(21, 101, 192, 0.2); border-left: none; padding: 10px 14px;">
+                </div>
+              </div>
+
+              <!-- Buttons -->
+              <div class="d-grid gap-2 mb-3">
+                <button type="button" onclick="login()" class="btn btn-lg" id="btnLogin" style="background: linear-gradient(135deg, #1565c0 0%, #0a2a6e 100%); color: white; border: none; font-weight: 700; border-radius: 10px; padding: 12px; transition: all 0.3s ease; box-shadow: 0 8px 20px rgba(21, 101, 192, 0.35);">
+                  <i class="bi bi-box-arrow-in-right me-2"></i> Ingresar
+                </button>
+                <button type="button" onclick="mostrarRegistro()" class="btn btn-outline-primary" id="btnRegistrar" style="display:none; border-radius: 10px; border-color: #1565c0; color: #1565c0; font-weight: 700; padding: 12px; transition: all 0.3s ease;">
+                  <i class="bi bi-person-plus me-2"></i> Registrar usuario
+                </button>
+              </div>
+            </form>
+
+            <!-- Footer -->
+            <p class="text-center text-muted small mb-0" style="font-size: 0.85rem;">
+              © 2026 GECOM. Todos los derechos reservados.
+            </p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
 </div>
 
-<button onclick="login()" class="btn btn-primary w-100">
-  Ingresar
-</button>
+<!-- Modal de registro solo para admins -->
+<div class="modal fade" id="modalRegistro" tabindex="-1" aria-labelledby="modalRegistroLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalRegistroLabel">Registrar usuario</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label>Usuario</label>
+          <input type="text" id="reg_usuario" class="form-control">
+        </div>
+        <div class="mb-3" style="display:none">
+          <label>Correo</label>
+          <input type="email" id="reg_email" class="form-control">
+        </div>
+        <div class="mb-3">
+          <label>Contraseña</label>
+          <input type="password" id="reg_password" class="form-control">
+        </div>
+        <div class="mb-3">
+          <label>Rol</label>
+          <select id="reg_rol" class="form-control" onchange="mostrarCamposPorRolRegistro()">
+            <option value="junta">Junta de Vecinos</option>
+            <option value="ayuntamiento">Ayuntamiento</option>
+            <option value="admin">Administrador</option>
+          </select>
+        </div>
+        <div id="reg_camposJunta" style="display:none">
+          <div class="mb-3">
+            <label>Nombre de la Junta</label>
+            <input type="text" id="reg_nombreJunta" class="form-control">
+          </div>
+          <div class="mb-3">
+            <label>Comunidad</label>
+            <input type="text" id="reg_comunidad" class="form-control">
+          </div>
+          <div class="mb-3">
+            <label>Teléfono</label>
+            <input type="text" id="reg_telefonoJunta" class="form-control">
+          </div>
+        </div>
+        <div id="reg_camposAyuntamiento" style="display:none">
+          <div class="mb-3">
+            <label>Nombre del Ayuntamiento</label>
+            <input type="text" id="reg_nombreAyuntamiento" class="form-control">
+          </div>
+          <div class="mb-3">
+            <label>Teléfono</label>
+            <input type="text" id="reg_telefonoAyuntamiento" class="form-control">
+          </div>
+          <div class="mb-3">
+            <label>Dirección</label>
+            <input type="text" id="reg_direccionAyuntamiento" class="form-control">
+          </div>
+          <div class="mb-3">
+            <label>Provincia</label>
+            <select id="reg_provinciaAyuntamiento" class="form-control" onchange="actualizarMunicipiosAyuntamiento()"></select>
+          </div>
+          <div class="mb-3">
+            <label>Municipio</label>
+            <select id="reg_municipioAyuntamiento" class="form-control"></select>
+          </div>
+        </div>
+        <div id="reg_camposAdmin" style="display:none">
+          <div class="mb-3">
+            <label>Nombre del Administrador</label>
+            <input type="text" id="reg_nombreAdmin" class="form-control">
+          </div>
+          <div class="mb-3">
+            <label>Teléfono</label>
+            <input type="text" id="reg_telefonoAdmin" class="form-control">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-success" onclick="registrarDesdeAdmin()">Registrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+// Provincias y municipios para el registro de ayuntamientos
+let provinciasData = [];
+fetch('js/provincias.json')
+  .then(res => res.json())
+  .then(data => {
+    provinciasData = data;
+    const provinciaSelect = document.getElementById('reg_provinciaAyuntamiento');
+    provinciaSelect.innerHTML = '<option value="">Seleccione provincia</option>' +
+      data.map(p => `<option value="${p.nombre}">${p.nombre}</option>`).join('');
+    provinciaSelect.addEventListener('change', actualizarMunicipiosAyuntamiento);
+  });
+
+function actualizarMunicipiosAyuntamiento() {
+  const provincia = document.getElementById('reg_provinciaAyuntamiento').value;
+  const municipioSelect = document.getElementById('reg_municipioAyuntamiento');
+  municipioSelect.innerHTML = '<option value="">Seleccione municipio</option>';
+  if (!provincia) return;
+  const prov = provinciasData.find(p => p.nombre === provincia);
+  if (prov && prov.municipios) {
+    municipioSelect.innerHTML += prov.municipios.map(m => `<option value="${m}">${m}</option>`).join('');
+  }
+}
+
+// Mostrar campos por rol en el modal de registro
+function mostrarCamposPorRolRegistro() {
+  const rol = document.getElementById('reg_rol').value;
+  document.getElementById('reg_camposJunta').style.display = rol === 'junta' ? 'block' : 'none';
+  document.getElementById('reg_camposAyuntamiento').style.display = rol === 'ayuntamiento' ? 'block' : 'none';
+  document.getElementById('reg_camposAdmin').style.display = rol === 'admin' ? 'block' : 'none';
+}
+
+// Mostrar modal de registro solo si es admin
+window.mostrarRegistro = function() {
+  const modal = new bootstrap.Modal(document.getElementById('modalRegistro'));
+  modal.show();
+}
+</script>
+
+
 
 <!-- Mensaje de Error -->
 <div id="errorAlert" class="alert alert-danger alert-dismissible fade show mt-3" role="alert" style="display: none;">
-  <svg class="bi flex-shrink-0 me-2" width="24" height="24" viewBox="0 0 16 16" fill="currentColor" role="img" aria-label="Error:">
-    <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0l-5.708 9.7a1.13 1.13 0 0 0 .98 1.734h11.436a1.13 1.13 0 0 0 .98-1.734L8.982 1.566ZM8 5c.535 0 .954.462.95.999l-.003.086a.5.5 0 0 1-1 0l-.003-.086c-.004-.537.415-.999.95-.999Zm.002 6a.5.5 0 1 1 0-1 .5.5 0 0 1 0 1Z"/>
-  </svg>
   <div id="errorMessage"></div>
   <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
 </div>
@@ -48,7 +266,15 @@
 </div>
 
 <!-- JS -->
-<script type="module" src="js/auth.js"></script>
+<script src="js/auth.js?v=5"></script>
+<script src="js/tema.js"></script>
+<script>
+initThemeSelector();
+</script>
+
+
+
+
 
 <!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

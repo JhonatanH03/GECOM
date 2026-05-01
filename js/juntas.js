@@ -1,9 +1,16 @@
-import app from "./firebase.js";
-import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, doc, setDoc, getDoc, collection, query, where, getDocs, serverTimestamp, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+// Firebase config
+const firebaseConfig = {
+  apiKey: "AIzaSyCoJ_1CWWVkPQsTTYby8nsUKAQrK1bY26I",
+  authDomain: "gecom-a721e.firebaseapp.com",
+  projectId: "gecom-a721e",
+  storageBucket: "gecom-a721e.firebasestorage.app",
+  messagingSenderId: "1058349745158",
+  appId: "1:1058349745158:web:924e4b88bcc538598e2f87"
+};
 
-const auth = getAuth(app);
-const db = getFirestore(app);
+const app = firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth(app);
+const db = firebase.firestore(app);
 const uid = localStorage.getItem("uid");
 const rolLocal = localStorage.getItem("rol");
 const alertContainer = document.getElementById("alertContainer");
@@ -16,6 +23,96 @@ const modalTitle = document.getElementById("modalCrearJuntaLabel");
 const submitBtn = document.getElementById("submitBtn");
 const juntaIdInput = document.getElementById("juntaId");
 const passwordField = document.getElementById("passwordField");
+let provinciaAyuntamiento = null;
+let municipioAyuntamiento = null;
+const municipiosSelect = document.getElementById("municipio");
+const provinciaSelect = document.getElementById("provincia");
+
+function generarContrasenaTemporal(length = 12) {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%";
+  const cryptoApi = window.crypto || window.msCrypto;
+  if (cryptoApi && typeof cryptoApi.getRandomValues === "function") {
+    const values = new Uint32Array(length);
+    cryptoApi.getRandomValues(values);
+    return Array.from(values, (v) => chars[v % chars.length]).join("");
+  }
+  return Array.from({ length }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+}
+
+async function cargarMunicipiosDesdeFirestore(provincia, municipioSeleccionado = "") {
+  if (!municipiosSelect) return;
+
+  municipiosSelect.innerHTML = '<option value="" selected>Cargando municipios...</option>';
+
+  if (!provincia) {
+    municipiosSelect.innerHTML = '<option value="" selected>Seleccionar municipio</option>';
+    return;
+  }
+
+  try {
+    let municipios = [];
+
+    const docSnap = await db.collection("provincias").doc(provincia).get();
+    if (docSnap.exists) {
+      const data = docSnap.data() || {};
+      if (Array.isArray(data.municipios)) {
+        municipios = data.municipios;
+      }
+    }
+
+    if (municipios.length === 0) {
+      const querySnap = await db.collection("provincias").where("nombre", "==", provincia).limit(1).get();
+      if (!querySnap.empty) {
+        const data = querySnap.docs[0].data() || {};
+        if (Array.isArray(data.municipios)) {
+          municipios = data.municipios;
+        }
+      }
+    }
+
+    municipiosSelect.innerHTML = '<option value="" selected>Seleccionar municipio</option>';
+
+    municipios.forEach((municipio) => {
+      const opt = document.createElement("option");
+      opt.value = municipio;
+      opt.textContent = municipio;
+      municipiosSelect.appendChild(opt);
+    });
+
+    if (municipioSeleccionado) {
+      const existe = municipios.some((m) => m === municipioSeleccionado);
+      if (!existe) {
+        const opt = document.createElement("option");
+        opt.value = municipioSeleccionado;
+        opt.textContent = municipioSeleccionado;
+        municipiosSelect.appendChild(opt);
+      }
+      municipiosSelect.value = municipioSeleccionado;
+    }
+  } catch (error) {
+    console.error("Error al cargar municipios desde Firestore:", error);
+    municipiosSelect.innerHTML = '<option value="" selected>Error al cargar municipios</option>';
+  }
+}
+
+function esMismaUbicacion(data) {
+  if (rolLocal !== "ayuntamiento") return true;
+  return (
+    (data.provincia || "") === (provinciaAyuntamiento || "") &&
+    (data.municipio || "") === (municipioAyuntamiento || "")
+  );
+}
+
+async function bloquearUbicacionAyuntamiento() {
+  if (rolLocal !== "ayuntamiento" || !provinciaAyuntamiento || !municipioAyuntamiento) return;
+  if (!provinciaSelect || !municipiosSelect) return;
+
+  provinciaSelect.innerHTML = `<option value="${provinciaAyuntamiento}" selected>${provinciaAyuntamiento}</option>`;
+  provinciaSelect.disabled = true;
+
+  await cargarMunicipiosDesdeFirestore(provinciaAyuntamiento, municipioAyuntamiento);
+  municipiosSelect.disabled = true;
+}
 
 window.addEventListener("DOMContentLoaded", async () => {
   if (!uid || !rolLocal) {
@@ -23,10 +120,25 @@ window.addEventListener("DOMContentLoaded", async () => {
     return;
   }
   try {
-    const usuarioDoc = await getDoc(doc(db, "usuarios", uid));
-    if (!usuarioDoc.exists() || usuarioDoc.data().rol !== "ayuntamiento") {
+    let collectionName = "";
+    if (rolLocal === "ayuntamiento") {
+      collectionName = "Ayuntamientos";
+    } else if (rolLocal === "admin") {
+      collectionName = "Administradores";
+    } else {
       window.location.href = "dashboard.html";
       return;
+    }
+    const usuarioDoc = await db.collection(collectionName).doc(uid).get();
+    if (!usuarioDoc.exists) {
+      window.location.href = "dashboard.html";
+      return;
+    }
+    if (rolLocal === "ayuntamiento") {
+      const data = usuarioDoc.data() || {};
+      provinciaAyuntamiento = data.provincia || null;
+      municipioAyuntamiento = data.municipio || null;
+      await bloquearUbicacionAyuntamiento();
     }
     await cargarJuntas();
   } catch (error) {
@@ -42,6 +154,14 @@ window.addEventListener("DOMContentLoaded", async () => {
     passwordField.style.display = "block";
     clearModalAlert();
   });
+
+  modalElement.addEventListener("show.bs.modal", async () => {
+    if (rolLocal === "ayuntamiento") {
+      await bloquearUbicacionAyuntamiento();
+      return;
+    }
+    await cargarMunicipiosDesdeFirestore(provinciaSelect ? provinciaSelect.value : "");
+  });
 });
 
 form.addEventListener("submit", async (event) => {
@@ -50,15 +170,17 @@ form.addEventListener("submit", async (event) => {
   
   const juntaId = juntaIdInput.value;
   const nombre = document.getElementById("nombre").value.trim();
-  const correo = document.getElementById("correo").value.trim();
+  const usuario = document.getElementById("usuario").value.trim();
+  const correo = document.getElementById("correo").value.trim() || (usuario.toLowerCase().replace(/[^a-z0-9_]/g, '') + '@gecom.internal');
   const telefono = document.getElementById("telefono").value.trim();
   const comunidad = document.getElementById("comunidad").value.trim();
   const provincia = document.getElementById("provincia").value;
   const municipio = document.getElementById("municipio").value;
+  const provinciaFinal = rolLocal === "ayuntamiento" ? (provinciaAyuntamiento || "") : provincia;
+  const municipioFinal = rolLocal === "ayuntamiento" ? (municipioAyuntamiento || "") : municipio;
   const cedula = document.getElementById("cedula").value.trim();
-  const contrasena = document.getElementById("contrasena").value;
   
-  if (!nombre || !correo || !telefono || !comunidad || !provincia || !municipio || (!juntaId && !contrasena)) {
+  if (!nombre || !usuario || !telefono || !comunidad || !provinciaFinal || !municipioFinal) {
     showModalAlert("Todos los campos son obligatorios.", "danger");
     return;
   }
@@ -68,47 +190,64 @@ form.addEventListener("submit", async (event) => {
     showModalAlert("El teléfono debe tener el formato 1-000-000-0000.", "danger");
     return;
   }
-  
-  if (!juntaId && contrasena.length < 6) {
-    showModalAlert("La contraseña debe tener al menos 6 caracteres.", "danger");
-    return;
-  }
+
+  const usuarioNormalizado = usuario.toLowerCase();
   
   try {
     if (juntaId) {
-      // Editar junta existente
+      const previoDoc = await db.collection("JuntasDeVecinos").doc(juntaId).get();
+      const previoData = previoDoc.exists ? (previoDoc.data() || {}) : {};
+      // Editar junta existente - no cambiar usuario
       const juntaData = {
         nombre,
+        usuario,
         correo,
         telefono,
         comunidad,
-        provincia,
-        municipio,
+        provincia: provinciaFinal,
+        municipio: municipioFinal,
         cedula
       };
-      await setDoc(doc(db, "usuarios", juntaId), juntaData, { merge: true });
+      await db.collection("JuntasDeVecinos").doc(juntaId).set(juntaData, { merge: true });
       showAlert("Junta actualizada correctamente.", "success");
     } else {
-      // Crear nueva junta
-      const credential = await createUserWithEmailAndPassword(auth, correo, contrasena);
+      const existingSnap = await db.collection("JuntasDeVecinos").get();
+      const usuarioDuplicado = existingSnap.docs.some((docSnap) => {
+        const data = docSnap.data() || {};
+        const rolDoc = (data.rol || "junta").toLowerCase();
+        const usuarioDoc = (data.usuario || "").toLowerCase();
+        return rolDoc === "junta" && usuarioDoc === usuarioNormalizado;
+      });
+      if (usuarioDuplicado) {
+        showModalAlert("Ya existe un usuario con ese nombre y ese rol.", "danger");
+        return;
+      }
+
+      // Crear nueva junta con usuario y contraseña temporal aleatoria.
+      const contrasenaTemporal = generarContrasenaTemporal();
+      
+      // Crear usuario en Firebase Auth
+      const credential = await auth.createUserWithEmailAndPassword(correo, contrasenaTemporal);
       const nuevoUid = credential.user.uid;
       
       const juntaData = {
         nombre,
+        usuario,
         correo,
         rol: "junta",
         telefono,
         comunidad,
-        provincia,
-        municipio,
+        provincia: provinciaFinal,
+        municipio: municipioFinal,
         cedula,
         estado: true,
-        fecha_creacion: serverTimestamp(),
-        creada_por: uid
+        fecha_creacion: firebase.firestore.FieldValue.serverTimestamp(),
+        creada_por: uid,
+        primerLogin: true // Indica que es el primer login
       };
       
-      await setDoc(doc(db, "usuarios", nuevoUid), juntaData);
-      showAlert("Junta creada correctamente.", "success");
+      await db.collection("JuntasDeVecinos").doc(nuevoUid).set(juntaData);
+      showAlert(`Junta creada correctamente. Usuario: ${usuario}, Contraseña temporal: ${contrasenaTemporal}`, "success");
     }
     
     form.reset();
@@ -119,6 +258,8 @@ form.addEventListener("submit", async (event) => {
     console.error("ERROR:", error);
     if (error.code === "auth/email-already-in-use") {
       showModalAlert("El correo ya está en uso.", "danger");
+    } else if (error.code === "auth/weak-password") {
+      showModalAlert("Error con la contraseña temporal. Contacta al administrador.", "danger");
     } else {
       showModalAlert(error.message || "Ocurrió un error.", "danger");
     }
@@ -126,35 +267,55 @@ form.addEventListener("submit", async (event) => {
 });
 
 async function cargarJuntas() {
-  juntasBody.innerHTML = "";
+  const _skRow8 = `<tr class="skeleton-row">
+    <td><span class="skeleton-cell skeleton-wide"></span></td>
+    <td><span class="skeleton-cell skeleton-medium"></span></td>
+    <td><span class="skeleton-cell skeleton-wide"></span></td>
+    <td><span class="skeleton-cell skeleton-narrow"></span></td>
+    <td><span class="skeleton-cell skeleton-medium"></span></td>
+    <td><span class="skeleton-cell skeleton-medium"></span></td>
+    <td><span class="skeleton-cell skeleton-pill"></span></td>
+    <td><span class="skeleton-cell skeleton-btn"></span></td>
+  </tr>`;
+  juntasBody.innerHTML = _skRow8.repeat(5);
   try {
-    const q = query(collection(db, "usuarios"), where("rol", "==", "junta"), where("creada_por", "==", uid));
-    const snapshot = await getDocs(q);
+    const q = db.collection("JuntasDeVecinos").where("creada_por", "==", uid);
+    const snapshot = await q.get();
     
     if (snapshot.empty) {
-      juntasBody.innerHTML = "<tr><td colspan=\"7\" class=\"text-center\">No hay juntas</td></tr>";
+      juntasBody.innerHTML = '<tr class="table-feedback-row"><td colspan="8"><div class="empty-state">No hay juntas registradas en tu alcance.</div></td></tr>';
       return;
     }
     
     const juntas = [];
     snapshot.forEach((docSnap) => {
       const data = docSnap.data();
+      if (!esMismaUbicacion(data)) return;
       data.id = docSnap.id;
       juntas.push(data);
     });
     
     juntas.sort((a, b) => (a.nombre || "").toLowerCase().localeCompare((b.nombre || "").toLowerCase()));
-    
+
+    if (!juntas.length) {
+      juntasBody.innerHTML = '<tr class="table-feedback-row"><td colspan="8"><div class="empty-state">No hay juntas en tu territorio.</div></td></tr>';
+      return;
+    }
+
+    juntasBody.innerHTML = "";
     juntas.forEach((data) => {
       const label = data.estado ? "Activa" : "Inactiva";
+      const estadoClass = data.estado ? "status-resuelta" : "status-pendiente";
+      const chipIcon = data.estado ? "bi-check-circle-fill" : "bi-x-circle-fill";
       juntasBody.innerHTML += `<tr>
-        <td>${escapeHtml(data.nombre)}</td>
-        <td>${escapeHtml(data.correo)}</td>
-        <td>${escapeHtml(data.telefono || "")}</td>
-        <td>${escapeHtml((data.provincia || "") + " / " + (data.municipio || ""))}</td>
-        <td>${escapeHtml(data.comunidad || "")}</td>
-        <td>${escapeHtml(label)}</td>
-        <td class="text-center">
+        <td data-label="Nombre">${escapeHtml(data.nombre)}</td>
+        <td data-label="Usuario">${escapeHtml(data.usuario || "")}</td>
+        <td data-label="Correo" style="display:none">${escapeHtml(data.correo)}</td>
+        <td data-label="Teléfono">${escapeHtml(data.telefono || "")}</td>
+        <td data-label="Ubicación">${escapeHtml((data.provincia || "") + " / " + (data.municipio || ""))}</td>
+        <td data-label="Comunidad">${escapeHtml(data.comunidad || "")}</td>
+        <td data-label="Estado"><span class="status-chip ${estadoClass}"><i class="bi ${chipIcon} chip-icon"></i>${escapeHtml(label)}</span></td>
+        <td class="text-center" data-label="Acciones">
           <button class="btn btn-sm btn-warning me-1 px-2" onclick="editarJunta('${data.id}')"><i class="bi bi-pencil"></i></button>
           <button class="btn btn-sm btn-danger px-2" onclick="eliminarJunta('${data.id}', '${escapeHtml(data.nombre)}')"><i class="bi bi-trash"></i></button>
         </td>
@@ -162,7 +323,7 @@ async function cargarJuntas() {
     });
   } catch (error) {
     console.error("Error al cargar juntas:", error);
-    juntasBody.innerHTML = "<tr><td colspan=\"7\" class=\"text-center text-danger\">Error al cargar juntas</td></tr>";
+    juntasBody.innerHTML = '<tr class="table-feedback-row"><td colspan="8"><div class="empty-state text-danger">Error al cargar juntas.</div></td></tr>';
   }
 }
 
@@ -180,25 +341,28 @@ function clearModalAlert() {
 
 window.editarJunta = async function(id) {
   try {
-    const docSnap = await getDoc(doc(db, "usuarios", id));
-    if (!docSnap.exists()) {
+    const docSnap = await db.collection("JuntasDeVecinos").doc(id).get();
+    if (!docSnap.exists) {
       showAlert("Junta no encontrada.", "danger");
       return;
     }
     
     const data = docSnap.data();
+    if (!esMismaUbicacion(data)) {
+      showAlert("No puedes editar juntas fuera de tu municipio.", "danger");
+      return;
+    }
     juntaIdInput.value = id;
     document.getElementById("nombre").value = data.nombre || "";
+    document.getElementById("usuario").value = data.usuario || "";
     document.getElementById("correo").value = data.correo || "";
     document.getElementById("telefono").value = data.telefono || "";
     document.getElementById("comunidad").value = data.comunidad || "";
     document.getElementById("cedula").value = data.cedula || "";
-    document.getElementById("provincia").value = data.provincia || "";
-    document.getElementById("provincia").dispatchEvent(new Event("change"));
-    
-    setTimeout(() => {
-      document.getElementById("municipio").value = data.municipio || "";
-    }, 100);
+    if (provinciaSelect) {
+      provinciaSelect.value = data.provincia || "";
+      await cargarMunicipiosDesdeFirestore(data.provincia || "", data.municipio || "");
+    }
     
     modalTitle.textContent = "Editar Junta de Vecinos";
     submitBtn.textContent = "Actualizar";
@@ -213,7 +377,16 @@ window.editarJunta = async function(id) {
 window.eliminarJunta = async function(id, nombre) {
   if (confirm("¿Eliminar a " + nombre + "?")) {
     try {
-      await deleteDoc(doc(db, "usuarios", id));
+      const docSnap = await db.collection("JuntasDeVecinos").doc(id).get();
+      if (!docSnap.exists) {
+        showAlert("Junta no encontrada.", "danger");
+        return;
+      }
+      if (!esMismaUbicacion(docSnap.data())) {
+        showAlert("No puedes eliminar juntas fuera de tu municipio.", "danger");
+        return;
+      }
+      await db.collection("JuntasDeVecinos").doc(id).delete();
       showAlert("Junta eliminada.", "success");
       await cargarJuntas();
     } catch (error) {
@@ -262,35 +435,9 @@ if (telefonoInput) {
   });
 }
 
-const provincias = {
-  "Santo Domingo": ["Santo Domingo Este", "Santo Domingo Norte", "Santo Domingo Oeste", "Boca Chica"],
-  "Santiago": ["Santiago", "Licey al Medio", "Bonao"],
-  "La Vega": ["La Vega", "Constanza"],
-  "Puerto Plata": ["Puerto Plata", "Sosúa"],
-  "San Cristóbal": ["San Cristóbal", "Baní"],
-  "San Pedro de Macorís": ["San Pedro de Macorís", "Consuelo"],
-  "La Romana": ["La Romana", "Villa Hermosa"],
-  "Bonao": ["Bonao"],
-  "Higüey": ["Higüey"],
-  "Barahona": ["Barahona"]
-};
-
-const municipiosSelect = document.getElementById("municipio");
-const provinciaSelect = document.getElementById("provincia");
-
 if (provinciaSelect) {
-  provinciaSelect.addEventListener("change", () => {
-    const prov = provinciaSelect.value;
-    const munis = provincias[prov] || [];
-    
-    if (municipiosSelect) {
-      municipiosSelect.innerHTML = "";
-      munis.forEach(m => {
-        const opt = document.createElement("option");
-        opt.value = m;
-        opt.textContent = m;
-        municipiosSelect.appendChild(opt);
-      });
-    }
+  provinciaSelect.addEventListener("change", async () => {
+    if (rolLocal === "ayuntamiento") return;
+    await cargarMunicipiosDesdeFirestore(provinciaSelect.value);
   });
 }

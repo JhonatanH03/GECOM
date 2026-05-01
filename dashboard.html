@@ -1,100 +1,249 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" id="htmlRoot">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>GECOM - Panel Principal</title>
+  <link rel="icon" href="assets/LOGO GECOM PNG.png" type="image/png">
 
   <!-- Bootstrap -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/animate.min.css">
+  <link rel="stylesheet" href="css/styles.css">
   <script src="js/guard.js"></script>
 </head>
 
-<body class="bg-light">
+<body id="bodyRoot" class="bg-light dashboard-page app-page">
 
-<div class="container mt-5">
+<div class="container mt-4 dashboard-shell">
 
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2>Panel Principal</h2>
-    <button onclick="logout()" class="btn btn-danger">Cerrar sesión</button>
+  <div class="dashboard-header d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h2 class="dashboard-title mb-1">Panel Principal</h2>
+      <p class="dashboard-subtitle mb-0">Centro de operaciones de GECOM</p>
+      <p class="dashboard-userline mb-0" id="dashboardUserLine">Cargando perfil...</p>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+      <div class="dropdown">
+        <button id="btnPaletaTema" class="btn btn-outline-dark btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Elegir tema">
+          🎨
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end" id="menuTema">
+          <li><a class="dropdown-item" href="#" data-tema="claro">☀️ Claro</a></li>
+          <li><a class="dropdown-item" href="#" data-tema="oscuro">🌙 Oscuro</a></li>
+          <li><a class="dropdown-item" href="#" data-tema="sistema">💻 Sistema</a></li>
+        </ul>
+      </div>
+      <div class="dropdown" id="notificacionesWrap" style="display:none;">
+        <button class="btn btn-outline-dark position-relative btn-notificaciones" type="button" data-bs-toggle="dropdown" aria-expanded="false" id="btnNotificaciones" aria-label="Notificaciones">
+          <span aria-hidden="true" style="font-size: 1.1rem; line-height: 1;">&#128276;</span>
+          <span class="visually-hidden">Notificaciones</span>
+          <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="badgeNotificaciones" style="display:none;">0</span>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end notificaciones-menu" id="listaNotificaciones" style="width: 340px; max-height: 360px; overflow-y: auto;"></ul>
+      </div>
+      <button onclick="logout()" class="btn btn-danger">Cerrar sesión</button>
+    </div>
   </div>
 
-  <div class="row g-4">
+  <div class="kpi-strip row g-3 mb-4" id="dashboardKpiStrip">
+    <div class="col-6 col-lg-3">
+      <article class="kpi-card kpi-pendiente">
+        <div class="kpi-icon"><i class="bi bi-hourglass-split"></i></div>
+        <p class="kpi-label mb-1">Pendientes</p>
+        <h3 class="kpi-value mb-0" id="kpiPendiente">0</h3>
+      </article>
+    </div>
+    <div class="col-6 col-lg-3">
+      <article class="kpi-card kpi-proceso">
+        <div class="kpi-icon"><i class="bi bi-arrow-repeat"></i></div>
+        <p class="kpi-label mb-1">En proceso</p>
+        <h3 class="kpi-value mb-0" id="kpiProceso">0</h3>
+      </article>
+    </div>
+    <div class="col-6 col-lg-3">
+      <article class="kpi-card kpi-resuelta">
+        <div class="kpi-icon"><i class="bi bi-check-circle"></i></div>
+        <p class="kpi-label mb-1">Resueltas</p>
+        <h3 class="kpi-value mb-0" id="kpiResuelta">0</h3>
+      </article>
+    </div>
+    <div class="col-6 col-lg-3">
+      <article class="kpi-card kpi-rechazada">
+        <div class="kpi-icon"><i class="bi bi-x-circle"></i></div>
+        <p class="kpi-label mb-1">Rechazadas</p>
+        <h3 class="kpi-value mb-0" id="kpiRechazada">0</h3>
+      </article>
+    </div>
+  </div>
+
+  <div class="row g-4 dashboard-grid">
 
     <!-- Registrar denuncia -->
     <div class="col-md-4" id="cardCrearDenuncia" style="display:none;">
-      <div class="card p-4 shadow text-center">
+      <div class="card p-4 shadow-sm text-center h-100 dashboard-card card-junta dashboard-card-primary">
+        <div class="dashboard-card-icon"><i class="bi bi-plus-circle-fill"></i></div>
         <h5>Registrar Denuncia</h5>
-        <button onclick="ir('crear.html')" class="btn btn-primary mt-3">
-          Ir
+        <p class="dashboard-card-copy">Crea una nueva incidencia para iniciar su seguimiento oficial.</p>
+        <button onclick="ir('crear.html')" class="btn btn-primary mt-2 gecom-btn">
+          <i class="bi bi-pencil-fill me-1"></i>Nueva denuncia
         </button>
       </div>
     </div>
 
     <!-- Ver denuncias -->
-    <div class="col-md-4">
-      <div class="card p-4 shadow text-center">
+    <div class="col-md-4" id="cardVerDenuncias" style="display:none;">
+      <div class="card p-4 shadow-sm text-center h-100 dashboard-card card-general">
+        <div class="dashboard-card-icon"><i class="bi bi-list-ul"></i></div>
         <h5>Ver Denuncias</h5>
-        <button onclick="ir('ver.html')" class="btn btn-success mt-3">
-          Ir
+        <p class="dashboard-card-copy">Consulta estado, respuestas y detalle completo de cada caso.</p>
+        <button onclick="ir('ver.html')" class="btn btn-success mt-2 gecom-btn">
+          <i class="bi bi-eye me-1"></i>Ver casos
         </button>
       </div>
     </div>
 
     <!-- Panel Junta de Vecinos -->
     <div class="col-md-4" id="cardJunta" style="display:none;">
-      <div class="card p-4 shadow text-center">
+      <div class="card p-4 shadow-sm text-center h-100 dashboard-card card-junta">
+        <div class="dashboard-card-icon"><i class="bi bi-people-fill"></i></div>
         <h5>Panel Junta</h5>
-        <button onclick="ir('junta.html')" class="btn btn-info mt-3">
-          Ir
+        <p class="dashboard-card-copy">Administra el perfil operativo y datos clave de tu junta.</p>
+        <button onclick="ir('junta.html')" class="btn btn-info mt-2 gecom-btn">
+          <i class="bi bi-gear me-1"></i>Gestionar junta
         </button>
       </div>
     </div>
 
-    <!-- Gestión de Usuarios (solo admin) -->
+    <!-- Historial de cambios (solo junta) -->
+    <div class="col-md-4" id="cardHistorial" style="display:none;">
+      <div class="card p-4 shadow-sm text-center h-100 dashboard-card card-junta">
+        <div class="dashboard-card-icon"><i class="bi bi-clock-history"></i></div>
+        <h5>Historial de Cambios</h5>
+        <p class="dashboard-card-copy">Revisa respuestas y movimientos recientes de tus denuncias.</p>
+        <button onclick="ir('historial.html')" class="btn btn-outline-secondary mt-2 gecom-btn">
+          <i class="bi bi-journal-text me-1"></i>Ver historial
+        </button>
+      </div>
+    </div>
+
+    <!-- Estadísticas (solo admin) -->
     <div class="col-md-4" id="cardAdmin" style="display:none;">
-      <div class="card p-4 shadow text-center">
+      <div class="card p-4 shadow-sm text-center h-100 dashboard-card card-admin">
+        <div class="dashboard-card-icon"><i class="bi bi-bar-chart-fill"></i></div>
         <h5>Estadísticas</h5>
-        <button onclick="ir('estadisticas.html')" class="btn btn-warning mt-3">
-          Ir
+        <p class="dashboard-card-copy">Analiza tendencias y exporta reportes para decisiones rápidas.</p>
+        <button onclick="ir('estadisticas.html')" class="btn btn-warning mt-2 gecom-btn">
+          <i class="bi bi-graph-up me-1"></i>Ver reportes
+        </button>
+      </div>
+    </div>
+
+    <!-- Gestión de Ayuntamientos (solo admin) -->
+    <div class="col-md-4" id="cardAdminAyunt" style="display:none;">
+      <div class="card p-4 shadow-sm text-center h-100 dashboard-card card-admin">
+        <div class="dashboard-card-icon"><i class="bi bi-building"></i></div>
+        <h5>Gestión de Ayuntamientos</h5>
+        <p class="dashboard-card-copy">Crea y administra entidades municipales desde un solo lugar.</p>
+        <button onclick="ir('ayuntamientos.html')" class="btn btn-warning mt-2 gecom-btn">
+          <i class="bi bi-building me-1"></i>Gestionar
         </button>
       </div>
     </div>
 
     <!-- Gestión de Usuarios (solo admin) -->
     <div class="col-md-4" id="cardAdminUsuarios" style="display:none;">
-      <div class="card p-4 shadow text-center">
+      <div class="card p-4 shadow-sm text-center h-100 dashboard-card card-admin">
+        <div class="dashboard-card-icon"><i class="bi bi-person-gear"></i></div>
         <h5>Gestión de Usuarios</h5>
-        <button onclick="ir('usuarios.html')" class="btn btn-secondary mt-3">
-          Ir
+        <p class="dashboard-card-copy">Controla altas, ediciones y permisos de juntas de vecinos.</p>
+        <button onclick="ir('usuarios.html')" class="btn btn-secondary mt-2 gecom-btn">
+          <i class="bi bi-people me-1"></i>Gestionar usuarios
         </button>
       </div>
     </div>
 
     <!-- Gestión de Juntas (solo ayuntamiento) -->
     <div class="col-md-4" id="cardAyunt" style="display:none;">
-      <div class="card p-4 shadow text-center">
+      <div class="card p-4 shadow-sm text-center h-100 dashboard-card card-ayuntamiento">
+        <div class="dashboard-card-icon"><i class="bi bi-diagram-3-fill"></i></div>
         <h5>Gestión de Juntas</h5>
-        <button onclick="ir('juntas.html')" class="btn btn-secondary mt-3">
-          Ir
+        <p class="dashboard-card-copy">Supervisa juntas y coordina su operación dentro del territorio.</p>
+        <button onclick="ir('juntas.html')" class="btn btn-secondary mt-2 gecom-btn">
+          <i class="bi bi-diagram-3 me-1"></i>Ver juntas
         </button>
       </div>
     </div>
 
     <!-- Registrar Denuncia (solo ayuntamiento) -->
     <div class="col-md-4" id="cardCrearDenunciaAyunt" style="display:none;">
-      <div class="card p-4 shadow text-center">
+      <div class="card p-4 shadow-sm text-center h-100 dashboard-card card-ayuntamiento dashboard-card-primary">
+        <div class="dashboard-card-icon"><i class="bi bi-plus-circle-fill"></i></div>
         <h5>Registrar Denuncia</h5>
-        <button onclick="ir('crear.html')" class="btn btn-primary mt-3">
-          Ir
+        <p class="dashboard-card-copy">Registra reportes directamente para activar la gestión municipal.</p>
+        <button onclick="ir('crear.html')" class="btn btn-primary mt-2 gecom-btn">
+          <i class="bi bi-pencil-fill me-1"></i>Nueva denuncia
         </button>
       </div>
     </div>
 
   </div>
 
+  <!-- Footer info strip -->
+  <footer class="dashboard-footer mt-auto pt-4">
+    <div class="dashboard-footer-inner d-flex flex-wrap align-items-center justify-content-between gap-2">
+      <span class="dashboard-footer-brand">
+        <i class="bi bi-shield-check me-1"></i><strong>GECOM</strong> &mdash; Gestión Comunitaria
+      </span>
+      <span class="dashboard-footer-meta" id="dashboardFooterFecha"></span>
+    </div>
+  </footer>
+
 </div>
 
-<script type="module" src="js/dashboard.js"></script>
+<!-- Modal confirmación eliminar notificación -->
+<div class="modal fade" id="modalEliminarNotif" tabindex="-1" aria-labelledby="modalEliminarNotifLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalEliminarNotifLabel">Eliminar notificación</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        ¿Estás seguro de que deseas eliminar esta notificación? Esta acción no se puede deshacer.
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-danger" id="btnConfirmarEliminarNotif">Eliminar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div id="gecomToastContainer" aria-live="polite" aria-atomic="true"></div>
+
+<script type="module" src="js/dashboard.js?v=2"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/perfil-menu.js"></script>
+<script>
+  window.gecomToast = function(mensaje, tipo = "info", duracion = 3500) {
+    const iconos = { success: "bi-check-circle-fill", error: "bi-exclamation-circle-fill", info: "bi-info-circle-fill" };
+    const icono = iconos[tipo] || iconos.info;
+    const cont = document.getElementById("gecomToastContainer");
+    if (!cont) return;
+    const t = document.createElement("div");
+    t.className = `gecom-toast toast-${tipo}`;
+    t.innerHTML = `<i class="bi ${icono}"></i><span>${mensaje}</span>`;
+    cont.appendChild(t);
+    setTimeout(() => { t.style.opacity = "0"; t.style.transition = "opacity 0.35s"; setTimeout(() => t.remove(), 380); }, duracion);
+  };
+</script>
 
 </body>
 </html>

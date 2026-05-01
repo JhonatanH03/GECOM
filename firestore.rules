@@ -1,0 +1,160 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/Administradores/$(request.auth.uid));
+    }
+
+    function isAyuntamiento() {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/Ayuntamientos/$(request.auth.uid));
+    }
+
+    function isJunta() {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/JuntasDeVecinos/$(request.auth.uid));
+    }
+
+    function ayuntamientoData() {
+      return get(/databases/$(database)/documents/Ayuntamientos/$(request.auth.uid)).data;
+    }
+
+    function isSameMunicipioAsAyuntamiento(data) {
+      return isAyuntamiento() &&
+        data.municipio == ayuntamientoData().municipio;
+    }
+
+    match /Administradores/{adminId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
+    }
+
+    match /Ayuntamientos/{ayuntamientoId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
+    }
+
+    match /provincias/{provinciaId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /JuntasDeVecinos/{juntaId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
+
+      match /historial/{entryId} {
+        allow read: if isAdmin() ||
+          (isJunta() && request.auth.uid == juntaId);
+        allow create: if isAyuntamiento() &&
+          request.resource.data.keys().hasOnly([
+            "denunciaId",
+            "tituloDenuncia",
+            "tipo",
+            "estado",
+            "plazo_estimado",
+            "presupuesto_estimado",
+            "respuesta",
+            "ayuntamientoId",
+            "createdAt"
+          ]) &&
+          request.resource.data.ayuntamientoId == request.auth.uid;
+        allow delete: if isAdmin() ||
+          (isJunta() && request.auth.uid == juntaId);
+      }
+    }
+
+    match /loginIndex/{identifier} {
+      allow get: if true;
+      allow list: if false;
+      allow create, update: if isSignedIn() &&
+        request.resource.data.keys().hasOnly([
+          "uid",
+          "email",
+          "rol",
+          "updatedAt"
+        ]) &&
+        request.resource.data.uid is string &&
+        request.resource.data.email is string &&
+        request.resource.data.rol is string;
+      allow delete: if isSignedIn();
+    }
+
+    match /denuncias/{denunciaId} {
+      allow read: if isAdmin() ||
+        (isJunta() && resource.data.uid == request.auth.uid) ||
+        isSameMunicipioAsAyuntamiento(resource.data);
+
+      allow create: if isAdmin() ||
+        (
+          isJunta() &&
+          request.resource.data.uid == request.auth.uid
+        );
+
+      allow update: if isAdmin() ||
+        (
+          isJunta() &&
+          resource.data.uid == request.auth.uid
+        ) ||
+        (
+          isAyuntamiento() &&
+          isSameMunicipioAsAyuntamiento(resource.data) &&
+          request.resource.data.diff(resource.data).changedKeys().hasOnly([
+            "estado",
+            "plazo_estimado",
+            "presupuesto_estimado",
+            "respuesta_ayuntamiento",
+            "fecha_respuesta",
+            "ayuntamiento_id"
+          ]) &&
+          request.resource.data.ayuntamiento_id == request.auth.uid
+        );
+
+      allow delete: if isAdmin();
+    }
+
+    match /notificaciones/{notificacionId} {
+      allow get: if isAdmin() ||
+        (isJunta() && resource.data.receptorUid == request.auth.uid);
+      allow list: if isAdmin() || isJunta();
+
+      allow create: if isAyuntamiento() &&
+        request.resource.data.keys().hasOnly([
+          "denunciaId",
+          "receptorUid",
+          "tipo",
+          "mensaje",
+          "leida",
+          "createdAt",
+          "createdBy"
+        ]) &&
+        request.resource.data.denunciaId is string &&
+        request.resource.data.receptorUid is string &&
+        request.resource.data.tipo is string &&
+        request.resource.data.mensaje is string &&
+        request.resource.data.leida is bool &&
+        request.resource.data.createdBy == request.auth.uid;
+
+      allow update: if (isAdmin() ||
+        (isJunta() && resource.data.receptorUid == request.auth.uid)) &&
+        request.resource.data.diff(resource.data).changedKeys().hasOnly([
+          "leida",
+          "leidaAt"
+        ]);
+
+      allow delete: if isAdmin() ||
+        (isJunta() && resource.data.receptorUid == request.auth.uid);
+    }
+
+    // Cualquier otra coleccion queda bloqueada por defecto.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
