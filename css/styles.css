@@ -299,6 +299,60 @@ h3 {
   100% { transform: rotate(0deg); }
 }
 
+/* ── Password eye toggle ── */
+.pwd-eye-btn {
+  cursor: pointer;
+  user-select: none;
+  background: rgba(21, 101, 192, 0.06);
+  border-color: rgba(21, 101, 192, 0.2);
+  border-left: none;
+  color: #1565c0;
+  transition: background 0.18s ease, color 0.18s ease;
+}
+
+.pwd-eye-btn:hover {
+  background: rgba(21, 101, 192, 0.16);
+  color: #0a2a6e;
+}
+
+[data-bs-theme="dark"] .pwd-eye-btn {
+  background: rgba(100, 160, 230, 0.08);
+  border-color: rgba(100, 160, 230, 0.25);
+  color: #90bbee;
+}
+
+[data-bs-theme="dark"] .pwd-eye-btn:hover {
+  background: rgba(100, 160, 230, 0.18);
+  color: #c8dff8;
+}
+
+/* Remove dropdown caret from palette theme button */
+#btnPaletaTema::after {
+  display: none !important;
+}
+
+/* ── Leyenda de estados de denuncias ── */
+.badge-leyenda {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--bs-body-color);
+  background: var(--bs-body-bg);
+  border: 1px solid var(--bs-border-color);
+  border-radius: 20px;
+  padding: 4px 12px 4px 8px;
+}
+
+.badge-leyenda-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
 .dashboard-page .notificaciones-menu {
   border-radius: 14px;
   border: 1px solid var(--gecom-stroke);
@@ -1161,13 +1215,6 @@ h1, h2, h3, h4, h5, h6 {
 [data-bs-theme="dark"] .login-page .card {
   background: rgba(30, 30, 50, 0.95) !important;
   color: #e0e0e0;
-}
-  content: "";
-  position: absolute;
-  top: 0;
-  right: -8px;
-  width: 8px;
-  height: 100%;
 }
 
 .pm-item-sub:hover .pm-submenu { display: flex; }

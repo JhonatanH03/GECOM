@@ -279,8 +279,9 @@ async function cargarJuntas() {
   </tr>`;
   juntasBody.innerHTML = _skRow8.repeat(5);
   try {
-    const q = db.collection("JuntasDeVecinos").where("creada_por", "==", uid);
-    const snapshot = await q.get();
+    const snapshot = rolLocal === "admin"
+      ? await db.collection("JuntasDeVecinos").get()
+      : await db.collection("JuntasDeVecinos").where("creada_por", "==", uid).get();
     
     if (snapshot.empty) {
       juntasBody.innerHTML = '<tr class="table-feedback-row"><td colspan="8"><div class="empty-state">No hay juntas registradas en tu alcance.</div></td></tr>';
@@ -317,6 +318,7 @@ async function cargarJuntas() {
         <td data-label="Estado"><span class="status-chip ${estadoClass}"><i class="bi ${chipIcon} chip-icon"></i>${escapeHtml(label)}</span></td>
         <td class="text-center" data-label="Acciones">
           <button class="btn btn-sm btn-warning me-1 px-2" onclick="editarJunta('${data.id}')"><i class="bi bi-pencil"></i></button>
+          <button class="btn btn-sm btn-info me-1 px-2" onclick="abrirModalResetContrasenaJunta('${data.id}', '${escapeHtml(data.nombre)}')" title="Restablecer contraseña"><i class="bi bi-key"></i></button>
           <button class="btn btn-sm btn-danger px-2" onclick="eliminarJunta('${data.id}', '${escapeHtml(data.nombre)}')"><i class="bi bi-trash"></i></button>
         </td>
       </tr>`;
@@ -371,6 +373,69 @@ window.editarJunta = async function(id) {
   } catch (error) {
     console.error("Error:", error);
     showAlert("Error al cargar junta.", "danger");
+  }
+};
+
+// ---- Reset contraseña junta ----
+const resetModalJunta = new bootstrap.Modal(document.getElementById('modalResetContrasenaJunta'));
+
+document.getElementById('modalResetContrasenaJunta').addEventListener('hidden.bs.modal', () => {
+  document.getElementById('resetCallerPassword').value = '';
+  document.getElementById('resetModalAlert').innerHTML = '';
+  document.getElementById('btnConfirmarReset').disabled = false;
+  document.getElementById('btnConfirmarReset').textContent = 'Restablecer';
+});
+
+window.abrirModalResetContrasenaJunta = function(id, nombre) {
+  document.getElementById('resetTargetUid').value = id;
+  document.getElementById('resetTargetNombre').textContent = nombre;
+  resetModalJunta.show();
+};
+
+window.confirmarResetContrasenaJunta = async function() {
+  const targetUid = document.getElementById('resetTargetUid').value;
+  const callerPassword = document.getElementById('resetCallerPassword').value;
+  const alertEl = document.getElementById('resetModalAlert');
+  const btn = document.getElementById('btnConfirmarReset');
+
+  function showResetError(msg) {
+    alertEl.innerHTML = `<div class="alert alert-danger py-2">${escapeHtml(msg)}</div>`;
+  }
+
+  if (!callerPassword) return showResetError('Debes ingresar tu contraseña actual.');
+
+  btn.disabled = true;
+  btn.textContent = 'Restableciendo...';
+  alertEl.innerHTML = '';
+
+  try {
+    const result = await window.gecomResetManagedUserPassword({
+      auth,
+      callerPassword,
+      targetUid,
+      targetRole: 'junta'
+    });
+
+    resetModalJunta.hide();
+    showAlert(`Contraseña restablecida correctamente. Contraseña temporal: ${result.temporaryPassword}`, 'success');
+  } catch (error) {
+    let msg = 'Error al restablecer la contraseña.';
+    if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+      msg = 'Tu contraseña actual es incorrecta.';
+    } else if (error.code === 'auth/too-many-requests') {
+      msg = 'Demasiados intentos fallidos. Intenta más tarde.';
+    } else if (error.name === 'TypeError' || error.code === 'request-failed') {
+      msg = 'No se pudo conectar con el backend de restablecimiento. Verifica que esté ejecutándose en la URL configurada.';
+    } else if (error.code === 'recent-login-required') {
+      msg = 'Debes confirmar tu contraseña nuevamente antes de continuar.';
+    } else if (error.code === 'permission-denied') {
+      msg = 'No tienes permiso para restablecer esta contraseña.';
+    } else if (error.message) {
+      msg = error.message;
+    }
+    showResetError(msg);
+    btn.disabled = false;
+    btn.textContent = 'Restablecer';
   }
 };
 

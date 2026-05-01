@@ -153,6 +153,123 @@
     // Tabla columnas
     "Nombre de la Junta": "Board Name",
     "Teléfono encargado": "Manager Phone",
+
+    // Tema / selector de idioma
+    "Claro": "Light",
+    "Oscuro": "Dark",
+    "Sistema": "System",
+    "☀️ Claro": "☀️ Light",
+    "🌙 Oscuro": "🌙 Dark",
+    "💻 Sistema": "💻 System",
+
+    // Login
+    "Inicia sesión en tu cuenta": "Sign in to your account",
+    "Bienvenido": "Welcome",
+    "Registrar usuario": "Register User",
+    "Rol": "Role",
+    "Seleccione provincia": "Select Province",
+    "Seleccione municipio": "Select Municipality",
+
+    // Dashboard – tarjetas descriptivas faltantes
+    "Analiza tendencias y exporta reportes para decisiones rápidas.": "Analyze trends and export reports for quick decisions.",
+    "Controla altas, ediciones y permisos de juntas de vecinos.": "Manage creation, edits, and permissions for neighborhood boards.",
+    "Crea y administra entidades municipales desde un solo lugar.": "Create and manage municipal entities from one place.",
+    "Revisa respuestas y movimientos recientes de tus denuncias.": "Review recent responses and updates on your complaints.",
+    "Eliminar notificación": "Delete notification",
+    "Estadísticas": "Statistics",
+    "Notificaciones": "Notifications",
+
+    // Requisitos de contraseña con prefijo ✗ / ✓
+    "✗ Al menos 6 caracteres": "✗ At least 6 characters",
+    "✗ Una letra mayúscula": "✗ One uppercase letter",
+    "✗ Una letra minúscula": "✗ One lowercase letter",
+    "✗ Un número": "✗ One number",
+    "✓ Al menos 6 caracteres": "✓ At least 6 characters",
+    "✓ Una letra mayúscula": "✓ One uppercase letter",
+    "✓ Una letra minúscula": "✓ One lowercase letter",
+    "✓ Un número": "✓ One number",
+
+    // Modal reset contraseña (juntas y ayuntamientos)
+    "Restablecer Contraseña": "Reset Password",
+    "Restablecer": "Reset",
+    "Tu contraseña actual": "Your current password",
+    "La cuenta se restablecerá a una contraseña temporal genérica del sistema y luego deberá cambiarla al iniciar sesión.": "The account will be reset to a generic temporary system password and must be changed on first login.",
+    "Por seguridad, debes confirmar": "For security, confirm",
+
+    // Juntas
+    "Cargando juntas...": "Loading boards...",
+
+    // Ayuntamientos
+    "Cargando ayuntamientos...": "Loading municipalities...",
+    "Ayuntamientos registrados": "Registered Municipalities",
+
+    // Usuarios
+    "Cargando usuarios...": "Loading users...",
+    "Usuarios registrados": "Registered Users",
+    "Cédula del encargado": "Manager ID Card",
+
+    // Crear denuncia
+    "Crear Denuncia": "Create Complaint",
+    "Evidencia (Imagen)": "Evidence (Image)",
+    "Fecha del Incidente": "Incident Date",
+    "Infraestructura": "Infrastructure",
+    "Medio Ambiente": "Environment",
+    "Otro": "Other",
+    "Salud": "Health",
+    "Seguridad": "Security",
+    "Seleccionar tipo": "Select type",
+    "Servicios Públicos": "Public Services",
+    "Tipo de Denuncia": "Complaint Type",
+    "Vista previa de evidencia:": "Evidence preview:",
+
+    // Ver denuncias
+    "Listado de Denuncias": "Complaint List",
+    "Detalle de Denuncia": "Complaint Details",
+    "Responder denuncia": "Respond to complaint",
+    "Guardar respuesta": "Save response",
+    "Respuesta del Ayuntamiento": "Municipality Response",
+    "Respuesta oficial": "Official Response",
+    "Respuesta:": "Response:",
+    "Descripción:": "Description:",
+    "Comunidad:": "Community:",
+    "Estado:": "Status:",
+    "Estado oficial:": "Official status:",
+    "Tipo:": "Type:",
+    "Ubicación:": "Location:",
+    "Fecha": "Date",
+    "Fecha de registro:": "Registration date:",
+    "Fecha incidente:": "Incident date:",
+    "Días en proceso": "Days in progress",
+    "Días en proceso:": "Days in progress:",
+    "Tiempo estimado": "Estimated time",
+    "Tiempo estimado:": "Estimated time:",
+    "Presupuesto estimado": "Estimated budget",
+    "Presupuesto:": "Budget:",
+    "Evidencia": "Evidence",
+    "Descargar": "Download",
+    "Filtrar por comunidad:": "Filter by community:",
+    "Filtrar por municipio:": "Filter by municipality:",
+    "Filtrar por provincia:": "Filter by province:",
+
+    // Historial
+    "Cargando...": "Loading...",
+    "Denuncia": "Complaint",
+    "Plazo estimado": "Estimated Deadline",
+    "Presupuesto": "Budget",
+
+    // Estadísticas
+    "Exportar a CSV": "Export to CSV",
+    "Gráfico Circular": "Pie Chart",
+    "Gráfico de Barras": "Bar Chart",
+    "Tendencias (Últimos 30 días)": "Trends (Last 30 days)",
+
+    // Cambiar contraseña / Mi perfil
+    "Mi Perfil": "My Profile",
+    "Contraseña Actual": "Current Password",
+    "Nueva Contraseña": "New Password",
+    "Confirmar Nueva Contraseña": "Confirm New Password",
+    "Consulta tus datos personales y de contacto.": "View your personal and contact information.",
+    "Estos datos son de solo lectura. Si necesitas realizar algún cambio, solicita la actualización al administrador.": "This data is read-only. Contact the administrator to request changes.",
   };
 
   // Mapa inverso Ingles -> Espanol para poder volver a ES sin recargar.

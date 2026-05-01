@@ -200,7 +200,7 @@ async function cargarAyuntamientos() {
         <td data-label="Estado"><span class="status-chip ${estadoClass}"><i class="bi ${chipIcon} chip-icon"></i>${escapeHtml(label)}</span></td>
         <td class="text-center" data-label="Acciones">
           <button class="btn btn-sm btn-warning me-1 px-2" onclick="editarAyuntamiento('${data.id}')"><i class="bi bi-pencil"></i></button>
-          <button class="btn btn-sm btn-info me-1 px-2" onclick="reestablecerContrasenaAyuntamiento('${data.id}', '${escapeHtml(data.nombre)}')" title="Restablecer contraseña"><i class="bi bi-key"></i></button>
+          <button class="btn btn-sm btn-info me-1 px-2" onclick="abrirModalResetContrasenaAyuntamiento('${data.id}', '${escapeHtml(data.nombre)}')" title="Restablecer contraseña"><i class="bi bi-key"></i></button>
           <button class="btn btn-sm btn-danger px-2" onclick="eliminarAyuntamiento('${data.id}', '${escapeHtml(data.nombre)}')"><i class="bi bi-trash"></i></button>
         </td>
       </tr>`;
@@ -271,29 +271,70 @@ window.eliminarAyuntamiento = async function(id, nombre) {
 };
 
 window.reestablecerContrasenaAyuntamiento = async function(id, nombre) {
-  if (!confirm(`¿Enviar correo de restablecimiento de contraseña a ${nombre}?`)) {
-    return;
+  // Legacy — reemplazado por abrirModalResetContrasenaAyuntamiento
+  abrirModalResetContrasenaAyuntamiento(id, nombre);
+};
+
+// ---- Reset contraseña ayuntamiento (modal) ----
+const resetModalAyunt = new bootstrap.Modal(document.getElementById('modalResetContrasenaAyuntamiento'));
+
+document.getElementById('modalResetContrasenaAyuntamiento').addEventListener('hidden.bs.modal', () => {
+  document.getElementById('resetAyuntCallerPassword').value = '';
+  document.getElementById('resetAyuntModalAlert').innerHTML = '';
+  document.getElementById('btnConfirmarResetAyunt').disabled = false;
+  document.getElementById('btnConfirmarResetAyunt').textContent = 'Restablecer';
+});
+
+window.abrirModalResetContrasenaAyuntamiento = function(id, nombre) {
+  document.getElementById('resetAyuntTargetUid').value = id;
+  document.getElementById('resetAyuntTargetNombre').textContent = nombre;
+  resetModalAyunt.show();
+};
+
+window.confirmarResetContrasenaAyuntamiento = async function() {
+  const targetUid = document.getElementById('resetAyuntTargetUid').value;
+  const callerPassword = document.getElementById('resetAyuntCallerPassword').value;
+  const alertEl = document.getElementById('resetAyuntModalAlert');
+  const btn = document.getElementById('btnConfirmarResetAyunt');
+
+  function showResetError(msg) {
+    alertEl.innerHTML = `<div class="alert alert-danger py-2">${escapeHtml(msg)}</div>`;
   }
 
+  if (!callerPassword) return showResetError('Debes ingresar tu contraseña actual.');
+
+  btn.disabled = true;
+  btn.textContent = 'Restableciendo...';
+  alertEl.innerHTML = '';
+
   try {
-    const doc = await db.collection("Ayuntamientos").doc(id).get();
-    if (!doc.exists) {
-      showAlert("Ayuntamiento no encontrado.", "danger");
-      return;
-    }
-    const correo = doc.data().correo;
-    if (!correo) {
-      showAlert("El ayuntamiento no tiene un correo registrado.", "danger");
-      return;
-    }
+    const result = await window.gecomResetManagedUserPassword({
+      auth,
+      callerPassword,
+      targetUid,
+      targetRole: 'ayuntamiento'
+    });
 
-    await auth.sendPasswordResetEmail(correo);
-    await db.collection("Ayuntamientos").doc(id).update({ primerLogin: true });
-
-    showAlert(`Se ha enviado un correo de restablecimiento a ${correo}. El usuario deberá cambiar su contraseña al iniciar sesión.`, "success");
+    resetModalAyunt.hide();
+    showAlert(`Contraseña restablecida correctamente. Contraseña temporal: ${result.temporaryPassword}`, 'success');
   } catch (error) {
-    console.error("Error restableciendo contraseña:", error);
-    showAlert("No se pudo enviar el correo de restablecimiento: " + error.message, "danger");
+    let msg = 'Error al restablecer la contraseña.';
+    if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+      msg = 'Tu contraseña actual es incorrecta.';
+    } else if (error.code === 'auth/too-many-requests') {
+      msg = 'Demasiados intentos fallidos. Intenta más tarde.';
+    } else if (error.name === 'TypeError' || error.code === 'request-failed') {
+      msg = 'No se pudo conectar con el backend de restablecimiento. Verifica que esté ejecutándose en la URL configurada.';
+    } else if (error.code === 'recent-login-required') {
+      msg = 'Debes confirmar tu contraseña nuevamente antes de continuar.';
+    } else if (error.code === 'permission-denied') {
+      msg = 'No tienes permiso para restablecer esta contraseña.';
+    } else if (error.message) {
+      msg = error.message;
+    }
+    showResetError(msg);
+    btn.disabled = false;
+    btn.textContent = 'Restablecer';
   }
 };
 
