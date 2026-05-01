@@ -20,25 +20,6 @@ const provinciaSelect = document.getElementById("provincia");
 const municipioSelect = document.getElementById("municipio");
 const provincias = {};
 
-async function sincronizarLoginIndex({ uid, usuario, correo, rol }) {
-  const usuarioNormalizado = String(usuario || "").trim().toLowerCase();
-  const email = String(correo || "").trim();
-  if (!uid || !usuarioNormalizado || !email || !rol) return;
-
-  await setDoc(doc(db, "loginIndex", usuarioNormalizado), {
-    uid,
-    email,
-    rol,
-    updatedAt: serverTimestamp()
-  }, { merge: true });
-}
-
-async function eliminarLoginIndex(usuario) {
-  const usuarioNormalizado = String(usuario || "").trim().toLowerCase();
-  if (!usuarioNormalizado) return;
-  await deleteDoc(doc(db, "loginIndex", usuarioNormalizado));
-}
-
 function generarContrasenaTemporal(length = 12) {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%";
   const cryptoApi = window.crypto || window.msCrypto;
@@ -94,7 +75,7 @@ form.addEventListener("submit", async (event) => {
   const usuarioId = usuarioIdInput.value;
   const nombre = document.getElementById("nombre").value.trim();
   const usuario = document.getElementById("usuario").value.trim();
-  const correo = document.getElementById("correo").value.trim();
+  const correo = document.getElementById("correo").value.trim() || (usuario.toLowerCase().replace(/[^a-z0-9_]/g, '') + '@gecom.internal');
   const telefono = document.getElementById("telefono").value.trim();
   const nombreEncargado = document.getElementById("nombreEncargado").value.trim();
   const cedula = document.getElementById("cedula").value.trim();
@@ -102,7 +83,7 @@ form.addEventListener("submit", async (event) => {
   const municipio = municipioSelect.value;
   const sector = document.getElementById("sector").value.trim();
 
-  if (!nombre || !usuario || !correo || !telefono || !nombreEncargado || !cedula || !provincia || !municipio || !sector) {
+  if (!nombre || !usuario || !telefono || !nombreEncargado || !cedula || !provincia || !municipio || !sector) {
     showModalAlert("Todos los campos son obligatorios.", "danger");
     return;
   }
@@ -139,10 +120,6 @@ form.addEventListener("submit", async (event) => {
       const previoDoc = await getDoc(doc(db, "JuntasDeVecinos", usuarioId));
       const previoData = previoDoc.exists() ? (previoDoc.data() || {}) : {};
       await setDoc(doc(db, "JuntasDeVecinos", usuarioId), usuarioData, { merge: true });
-      await sincronizarLoginIndex({ uid: usuarioId, usuario, correo, rol: "junta" });
-      if (previoData.usuario && previoData.usuario.toLowerCase() !== usuarioNormalizado) {
-        await eliminarLoginIndex(previoData.usuario);
-      }
       showAlert("Junta actualizada correctamente.", "success");
     } else {
       const snapshot = await getDocs(collection(db, "JuntasDeVecinos"));
@@ -166,7 +143,6 @@ form.addEventListener("submit", async (event) => {
         fecha_creacion: serverTimestamp(),
         primerLogin: true
       });
-      await sincronizarLoginIndex({ uid: nuevoUid, usuario, correo, rol: "junta" });
       showAlert(`Junta creada correctamente. Usuario: ${usuario}, Contraseña temporal: ${contrasenaTemporal}`, "success");
     }
 
@@ -246,7 +222,7 @@ async function cargarUsuarios() {
       fila.innerHTML = `
         <td data-label="Nombre de la Junta">${escapeHtml(data.nombre)}</td>
         <td data-label="Usuario">${escapeHtml(data.usuario || "")}</td>
-        <td data-label="Correo">${escapeHtml(data.correo)}</td>
+        <td data-label="Correo" style="display:none">${escapeHtml(data.correo)}</td>
         <td data-label="Cédula">${escapeHtml(data.cedula)}</td>
         <td data-label="Teléfono">${escapeHtml(data.telefono)}</td>
         <td data-label="Provincia">${escapeHtml(data.provincia)}</td>
@@ -310,7 +286,6 @@ window.eliminarUsuario = async function eliminarUsuario(id, nombre) {
     const docSnap = await getDoc(doc(db, "JuntasDeVecinos", id));
     const data = docSnap.exists() ? (docSnap.data() || {}) : {};
     await deleteDoc(doc(db, "JuntasDeVecinos", id));
-    await eliminarLoginIndex(data.usuario);
     showAlert("Junta eliminada correctamente.", "success");
     await cargarUsuarios();
   } catch (error) {

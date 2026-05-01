@@ -23,6 +23,24 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 let ultimoConteoSinLeer = 0;
 
+function getIdiomaUI() {
+  return (localStorage.getItem("idioma") || "es") === "en" ? "en" : "es";
+}
+
+function renderizarFechaFooter() {
+  const footerFecha = document.getElementById("dashboardFooterFecha");
+  if (!footerFecha) return;
+
+  const lang = getIdiomaUI();
+  const locale = lang === "en" ? "en-US" : "es-DO";
+  footerFecha.textContent = new Date().toLocaleDateString(locale, {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric"
+  });
+}
+
 function aplicarTemaDashboard() {
   const html = document.getElementById("htmlRoot");
   const body = document.getElementById("bodyRoot");
@@ -224,13 +242,28 @@ function iniciarSuscripcionNotificaciones() {
   }
 
   function saludoHora() {
+    const lang = getIdiomaUI();
     const h = new Date().getHours();
+    if (lang === "en") {
+      if (h < 12) return "Good morning";
+      if (h < 19) return "Good afternoon";
+      return "Good evening";
+    }
+
     if (h < 12) return "Buenos días";
     if (h < 19) return "Buenas tardes";
     return "Buenas noches";
   }
 
   function formatearRol(rol) {
+    const lang = getIdiomaUI();
+    if (lang === "en") {
+      if (rol === "admin") return "Administrator";
+      if (rol === "ayuntamiento") return "City Hall";
+      if (rol === "junta") return "Neighborhood Board";
+      return "User";
+    }
+
     if (rol === "admin") return "Administrador";
     if (rol === "ayuntamiento") return "Ayuntamiento";
     if (rol === "junta") return "Junta de Vecinos";
@@ -322,10 +355,12 @@ if (!uid || !rolLocal) {
     pintarLineaUsuario();
     cargarResumenKpi();
 
-  const footerFecha = document.getElementById("dashboardFooterFecha");
-  if (footerFecha) {
-    footerFecha.textContent = new Date().toLocaleDateString("es-DO", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
-  }
+  renderizarFechaFooter();
+
+  window.addEventListener("gecom:language-changed", () => {
+    pintarLineaUsuario();
+    renderizarFechaFooter();
+  });
 
   document.getElementById("cardVerDenuncias").style.display = "block";
 
