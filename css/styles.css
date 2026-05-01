@@ -958,7 +958,7 @@ tr.skeleton-row td {
 /* Submenú flotante — aparece a la izquierda del dropdown */
 .pm-submenu {
   position: absolute;
-  right: calc(100% + 6px);
+  right: calc(100% - 2px);
   top: 0;
   min-width: 150px;
   background: var(--bs-body-bg, #fff);
@@ -971,6 +971,17 @@ tr.skeleton-row td {
   z-index: 1100;
   animation: pmFadeIn 0.15s ease;
 }
+
+/* Puente invisible para evitar que se cierre al cruzar el mouse */
+.pm-submenu::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: -8px;
+  width: 8px;
+  height: 100%;
+}
+
 .pm-item-sub:hover .pm-submenu { display: flex; }
 
 .pm-sub-opt {

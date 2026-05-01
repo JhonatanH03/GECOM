@@ -8,6 +8,7 @@
 
   <!-- Bootstrap -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   
   <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
@@ -16,6 +17,47 @@
     
   <!-- Estilos Personalizados -->
   <link rel="stylesheet" href="css/styles.css">
+  <style>
+    .perfil-card {
+      border-color: color-mix(in srgb, var(--bs-border-color, #334155) 72%, #0d6efd 28%);
+      background: color-mix(in srgb, var(--bs-body-bg, #0f172a) 95%, #0d6efd 5%);
+    }
+
+    .perfil-field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      padding: 0.55rem 0.1rem;
+      border-bottom: 1px dashed color-mix(in srgb, var(--bs-border-color, #334155) 84%, #ffffff 16%);
+    }
+
+    .perfil-label {
+      font-size: 0.78rem;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      color: var(--bs-secondary-color, #94a3b8);
+      margin: 0;
+      font-weight: 700;
+    }
+
+    .perfil-value {
+      min-height: 1.2rem;
+      padding: 0;
+      display: block;
+      border: none;
+      background: transparent;
+      color: var(--bs-emphasis-color, #e2e8f0);
+      font-weight: 600;
+      line-height: 1.25;
+      font-size: 1.02rem;
+    }
+
+    .perfil-help {
+      font-size: 0.8rem;
+      color: var(--bs-secondary-color, #94a3b8);
+      margin-top: 0.2rem;
+    }
+  </style>
 </head>
 
 <body id="bodyRoot" class="bg-light app-page">
@@ -31,40 +73,96 @@
   </ul>
 </div>
 
-<div class="container d-flex justify-content-center align-items-center vh-100">
-  <div class="card p-4 shadow" style="width: 450px;">
+<div class="container py-5">
+  <div id="alertContainer" class="mb-3"></div>
 
-    <h3 class="text-center mb-3">Cambiar Contraseña</h3>
-    <p class="text-center text-muted">Por favor, cambia tu contraseña temporal por una contraseña segura</p>
+  <div class="row g-4 justify-content-center">
+    <div class="col-12 col-lg-7">
+      <div class="card p-4 shadow-sm h-100 perfil-card">
+        <h3 class="mb-2" id="perfilTitulo">Mi Perfil</h3>
+        <p class="text-muted mb-3" id="perfilSubtitulo">Consulta tus datos personales y de contacto.</p>
+        <div class="alert alert-info py-2 px-3 mb-4 d-flex align-items-start gap-2" style="font-size:.875rem">
+          <i class="bi bi-info-circle-fill mt-1 flex-shrink-0"></i>
+          <span>Estos datos son de solo lectura. Si necesitas realizar algún cambio, solicita la actualización al administrador.</span>
+        </div>
 
-    <div id="alertContainer"></div>
+        <div id="formPerfil" class="row g-3">
+          <div class="col-md-6 perfil-field">
+            <label class="perfil-label">Usuario</label>
+            <div id="perfilUsuario" class="perfil-value" role="textbox" aria-readonly="true">—</div>
+          </div>
 
-    <div class="mb-3">
-      <label>Contraseña Temporal</label>
-      <input type="password" id="oldPassword" class="form-control" readonly value="Inicial123">
-      <small class="text-muted">Esta es tu contraseña temporal generada.</small>
+          <div class="col-md-6 perfil-field">
+            <label class="perfil-label">Rol</label>
+            <div id="perfilRol" class="perfil-value" role="textbox" aria-readonly="true">—</div>
+          </div>
+
+          <div class="col-md-6 perfil-field">
+            <label class="perfil-label" id="perfilNombreLabel">Nombre</label>
+            <div id="perfilNombre" class="perfil-value" role="textbox" aria-readonly="true">—</div>
+          </div>
+
+          <div class="col-md-6 perfil-field">
+            <label class="perfil-label">Teléfono</label>
+            <div id="perfilTelefono" class="perfil-value" role="textbox" aria-readonly="true">—</div>
+          </div>
+
+          <div class="col-md-6 perfil-field perfil-campo perfil-campo-ayuntamiento" style="display:none">
+            <label class="perfil-label">Provincia</label>
+            <div id="perfilProvincia" class="perfil-value" role="textbox" aria-readonly="true">—</div>
+          </div>
+
+          <div class="col-md-6 perfil-field perfil-campo perfil-campo-ayuntamiento" style="display:none">
+            <label class="perfil-label">Municipio</label>
+            <div id="perfilMunicipio" class="perfil-value" role="textbox" aria-readonly="true">—</div>
+          </div>
+
+          <div class="col-12 perfil-field perfil-campo perfil-campo-ayuntamiento" style="display:none">
+            <label class="perfil-label">Dirección</label>
+            <div id="perfilDireccion" class="perfil-value" role="textbox" aria-readonly="true">—</div>
+          </div>
+
+          <div class="col-12 perfil-field perfil-campo perfil-campo-junta" style="display:none">
+            <label class="perfil-label">Comunidad</label>
+            <div id="perfilComunidad" class="perfil-value" role="textbox" aria-readonly="true">—</div>
+          </div>
+
+
+        </div>
+      </div>
     </div>
 
-    <div class="mb-3">
-      <label>Nueva Contraseña</label>
-      <input type="password" id="newPassword" class="form-control">
-      <small class="text-muted d-block mt-2">Requisitos de contraseña:</small>
-      <small id="reqLength" class="text-danger">✗ Al menos 6 caracteres</small><br>
-      <small id="reqUpper" class="text-danger">✗ Una letra mayúscula</small><br>
-      <small id="reqLower" class="text-danger">✗ Una letra minúscula</small><br>
-      <small id="reqNumber" class="text-danger">✗ Un número</small>
-    </div>
+    <div class="col-12 col-lg-5">
+      <div class="card p-4 shadow-sm h-100">
+        <h3 class="mb-2">Cambiar Contraseña</h3>
+        <p class="text-muted" id="passwordHelpText">Por seguridad, usa una contraseña robusta.</p>
 
-    <div class="mb-3">
-      <label>Confirmar Nueva Contraseña</label>
-      <input type="password" id="confirmPassword" class="form-control">
-    </div>
+        <div class="mb-3">
+          <label>Contraseña Actual</label>
+          <input type="password" id="oldPassword" class="form-control" placeholder="Ingresa tu contraseña actual">
+        </div>
 
-    <div class="d-flex gap-2">
-      <button onclick="cambiarContrasena()" class="btn btn-primary w-100" id="btnCambiar">Cambiar Contraseña</button>
-      <button onclick="logout()" class="btn btn-secondary w-100" id="btnSalir">Cerrar Sesión</button>
-    </div>
+        <div class="mb-3">
+          <label>Nueva Contraseña</label>
+          <input type="password" id="newPassword" class="form-control">
+          <small class="text-muted d-block mt-2">Requisitos de contraseña:</small>
+          <small id="reqLength" class="text-danger">✗ Al menos 6 caracteres</small><br>
+          <small id="reqUpper" class="text-danger">✗ Una letra mayúscula</small><br>
+          <small id="reqLower" class="text-danger">✗ Una letra minúscula</small><br>
+          <small id="reqNumber" class="text-danger">✗ Un número</small>
+        </div>
 
+        <div class="mb-3">
+          <label>Confirmar Nueva Contraseña</label>
+          <input type="password" id="confirmPassword" class="form-control">
+        </div>
+
+        <div class="d-flex gap-2">
+          <button onclick="cambiarContrasena()" class="btn btn-primary w-100" id="btnCambiar">Cambiar Contraseña</button>
+          <button onclick="logout()" class="btn btn-secondary w-100" id="btnSalir">Cerrar Sesión</button>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -72,6 +170,119 @@
 <script src="js/tema.js"></script>
 <script>
 initThemeSelector();
+
+const PERFIL_COLLECTIONS = {
+  admin: "Administradores",
+  ayuntamiento: "Ayuntamientos",
+  junta: "JuntasDeVecinos"
+};
+
+function getRolLabel(rol) {
+  if (rol === "admin") return "Administrador";
+  if (rol === "ayuntamiento") return "Ayuntamiento";
+  if (rol === "junta") return "Junta de Vecinos";
+  return "Usuario";
+}
+
+function toggleCamposPerfil(rol) {
+  document.querySelectorAll(".perfil-campo").forEach((el) => {
+    el.style.display = "none";
+  });
+
+  if (rol === "ayuntamiento") {
+    document.querySelectorAll(".perfil-campo-ayuntamiento").forEach((el) => {
+      el.style.display = "block";
+    });
+  }
+
+  if (rol === "junta") {
+    document.querySelectorAll(".perfil-campo-junta").forEach((el) => {
+      el.style.display = "block";
+    });
+  }
+
+  const nombreLabel = document.getElementById("perfilNombreLabel");
+  if (nombreLabel) {
+    if (rol === "ayuntamiento") nombreLabel.textContent = "Nombre del Ayuntamiento";
+    else if (rol === "junta") nombreLabel.textContent = "Nombre de la Junta";
+    else nombreLabel.textContent = "Nombre";
+  }
+}
+
+async function obtenerDocPerfil(uid, rol) {
+  const colPreferida = PERFIL_COLLECTIONS[rol];
+  if (colPreferida) {
+    const refPreferida = db.collection(colPreferida).doc(uid);
+    const snapPreferida = await refPreferida.get();
+    if (snapPreferida.exists) {
+      return { ref: refPreferida, data: snapPreferida.data() || {}, rolFinal: rol, collectionName: colPreferida };
+    }
+  }
+
+  const orden = ["Administradores", "Ayuntamientos", "JuntasDeVecinos"];
+  for (const col of orden) {
+    const ref = db.collection(col).doc(uid);
+    const snap = await ref.get();
+    if (snap.exists) {
+      const data = snap.data() || {};
+      const rolFinal = data.rol || (col === "Administradores" ? "admin" : col === "Ayuntamientos" ? "ayuntamiento" : "junta");
+      return { ref, data, rolFinal, collectionName: col };
+    }
+  }
+
+  return null;
+}
+
+let perfilContext = { docRef: null, rol: "", data: {} };
+
+async function cargarPerfil() {
+  const uid = localStorage.getItem("uid");
+  const rol = localStorage.getItem("rol");
+  const usuario = localStorage.getItem("usuario") || "";
+  const primerLogin = localStorage.getItem("primerLogin") === "true";
+
+  if (!uid) {
+    window.location.href = "index.html";
+    return;
+  }
+
+  const perfil = await obtenerDocPerfil(uid, rol);
+  if (!perfil) {
+    mostrarError("No se pudo cargar el perfil del usuario.");
+    return;
+  }
+
+  const rolFinal = perfil.rolFinal || rol || "";
+  localStorage.setItem("rol", rolFinal);
+
+  perfilContext = { docRef: perfil.ref, rol: rolFinal, data: perfil.data || {} };
+
+  const usuarioDoc = perfil.data.usuario || usuario;
+  function setPerfilTexto(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value && String(value).trim() ? String(value) : "—";
+  }
+
+  setPerfilTexto("perfilUsuario", usuarioDoc);
+  setPerfilTexto("perfilRol", getRolLabel(rolFinal));
+  setPerfilTexto("perfilNombre", perfil.data.nombre);
+  setPerfilTexto("perfilTelefono", perfil.data.telefono);
+  setPerfilTexto("perfilProvincia", perfil.data.provincia);
+  setPerfilTexto("perfilMunicipio", perfil.data.municipio);
+  setPerfilTexto("perfilDireccion", perfil.data.direccion);
+  setPerfilTexto("perfilComunidad", perfil.data.comunidad);
+
+  toggleCamposPerfil(rolFinal);
+
+  const perfilSubtitulo = document.getElementById("perfilSubtitulo");
+  const oldPasswordGroup = document.getElementById("oldPasswordGroup");
+  const passwordHelpText = document.getElementById("passwordHelpText");
+
+  if (primerLogin) {
+    if (perfilSubtitulo) perfilSubtitulo.textContent = "Completa tu perfil y cambia la contraseña temporal para continuar.";
+    if (passwordHelpText) passwordHelpText.textContent = "Debes cambiar tu contraseña temporal para terminar tu primer acceso.";
+  }
+}
 
 // Funciones para mostrar mensajes
 function mostrarExito(mensaje) {
@@ -110,13 +321,11 @@ const db = firebase.firestore(app);
 
 // Validar que el usuario esté autenticado
 window.addEventListener("DOMContentLoaded", async () => {
-  const uid = localStorage.getItem("uid");
-  const usuario = localStorage.getItem("usuario");
-  const primerLogin = localStorage.getItem("primerLogin");
-
-  if (!uid || primerLogin !== "true") {
-    window.location.href = "index.html";
-    return;
+  try {
+    await cargarPerfil();
+  } catch (error) {
+    console.error("Error inicializando la pantalla de perfil:", error);
+    mostrarError("No fue posible cargar el perfil. Verifica tu sesión e intenta de nuevo.");
   }
 
   // Monitorear cambios de contraseña
@@ -138,9 +347,15 @@ window.addEventListener("DOMContentLoaded", async () => {
 
 // Cambiar contraseña
 window.cambiarContrasena = async function () {
+  const oldPassword = document.getElementById("oldPassword").value;
   const newPassword = document.getElementById("newPassword").value;
   const confirmPassword = document.getElementById("confirmPassword").value;
   const uid = localStorage.getItem("uid");
+
+  if (!oldPassword) {
+    mostrarError("Debes ingresar tu contraseña actual.");
+    return;
+  }
 
   if (!newPassword || !confirmPassword) {
     mostrarError("Debes ingresar la nueva contraseña.");
@@ -179,6 +394,10 @@ window.cambiarContrasena = async function () {
       return;
     }
 
+    // Reautenticar con la contraseña actual antes de cambiar
+    const credential = firebase.auth.EmailAuthProvider.credential(user.email, oldPassword);
+    await user.reauthenticateWithCredential(credential);
+
     // Cambiar contraseña en Firebase Auth
     await user.updatePassword(newPassword);
 
@@ -214,8 +433,12 @@ window.cambiarContrasena = async function () {
     let mensaje = "Error al cambiar contraseña";
     if (error.code === "auth/weak-password") {
       mensaje = "La contraseña es muy débil";
+    } else if (error.code === "auth/wrong-password" || error.code === "auth/invalid-credential") {
+      mensaje = "La contraseña actual es incorrecta";
     } else if (error.code === "auth/requires-recent-login") {
       mensaje = "Debes iniciar sesión nuevamente para cambiar tu contraseña";
+    } else if (error.code === "auth/too-many-requests") {
+      mensaje = "Demasiados intentos fallidos. Intenta más tarde";
     }
     mostrarError(mensaje);
   }
@@ -242,6 +465,8 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 });
 </script>
+<script src="js/i18n.js"></script>
+<script src="js/perfil-menu.js"></script>
 
 </body>
 </html>
