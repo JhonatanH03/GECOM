@@ -159,8 +159,12 @@ app.use(cors({
 }));
 app.use(express.json());
 
-app.get("/health", (_req, res) => {
-  res.json({ ok: true });
+app.get("/", (_req, res) => {
+  let date = new Date();
+  res.json({ 
+    status: `Server Running in PORT: ${PORT}`,
+    date: date
+  });
 });
 
 app.post("/api/password-resets/generic", verifyCaller, async (req, res, next) => {
