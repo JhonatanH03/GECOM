@@ -1,4 +1,5 @@
 import app from "./firebase.js";
+import { debounce } from "./constants.js";
 import {
   getFirestore,
   collection,
@@ -189,10 +190,10 @@ window.addEventListener("DOMContentLoaded", () => {
   onAuthStateChanged(auth, (user) => {
     if (user && user.uid === uid) {
       cargarPagina();
-      document.getElementById("filtroEstado").addEventListener("change", () => {
+      document.getElementById("filtroEstado").addEventListener("change", debounce(() => {
         resetPaginacion();
         cargarPagina();
-      });
+      }, 300));
     } else {
       window.location.href = "index.html";
     }

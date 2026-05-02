@@ -1,4 +1,5 @@
 import app from "./firebase.js";
+import { ESTADOS, ESTADO_DEFAULT } from "./constants.js";
 import {
   getFirestore,
   collection,
@@ -22,6 +23,7 @@ const rolLocal = localStorage.getItem("rol");
 const db = getFirestore(app);
 const auth = getAuth(app);
 let ultimoConteoSinLeer = 0;
+let _unsubscribeNotificaciones = null;
 
 function getIdiomaUI() {
   return (localStorage.getItem("idioma") || "es") === "en" ? "en" : "es";
@@ -212,8 +214,14 @@ function renderizarNotificaciones(items) {
 function iniciarSuscripcionNotificaciones() {
   if (!uid || rolLocal !== "junta") return;
 
+  // Limpiar listener anterior para evitar duplicados y memory leaks
+  if (_unsubscribeNotificaciones) {
+    _unsubscribeNotificaciones();
+    _unsubscribeNotificaciones = null;
+  }
+
   const q = query(collection(db, "notificaciones"), where("receptorUid", "==", uid));
-  onSnapshot(q, (snap) => {
+  _unsubscribeNotificaciones = onSnapshot(q, (snap) => {
     const items = snap.docs
       .map((docSnap) => ({ id: docSnap.id, ...(docSnap.data() || {}) }))
       .sort((a, b) => {
@@ -296,10 +304,10 @@ function iniciarSuscripcionNotificaciones() {
 
   function actualizarKpiVisual(resumen) {
     const asignaciones = {
-      kpiPendiente: resumen.Pendiente || 0,
-      kpiProceso: resumen["En proceso"] || 0,
-      kpiResuelta: resumen.Resuelta || 0,
-      kpiRechazada: resumen.Rechazada || 0
+      kpiPendiente: resumen[ESTADOS.PENDIENTE] || 0,
+      kpiProceso: resumen[ESTADOS.EN_PROCESO] || 0,
+      kpiResuelta: resumen[ESTADOS.RESUELTA] || 0,
+      kpiRechazada: resumen[ESTADOS.RECHAZADA] || 0
     };
 
     Object.entries(asignaciones).forEach(([id, valor]) => {
@@ -310,14 +318,14 @@ function iniciarSuscripcionNotificaciones() {
 
   function contarEstadosDesdeDocs(docs) {
     const resumen = {
-      Pendiente: 0,
-      "En proceso": 0,
-      Resuelta: 0,
-      Rechazada: 0
+      [ESTADOS.PENDIENTE]: 0,
+      [ESTADOS.EN_PROCESO]: 0,
+      [ESTADOS.RESUELTA]: 0,
+      [ESTADOS.RECHAZADA]: 0
     };
 
     docs.forEach((docSnap) => {
-      const estado = String(docSnap.data()?.estado || "Pendiente").trim();
+      const estado = String(docSnap.data()?.estado || ESTADO_DEFAULT).trim();
       if (resumen[estado] !== undefined) resumen[estado] += 1;
     });
 
