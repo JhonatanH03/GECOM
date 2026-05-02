@@ -227,18 +227,55 @@ window.login = async function () {
       return;
     }
 
-    // Buscar el email real del usuario en loginIndex (colección pública de solo lectura)
+    // Buscar y probar emails candidatos en orden de probabilidad.
+    // Esto evita fallos cuando loginIndex no existe o cuando el usuario escribe su correo directamente.
     try {
-      let emailReal = null;
+      const emailsCandidatos = [];
+      const agregarEmail = (email) => {
+        const normalizado = (email || "").trim().toLowerCase();
+        if (!normalizado) return;
+        if (!emailsCandidatos.includes(normalizado)) {
+          emailsCandidatos.push(normalizado);
+        }
+      };
+
+      // Si el usuario escribió un correo, usarlo como primera opción
+      if (usuarioNormalizado.includes("@")) {
+        agregarEmail(usuarioNormalizado);
+      }
+
+      // Si hay índice de login, priorizar ese correo
       const loginDoc = await db.collection("loginIndex").doc(usuarioNormalizado).get();
       if (loginDoc.exists) {
-        emailReal = loginDoc.data().email || null;
+        agregarEmail(loginDoc.data().email || null);
       }
-      // Si no se encontró en loginIndex, intentar con el email derivado (usuarios admin legacy)
-      if (!emailReal) {
-        emailReal = usuarioNormalizado.replace(/[^a-z0-9_]/g, '') + '@gecom.internal';
+
+      // Fallback para usuarios legacy por nombre de usuario
+      if (!usuarioNormalizado.includes("@")) {
+        agregarEmail(usuarioNormalizado.replace(/[^a-z0-9_]/g, '') + '@gecom.internal');
       }
-      const userCredential = await auth.signInWithEmailAndPassword(emailReal, password);
+
+      let userCredential = null;
+      let ultimoError = null;
+
+      for (const email of emailsCandidatos) {
+        try {
+          userCredential = await auth.signInWithEmailAndPassword(email, password);
+          break;
+        } catch (err) {
+          // Probar siguiente email solo cuando el error indica credenciales inválidas
+          if (err?.code === "auth/invalid-credential" || err?.code === "auth/user-not-found" || err?.code === "auth/wrong-password") {
+            ultimoError = err;
+            continue;
+          }
+          throw err;
+        }
+      }
+
+      if (!userCredential) {
+        throw (ultimoError || new Error("No fue posible autenticar con los emails candidatos."));
+      }
+
       const perfil = await obtenerPerfilPorUid(userCredential.user.uid);
 
       if (!perfil) {
@@ -280,6 +317,8 @@ window.login = async function () {
         mensaje = "Usuario deshabilitado";
       } else if (authError.code === "auth/too-many-requests") {
         mensaje = "Demasiados intentos. Intenta más tarde.";
+      } else if (authError.code === "auth/user-not-found") {
+        mensaje = "Usuario no encontrado.";
       } else if (authError.code === "auth/internal-error" || authError.code === "auth/invalid-credential") {
         mensaje = "Usuario o contraseña incorrectos.";
       } else if (authError.code === "permission-denied" || authError.code === "failed-precondition") {
