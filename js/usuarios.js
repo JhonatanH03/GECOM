@@ -20,6 +20,10 @@ const provinciaSelect = document.getElementById("provincia");
 const municipioSelect = document.getElementById("municipio");
 const provincias = {};
 
+function usuarioAEmailInterno(usuario) {
+  return String(usuario || "").trim().toLowerCase().replace(/[^a-z0-9_]/g, "") + "@gecom.internal";
+}
+
 function generarContrasenaTemporal(length = 12) {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%";
   const cryptoApi = window.crypto || window.msCrypto;
@@ -75,7 +79,7 @@ form.addEventListener("submit", async (event) => {
   const usuarioId = usuarioIdInput.value;
   const nombre = document.getElementById("nombre").value.trim();
   const usuario = document.getElementById("usuario").value.trim();
-  const correo = document.getElementById("correo").value.trim() || (usuario.toLowerCase().replace(/[^a-z0-9_]/g, '') + '@gecom.internal');
+  const emailInterno = usuarioAEmailInterno(usuario);
   const telefono = document.getElementById("telefono").value.trim();
   const nombreEncargado = document.getElementById("nombreEncargado").value.trim();
   const cedula = document.getElementById("cedula").value.trim();
@@ -103,7 +107,6 @@ form.addEventListener("submit", async (event) => {
   const usuarioData = {
     nombre,
     usuario,
-    correo,
     rol: "junta",
     telefono,
     nombreEncargado,
@@ -136,7 +139,7 @@ form.addEventListener("submit", async (event) => {
 
       // Crear nueva junta con contraseña temporal aleatoria.
       const contrasenaTemporal = generarContrasenaTemporal();
-      const credential = await createUserWithEmailAndPassword(auth, correo, contrasenaTemporal);
+      const credential = await createUserWithEmailAndPassword(auth, emailInterno, contrasenaTemporal);
       const nuevoUid = credential.user.uid;
       await setDoc(doc(db, "JuntasDeVecinos", nuevoUid), {
         ...usuarioData,
@@ -157,7 +160,7 @@ form.addEventListener("submit", async (event) => {
   } catch (error) {
     console.error("Error al guardar usuario:", error);
     if (error.code === "auth/email-already-in-use") {
-      showModalAlert("El correo ya está en uso.", "danger");
+      showModalAlert("No se puede crear: el usuario ya existe.", "danger");
       return;
     }
     showModalAlert(error.message || "No se pudo guardar la junta.", "danger");
@@ -193,7 +196,7 @@ function actualizarMunicipios() {
 }
 
 async function cargarUsuarios() {
-  const _skRow10 = `<tr class="skeleton-row">
+  const _skRow9 = `<tr class="skeleton-row">
     <td><span class="skeleton-cell skeleton-wide"></span></td>
     <td><span class="skeleton-cell skeleton-medium"></span></td>
     <td><span class="skeleton-cell skeleton-wide"></span></td>
@@ -203,14 +206,13 @@ async function cargarUsuarios() {
     <td><span class="skeleton-cell skeleton-medium"></span></td>
     <td><span class="skeleton-cell skeleton-medium"></span></td>
     <td><span class="skeleton-cell skeleton-pill"></span></td>
-    <td><span class="skeleton-cell skeleton-btn"></span></td>
   </tr>`;
-  usuariosBody.innerHTML = _skRow10.repeat(5);
+  usuariosBody.innerHTML = _skRow9.repeat(5);
 
   try {
     const snapshot = await getDocs(collection(db, "JuntasDeVecinos"));
     if (snapshot.empty) {
-      usuariosBody.innerHTML = '<tr class="table-feedback-row"><td colspan="10"><div class="empty-state">No hay juntas registradas.</div></td></tr>';
+      usuariosBody.innerHTML = '<tr class="table-feedback-row"><td colspan="9"><div class="empty-state">No hay juntas registradas.</div></td></tr>';
       return;
     }
 
@@ -228,7 +230,6 @@ async function cargarUsuarios() {
       fila.innerHTML = `
         <td data-label="Nombre de la Junta">${escapeHtml(data.nombre)}</td>
         <td data-label="Usuario">${escapeHtml(data.usuario || "")}</td>
-        <td data-label="Correo" style="display:none">${escapeHtml(data.correo)}</td>
         <td data-label="Cédula">${escapeHtml(data.cedula)}</td>
         <td data-label="Teléfono">${escapeHtml(data.telefono)}</td>
         <td data-label="Provincia">${escapeHtml(data.provincia)}</td>
@@ -248,7 +249,7 @@ async function cargarUsuarios() {
     });
   } catch (error) {
     console.error("Error al cargar usuarios:", error);
-    usuariosBody.innerHTML = '<tr class="table-feedback-row"><td colspan="10"><div class="empty-state text-danger">No se pudo cargar la lista.</div></td></tr>';
+    usuariosBody.innerHTML = '<tr class="table-feedback-row"><td colspan="9"><div class="empty-state text-danger">No se pudo cargar la lista.</div></td></tr>';
   }
 }
 
@@ -264,7 +265,6 @@ window.editarUsuario = async function editarUsuario(id) {
     usuarioIdInput.value = id;
     document.getElementById("nombre").value = data.nombre || "";
     document.getElementById("usuario").value = data.usuario || "";
-    document.getElementById("correo").value = data.correo || "";
     document.getElementById("telefono").value = data.telefono || "";
     document.getElementById("nombreEncargado").value = data.nombreEncargado || "";
     document.getElementById("cedula").value = data.cedula || "";

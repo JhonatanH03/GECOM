@@ -28,6 +28,10 @@ let municipioAyuntamiento = null;
 const municipiosSelect = document.getElementById("municipio");
 const provinciaSelect = document.getElementById("provincia");
 
+function usuarioAEmailInterno(usuario) {
+  return String(usuario || "").trim().toLowerCase().replace(/[^a-z0-9_]/g, "") + "@gecom.internal";
+}
+
 function generarContrasenaTemporal(length = 12) {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%";
   const cryptoApi = window.crypto || window.msCrypto;
@@ -171,7 +175,7 @@ form.addEventListener("submit", async (event) => {
   const juntaId = juntaIdInput.value;
   const nombre = document.getElementById("nombre").value.trim();
   const usuario = document.getElementById("usuario").value.trim();
-  const correo = document.getElementById("correo").value.trim() || (usuario.toLowerCase().replace(/[^a-z0-9_]/g, '') + '@gecom.internal');
+  const emailInterno = usuarioAEmailInterno(usuario);
   const telefono = document.getElementById("telefono").value.trim();
   const comunidad = document.getElementById("comunidad").value.trim();
   const provincia = document.getElementById("provincia").value;
@@ -201,7 +205,6 @@ form.addEventListener("submit", async (event) => {
       const juntaData = {
         nombre,
         usuario,
-        correo,
         telefono,
         comunidad,
         provincia: provinciaFinal,
@@ -227,13 +230,12 @@ form.addEventListener("submit", async (event) => {
       const contrasenaTemporal = generarContrasenaTemporal();
       
       // Crear usuario en Firebase Auth
-      const credential = await auth.createUserWithEmailAndPassword(correo, contrasenaTemporal);
+      const credential = await auth.createUserWithEmailAndPassword(emailInterno, contrasenaTemporal);
       const nuevoUid = credential.user.uid;
       
       const juntaData = {
         nombre,
         usuario,
-        correo,
         rol: "junta",
         telefono,
         comunidad,
@@ -263,7 +265,7 @@ form.addEventListener("submit", async (event) => {
   } catch (error) {
     console.error("ERROR:", error);
     if (error.code === "auth/email-already-in-use") {
-      showModalAlert("El correo ya está en uso.", "danger");
+      showModalAlert("No se puede crear: el usuario ya existe.", "danger");
     } else if (error.code === "auth/weak-password") {
       showModalAlert("Error con la contraseña temporal. Contacta al administrador.", "danger");
     } else {
@@ -273,7 +275,7 @@ form.addEventListener("submit", async (event) => {
 });
 
 async function cargarJuntas() {
-  const _skRow8 = `<tr class="skeleton-row">
+  const _skRow7 = `<tr class="skeleton-row">
     <td><span class="skeleton-cell skeleton-wide"></span></td>
     <td><span class="skeleton-cell skeleton-medium"></span></td>
     <td><span class="skeleton-cell skeleton-wide"></span></td>
@@ -281,16 +283,15 @@ async function cargarJuntas() {
     <td><span class="skeleton-cell skeleton-medium"></span></td>
     <td><span class="skeleton-cell skeleton-medium"></span></td>
     <td><span class="skeleton-cell skeleton-pill"></span></td>
-    <td><span class="skeleton-cell skeleton-btn"></span></td>
   </tr>`;
-  juntasBody.innerHTML = _skRow8.repeat(5);
+  juntasBody.innerHTML = _skRow7.repeat(5);
   try {
     const snapshot = rolLocal === "admin"
       ? await db.collection("JuntasDeVecinos").get()
       : await db.collection("JuntasDeVecinos").where("creada_por", "==", uid).get();
     
     if (snapshot.empty) {
-      juntasBody.innerHTML = '<tr class="table-feedback-row"><td colspan="8"><div class="empty-state">No hay juntas registradas en tu alcance.</div></td></tr>';
+      juntasBody.innerHTML = '<tr class="table-feedback-row"><td colspan="7"><div class="empty-state">No hay juntas registradas en tu alcance.</div></td></tr>';
       return;
     }
     
@@ -305,7 +306,7 @@ async function cargarJuntas() {
     juntas.sort((a, b) => (a.nombre || "").toLowerCase().localeCompare((b.nombre || "").toLowerCase()));
 
     if (!juntas.length) {
-      juntasBody.innerHTML = '<tr class="table-feedback-row"><td colspan="8"><div class="empty-state">No hay juntas en tu territorio.</div></td></tr>';
+      juntasBody.innerHTML = '<tr class="table-feedback-row"><td colspan="7"><div class="empty-state">No hay juntas en tu territorio.</div></td></tr>';
       return;
     }
 
@@ -317,7 +318,6 @@ async function cargarJuntas() {
       juntasBody.innerHTML += `<tr>
         <td data-label="Nombre">${escapeHtml(data.nombre)}</td>
         <td data-label="Usuario">${escapeHtml(data.usuario || "")}</td>
-        <td data-label="Correo" style="display:none">${escapeHtml(data.correo)}</td>
         <td data-label="Teléfono">${escapeHtml(data.telefono || "")}</td>
         <td data-label="Ubicación">${escapeHtml((data.provincia || "") + " / " + (data.municipio || ""))}</td>
         <td data-label="Comunidad">${escapeHtml(data.comunidad || "")}</td>
@@ -331,7 +331,7 @@ async function cargarJuntas() {
     });
   } catch (error) {
     console.error("Error al cargar juntas:", error);
-    juntasBody.innerHTML = '<tr class="table-feedback-row"><td colspan="8"><div class="empty-state text-danger">Error al cargar juntas.</div></td></tr>';
+    juntasBody.innerHTML = '<tr class="table-feedback-row"><td colspan="7"><div class="empty-state text-danger">Error al cargar juntas.</div></td></tr>';
   }
 }
 
@@ -363,7 +363,6 @@ window.editarJunta = async function(id) {
     juntaIdInput.value = id;
     document.getElementById("nombre").value = data.nombre || "";
     document.getElementById("usuario").value = data.usuario || "";
-    document.getElementById("correo").value = data.correo || "";
     document.getElementById("telefono").value = data.telefono || "";
     document.getElementById("comunidad").value = data.comunidad || "";
     document.getElementById("cedula").value = data.cedula || "";
