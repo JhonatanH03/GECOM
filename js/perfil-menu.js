@@ -74,7 +74,6 @@
   }
 
   function doLogout() {
-    if (!confirm("¿Cerrar sesión?")) return;
     if (typeof window.logout === "function") {
       window.logout();
     } else {
