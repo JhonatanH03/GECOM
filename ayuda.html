@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="es" id="htmlRoot">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GECOM - Ayuda</title>
+  <link rel="icon" href="assets/LOGO GECOM PNG.png" type="image/png">
+
+  <!-- Bootstrap -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="stylesheet" href="css/animate.min.css">
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/guard.js"></script>
+
+  <style>
+    .ayuda-search-wrap {
+      position: relative;
+      max-width: 480px;
+    }
+
+    .ayuda-search-wrap .bi-search {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--gecom-subtext);
+      pointer-events: none;
+    }
+
+    #buscadorAyuda {
+      padding-left: 2.4rem;
+      border-radius: 10px;
+    }
+
+    /* Tab pills */
+    .ayuda-tabs .nav-link {
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 0.88rem;
+      padding: 7px 16px;
+      border: 1px solid transparent;
+    }
+    .ayuda-tabs .nav-link.active {
+      background: #0d6efd;
+      color: #fff;
+      border-color: #0d6efd;
+    }
+
+    /* Accordion */
+    .ayuda-accordion .accordion-item {
+      border-radius: 12px !important;
+      margin-bottom: 10px;
+      overflow: hidden;
+    }
+
+    .ayuda-accordion .accordion-button {
+      font-weight: 700;
+      font-size: 0.97rem;
+      border-radius: 12px !important;
+      gap: 10px;
+    }
+
+    .ayuda-accordion .accordion-button:not(.collapsed) {
+      color: #0d6efd;
+      box-shadow: none;
+    }
+
+    .ayuda-accordion .accordion-body {
+      font-size: 0.92rem;
+      line-height: 1.7;
+      padding: 1rem 1.5rem 1.2rem;
+    }
+
+    .step-list {
+      list-style: none;
+      padding: 0;
+      margin: 0.5rem 0 0;
+    }
+
+    .step-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .step-num {
+      min-width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #0d6efd;
+      color: #fff;
+      font-size: 0.75rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      border-radius: 20px;
+      padding: 3px 10px;
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+
+    .badge-pendiente  { background: rgba(255,193,7,.18);  color: #a07800; }
+    .badge-proceso    { background: rgba(13,110,253,.14); color: #0d6efd; }
+    .badge-resuelta   { background: rgba(25,135,84,.14);  color: #198754; }
+    .badge-rechazada  { background: rgba(220,53,69,.14);  color: #dc3545; }
+
+    [data-bs-theme="dark"] .badge-pendiente  { color: #ffc107; }
+    [data-bs-theme="dark"] .badge-proceso    { color: #6ea8fe; }
+    [data-bs-theme="dark"] .badge-resuelta   { color: #75b798; }
+    [data-bs-theme="dark"] .badge-rechazada  { color: #ea868f; }
+
+    .sin-resultados {
+      display: none;
+      text-align: center;
+      padding: 3rem 0;
+    }
+  </style>
+</head>
+
+<body id="bodyRoot" class="bg-light app-page">
+
+<div class="container mt-5" style="max-width: 860px; padding-bottom: 2rem;">
+
+  <!-- Header -->
+  <div class="mb-4 d-flex justify-content-between align-items-center">
+    <a href="dashboard.html" class="btn btn-secondary">
+      <i class="bi bi-arrow-left"></i> Volver al Dashboard
+    </a>
+    <h4 class="mb-0"><i class="bi bi-question-circle-fill me-2 text-primary"></i>Centro de Ayuda</h4>
+    <div class="dropdown">
+      <button id="btnPaletaTema" class="btn btn-outline-dark btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Elegir tema">
+        🎨
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end" id="menuTema">
+        <li><a class="dropdown-item" href="#" data-tema="claro">☀️ Claro</a></li>
+        <li><a class="dropdown-item" href="#" data-tema="oscuro">🌙 Oscuro</a></li>
+        <li><a class="dropdown-item" href="#" data-tema="sistema">💻 Sistema</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Buscador -->
+  <div class="ayuda-search-wrap mb-4">
+    <i class="bi bi-search"></i>
+    <input type="search" id="buscadorAyuda" class="form-control" placeholder="Buscar en la ayuda…" autocomplete="off">
+  </div>
+
+  <!-- Tabs -->
+  <ul class="nav ayuda-tabs flex-wrap gap-2 mb-4" id="ayudaTabs" role="tablist">
+    <li class="nav-item">
+      <button class="nav-link active" data-tab="todos"><i class="bi bi-grid me-1"></i>Todos</button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" data-tab="general"><i class="bi bi-person me-1"></i>General</button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" data-tab="junta"><i class="bi bi-people-fill me-1"></i>Junta de Vecinos</button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" data-tab="ayuntamiento"><i class="bi bi-building me-1"></i>Ayuntamiento</button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" data-tab="admin"><i class="bi bi-shield-lock me-1"></i>Administrador</button>
+    </li>
+  </ul>
+
+  <!-- Acordeón de ayuda -->
+  <div class="ayuda-accordion accordion" id="acordeonAyuda">
+
+    <!-- ══════════ GENERAL ══════════ -->
+    <div class="accordion-item" data-tab="general" data-keywords="iniciar sesión login contraseña acceso">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#q1">
+          <i class="bi bi-box-arrow-in-right me-2"></i>¿Cómo inicio sesión?
+        </button>
+      </h2>
+      <div id="q1" class="accordion-collapse collapse" data-bs-parent="">
+        <div class="accordion-body">
+          <ol class="step-list">
+            <li><span class="step-num">1</span><span>En la pantalla de inicio escribe tu <strong>usuario</strong> y <strong>contraseña</strong>.</span></li>
+            <li><span class="step-num">2</span><span>Haz clic en <strong>Iniciar sesión</strong>. El sistema detectará tu rol automáticamente.</span></li>
+            <li><span class="step-num">3</span><span>Serás redirigido al <strong>Panel Principal</strong> correspondiente a tu perfil.</span></li>
+          </ol>
+          <p class="mt-2 mb-0"><i class="bi bi-info-circle me-1 text-primary"></i>Si no recuerdas tu contraseña, contacta al administrador del sistema.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="accordion-item" data-tab="general" data-keywords="cambiar contraseña password seguridad">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#q2">
+          <i class="bi bi-key-fill me-2"></i>¿Cómo cambio mi contraseña?
+        </button>
+      </h2>
+      <div id="q2" class="accordion-collapse collapse" data-bs-parent="">
+        <div class="accordion-body">
+          <ol class="step-list">
+            <li><span class="step-num">1</span><span>Desde el <strong>Panel Principal</strong>, accede a <strong>Cambiar Contraseña</strong> en el menú de perfil.</span></li>
+            <li><span class="step-num">2</span><span>Ingresa tu contraseña <strong>actual</strong> y luego la <strong>nueva contraseña</strong> dos veces.</span></li>
+            <li><span class="step-num">3</span><span>La nueva contraseña debe tener al menos 8 caracteres. Haz clic en <strong>Guardar</strong>.</span></li>
+          </ol>
+        </div>
+      </div>
+    </div>
+
+    <div class="accordion-item" data-tab="general" data-keywords="tema oscuro claro sistema idioma español inglés">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#q3">
+          <i class="bi bi-palette-fill me-2"></i>¿Cómo cambio el tema o el idioma?
+        </button>
+      </h2>
+      <div id="q3" class="accordion-collapse collapse" data-bs-parent="">
+        <div class="accordion-body">
+          <p><strong>Tema:</strong> Haz clic en el botón 🎨 en la esquina superior derecha y selecciona:</p>
+          <ul class="mb-2">
+            <li>☀️ <strong>Claro</strong> — fondo blanco</li>
+            <li>🌙 <strong>Oscuro</strong> — fondo oscuro</li>
+            <li>💻 <strong>Sistema</strong> — sigue la configuración de tu dispositivo</li>
+          </ul>
+          <p class="mb-0"><strong>Idioma:</strong> Usa el selector de idioma disponible en el panel para alternar entre <strong>Español</strong> e <strong>Inglés</strong>.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="accordion-item" data-tab="general" data-keywords="estados denuncia pendiente proceso resuelta rechazada significado">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#q4">
+          <i class="bi bi-tags-fill me-2"></i>¿Qué significa cada estado de denuncia?
+        </button>
+      </h2>
+      <div id="q4" class="accordion-collapse collapse" data-bs-parent="">
+        <div class="accordion-body">
+          <div class="d-flex flex-wrap gap-2 mb-3">
+            <span class="status-badge badge-pendiente"><i class="bi bi-hourglass-split"></i>Pendiente</span>
+            <span class="status-badge badge-proceso"><i class="bi bi-arrow-repeat"></i>En proceso</span>
+            <span class="status-badge badge-resuelta"><i class="bi bi-check-circle"></i>Resuelta</span>
+            <span class="status-badge badge-rechazada"><i class="bi bi-x-circle"></i>Rechazada</span>
+          </div>
+          <ul class="mb-0">
+            <li><strong>Pendiente:</strong> La denuncia fue registrada pero aún no ha sido atendida.</li>
+            <li><strong>En proceso:</strong> Un responsable ya está gestionando el caso.</li>
+            <li><strong>Resuelta:</strong> El problema fue atendido y cerrado satisfactoriamente.</li>
+            <li><strong>Rechazada:</strong> La denuncia no procedió, ya sea por duplicado, error o falta de información.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════ JUNTA DE VECINOS ══════════ -->
+    <div class="accordion-item" data-tab="junta" data-keywords="registrar crear nueva denuncia incidencia junta vecinos">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#q5">
+          <i class="bi bi-plus-circle-fill me-2"></i>¿Cómo registro una nueva denuncia?
+        </button>
+      </h2>
+      <div id="q5" class="accordion-collapse collapse" data-bs-parent="">
+        <div class="accordion-body">
+          <ol class="step-list">
+            <li><span class="step-num">1</span><span>En el panel, haz clic en <strong>Registrar Denuncia</strong>.</span></li>
+            <li><span class="step-num">2</span><span>Completa los campos: <strong>título</strong>, <strong>descripción</strong>, <strong>categoría</strong> y <strong>ubicación</strong>.</span></li>
+            <li><span class="step-num">3</span><span>(Opcional) Adjunta una <strong>imagen</strong> como evidencia usando el botón de carga de archivo.</span></li>
+            <li><span class="step-num">4</span><span>Haz clic en <strong>Enviar denuncia</strong>. El estado inicial será <em>Pendiente</em>.</span></li>
+          </ol>
+          <p class="mt-2 mb-0"><i class="bi bi-lightbulb me-1 text-warning"></i>Las imágenes se almacenan en la nube. Asegúrate de que sean claras y relevantes al caso.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="accordion-item" data-tab="junta" data-keywords="ver consultar estado denuncia lista junta vecinos">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#q6">
+          <i class="bi bi-list-ul me-2"></i>¿Cómo consulto mis denuncias?
+        </button>
+      </h2>
+      <div id="q6" class="accordion-collapse collapse" data-bs-parent="">
+        <div class="accordion-body">
+          <ol class="step-list">
+            <li><span class="step-num">1</span><span>Haz clic en <strong>Ver Denuncias</strong> desde el Panel Principal.</span></li>
+            <li><span class="step-num">2</span><span>Verás el listado de todas las denuncias registradas por tu junta con su estado actual.</span></li>
+            <li><span class="step-num">3</span><span>Haz clic en una denuncia para ver su <strong>detalle completo</strong>, incluyendo respuestas y evidencia.</span></li>
+          </ol>
+          <p class="mt-2 mb-0">Las tarjetas de KPI en la parte superior del panel muestran un resumen rápido por estado.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="accordion-item" data-tab="junta" data-keywords="historial cambios seguimiento auditoría junta">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#q7">
+          <i class="bi bi-clock-history me-2"></i>¿Qué es el Historial de Cambios?
+        </button>
+      </h2>
+      <div id="q7" class="accordion-collapse collapse" data-bs-parent="">
+        <div class="accordion-body">
+          <p>El historial registra cada vez que el <strong>estado de una denuncia cambia</strong>, incluyendo:</p>
+          <ul class="mb-2">
+            <li>Estado anterior y nuevo estado</li>
+            <li>Fecha y hora del cambio</li>
+            <li>Usuario responsable del cambio</li>
+          </ul>
+          <p class="mb-0">Accede desde el panel con <strong>Historial de Cambios</strong>. Útil para auditoría y seguimiento de casos.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="accordion-item" data-tab="junta" data-keywords="panel junta perfil datos comunidad editar">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#q8">
+          <i class="bi bi-gear-fill me-2"></i>¿Qué puedo hacer en el Panel Junta?
+        </button>
+      </h2>
+      <div id="q8" class="accordion-collapse collapse" data-bs-parent="">
+        <div class="accordion-body">
+          <p>El <strong>Panel Junta</strong> te permite gestionar la información operativa de tu junta de vecinos:</p>
+          <ul class="mb-0">
+            <li>Ver y editar los <strong>datos del perfil</strong> de la junta</li>
+            <li>Consultar la <strong>comunidad y municipio</strong> asignado</li>
+            <li>Revisar el <strong>representante</strong> y datos de contacto</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════ AYUNTAMIENTO ══════════ -->
+    <div class="accordion-item" data-tab="ayuntamiento" data-keywords="gestionar juntas supervisar territorio ayuntamiento">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#q9">
+          <i class="bi bi-diagram-3-fill me-2"></i>¿Cómo gestiono las juntas de vecinos?
+        </button>
+      </h2>
+      <div id="q9" class="accordion-collapse collapse" data-bs-parent="">
+        <div class="accordion-body">
+          <ol class="step-list">
+            <li><span class="step-num">1</span><span>En el panel, haz clic en <strong>Gestión de Juntas</strong>.</span></li>
+            <li><span class="step-num">2</span><span>Verás el listado de todas las juntas de vecinos dentro de tu municipio.</span></li>
+            <li><span class="step-num">3</span><span>Puedes <strong>crear nuevas juntas</strong>, editar su información o revisar sus denuncias asociadas.</span></li>
+          </ol>
+          <p class="mt-2 mb-0">Solo se muestran juntas pertenecientes a tu <strong>provincia y municipio</strong>.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="accordion-item" data-tab="ayuntamiento" data-keywords="registrar denuncia municipal ayuntamiento">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#q10">
+          <i class="bi bi-plus-circle-fill me-2"></i>¿Puede el ayuntamiento registrar denuncias?
+        </button>
+      </h2>
+      <div id="q10" class="accordion-collapse collapse" data-bs-parent="">
+        <div class="accordion-body">
+          <p>Sí. Los usuarios con rol <strong>Ayuntamiento</strong> pueden registrar denuncias a nivel municipal. El proceso es idéntico al de las juntas:</p>
+          <ol class="step-list">
+            <li><span class="step-num">1</span><span>Haz clic en <strong>Registrar Denuncia</strong> en el Panel Principal.</span></li>
+            <li><span class="step-num">2</span><span>Completa el formulario y adjunta evidencia si es necesario.</span></li>
+            <li><span class="step-num">3</span><span>La denuncia quedará vinculada al municipio correspondiente.</span></li>
+          </ol>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════ ADMINISTRADOR ══════════ -->
+    <div class="accordion-item" data-tab="admin" data-keywords="estadísticas gráficas reportes métricas admin administrador">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#q11">
+          <i class="bi bi-graph-up me-2"></i>¿Cómo interpreto las estadísticas?
+        </button>
+      </h2>
+      <div id="q11" class="accordion-collapse collapse" data-bs-parent="">
+        <div class="accordion-body">
+          <p>La sección de <strong>Estadísticas</strong> (exclusiva del administrador) muestra gráficas del sistema completo:</p>
+          <ul class="mb-2">
+            <li><strong>Distribución por estado:</strong> cuántas denuncias están en cada fase.</li>
+            <li><strong>Denuncias por municipio o junta:</strong> comparativa territorial.</li>
+            <li><strong>Evolución temporal:</strong> tendencia de denuncias registradas en el tiempo.</li>
+          </ul>
+          <p class="mb-0">Usa los filtros disponibles para acotar por <strong>provincia</strong>, <strong>municipio</strong> o <strong>período</strong>.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="accordion-item" data-tab="admin" data-keywords="gestión ayuntamientos crear editar municipios admin">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#q12">
+          <i class="bi bi-building me-2"></i>¿Cómo gestiono los ayuntamientos?
+        </button>
+      </h2>
+      <div id="q12" class="accordion-collapse collapse" data-bs-parent="">
+        <div class="accordion-body">
+          <ol class="step-list">
+            <li><span class="step-num">1</span><span>Accede a <strong>Gestión de Ayuntamientos</strong> desde el panel de administrador.</span></li>
+            <li><span class="step-num">2</span><span>Puedes <strong>crear</strong> un nuevo ayuntamiento indicando nombre, provincia, municipio y credenciales de acceso.</span></li>
+            <li><span class="step-num">3</span><span>Para editar, haz clic en el botón de edición junto al ayuntamiento correspondiente.</span></li>
+          </ol>
+          <p class="mt-2 mb-0"><i class="bi bi-exclamation-triangle me-1 text-warning"></i>Eliminar un ayuntamiento es una acción irreversible. El sistema pedirá confirmación.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="accordion-item" data-tab="admin" data-keywords="gestión usuarios altas permisos roles admin administrador">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#q13">
+          <i class="bi bi-person-gear me-2"></i>¿Cómo gestiono los usuarios?
+        </button>
+      </h2>
+      <div id="q13" class="accordion-collapse collapse" data-bs-parent="">
+        <div class="accordion-body">
+          <p>Desde <strong>Gestión de Usuarios</strong> puedes administrar todas las cuentas del sistema:</p>
+          <ul class="mb-2">
+            <li><strong>Crear</strong> nuevos usuarios (ayuntamientos y juntas).</li>
+            <li><strong>Editar</strong> datos de contacto y asignación territorial.</li>
+            <li><strong>Desactivar o eliminar</strong> cuentas que ya no estén activas.</li>
+          </ul>
+          <p class="mb-0">Cada usuario queda asociado a su <strong>rol</strong> (junta o ayuntamiento) y a su <strong>territorio</strong> (provincia/municipio).</p>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /accordion -->
+
+  <!-- Mensaje sin resultados -->
+  <div class="sin-resultados" id="sinResultados">
+    <i class="bi bi-search" style="font-size: 2.5rem; opacity:.4;"></i>
+    <p class="mt-3 mb-0">No se encontraron resultados para tu búsqueda.</p>
+  </div>
+
+  <!-- Footer -->
+  <hr class="mt-5">
+  <p class="text-center text-muted small pb-3">
+    <i class="bi bi-shield-check me-1"></i><strong>GECOM</strong> &mdash; Gestión Comunitaria &nbsp;|&nbsp; ¿Necesitas más ayuda? Contacta al administrador del sistema.
+  </p>
+
+</div><!-- /container -->
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/perfil-menu.js"></script>
+<script src="js/tema.js"></script>
+<script>
+  initThemeSelector();
+
+  // ── Tabs ──────────────────────────────────────────────────────
+  const rolActual = (localStorage.getItem('rol') || '').toLowerCase();
+  const tabRol = rolActual === 'admin' ? 'admin' : (rolActual === 'ayuntamiento' ? 'ayuntamiento' : (rolActual === 'junta' ? 'junta' : null));
+  const tabsPermitidos = new Set(['todos', 'general']);
+  if (tabRol) tabsPermitidos.add(tabRol);
+
+  const tabs = document.querySelectorAll('#ayudaTabs .nav-link');
+  const items = document.querySelectorAll('#acordeonAyuda .accordion-item');
+
+  // Oculta tabs que no correspondan al rol actual.
+  tabs.forEach((tabBtn) => {
+    const tab = tabBtn.dataset.tab;
+    if (!tabsPermitidos.has(tab)) {
+      const tabItem = tabBtn.closest('.nav-item');
+      if (tabItem) tabItem.style.display = 'none';
+    }
+  });
+
+  function itemVisiblePorRol(item) {
+    return item.dataset.tab === 'general' || (tabRol && item.dataset.tab === tabRol);
+  }
+
+  function filtrarTab(tab) {
+    tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+    items.forEach(item => {
+      const permitido = itemVisiblePorRol(item);
+      if (!permitido) {
+        item.style.display = 'none';
+        return;
+      }
+      item.style.display = (tab === 'todos' || item.dataset.tab === tab) ? '' : 'none';
+    });
+    document.getElementById('sinResultados').style.display = 'none';
+  }
+
+  tabs.forEach(btn => btn.addEventListener('click', () => {
+    filtrarTab(btn.dataset.tab);
+    document.getElementById('buscadorAyuda').value = '';
+  }));
+
+  // ── Buscador ──────────────────────────────────────────────────
+  document.getElementById('buscadorAyuda').addEventListener('input', function () {
+    const q = this.value.toLowerCase().trim();
+    tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === 'todos'));
+
+    if (!q) { filtrarTab('todos'); return; }
+
+    let visible = 0;
+    items.forEach(item => {
+      if (!itemVisiblePorRol(item)) {
+        item.style.display = 'none';
+        return;
+      }
+      const text = (item.textContent + ' ' + (item.dataset.keywords || '')).toLowerCase();
+      const show = text.includes(q);
+      item.style.display = show ? '' : 'none';
+      if (show) visible++;
+    });
+
+    document.getElementById('sinResultados').style.display = visible === 0 ? 'block' : 'none';
+  });
+
+  // Vista inicial por rol: muestra contenido general + de su rol.
+  filtrarTab('todos');
+</script>
+
+</body>
+</html>
