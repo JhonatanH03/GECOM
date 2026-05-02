@@ -24,6 +24,10 @@ const submitBtn = document.getElementById("submitBtn");
 const ayuntamientoIdInput = document.getElementById("ayuntamientoId");
 const passwordField = document.getElementById("passwordField");
 
+function usuarioAEmailInterno(usuario) {
+  return String(usuario || "").trim().toLowerCase().replace(/[^a-z0-9_]/g, "") + "@gecom.internal";
+}
+
 function generarContrasenaTemporal(length = 12) {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%";
   const cryptoApi = window.crypto || window.msCrypto;
@@ -68,7 +72,7 @@ form.addEventListener("submit", async (event) => {
   const ayuntamientoId = ayuntamientoIdInput.value;
   const nombre = document.getElementById("nombre").value.trim();
   const usuario = document.getElementById("usuario").value.trim();
-  const correo = document.getElementById("correo").value.trim() || (usuario.toLowerCase().replace(/[^a-z0-9_]/g, '') + '@gecom.internal');
+  const emailInterno = usuarioAEmailInterno(usuario);
   const telefono = document.getElementById("telefono").value.trim();
   const direccion = document.getElementById("direccion").value.trim();
   const provincia = document.getElementById("provincia").value;
@@ -95,7 +99,6 @@ form.addEventListener("submit", async (event) => {
       const ayuntamientoData = {
         nombre,
         usuario,
-        correo,
         telefono,
         direccion,
         provincia,
@@ -118,13 +121,12 @@ form.addEventListener("submit", async (event) => {
 
       // Crear nuevo ayuntamiento con contraseña temporal aleatoria de primer uso.
       const contrasenaTemporal = generarContrasenaTemporal();
-      const credential = await auth.createUserWithEmailAndPassword(correo, contrasenaTemporal);
+      const credential = await auth.createUserWithEmailAndPassword(emailInterno, contrasenaTemporal);
       const nuevoUid = credential.user.uid;
       
       const ayuntamientoData = {
         nombre,
         usuario,
-        correo,
         rol: "ayuntamiento",
         telefono,
         direccion,
@@ -153,7 +155,7 @@ form.addEventListener("submit", async (event) => {
   } catch (error) {
     console.error("ERROR:", error);
     if (error.code === "auth/email-already-in-use") {
-      showModalAlert("El correo ya está en uso.", "danger");
+      showModalAlert("No se puede crear: el usuario ya existe.", "danger");
     } else {
       showModalAlert(error.message || "Ocurrió un error.", "danger");
     }
@@ -161,7 +163,7 @@ form.addEventListener("submit", async (event) => {
 });
 
 async function cargarAyuntamientos() {
-  const _skRow9 = `<tr class="skeleton-row">
+  const _skRow8 = `<tr class="skeleton-row">
     <td><span class="skeleton-cell skeleton-wide"></span></td>
     <td><span class="skeleton-cell skeleton-medium"></span></td>
     <td><span class="skeleton-cell skeleton-wide"></span></td>
@@ -170,14 +172,13 @@ async function cargarAyuntamientos() {
     <td><span class="skeleton-cell skeleton-medium"></span></td>
     <td><span class="skeleton-cell skeleton-medium"></span></td>
     <td><span class="skeleton-cell skeleton-pill"></span></td>
-    <td><span class="skeleton-cell skeleton-btn"></span></td>
   </tr>`;
-  ayuntamientosBody.innerHTML = _skRow9.repeat(5);
+  ayuntamientosBody.innerHTML = _skRow8.repeat(5);
   try {
     const snapshot = await db.collection("Ayuntamientos").get();
     
     if (snapshot.empty) {
-      ayuntamientosBody.innerHTML = '<tr class="table-feedback-row"><td colspan="9"><div class="empty-state">No hay ayuntamientos registrados.</div></td></tr>';
+      ayuntamientosBody.innerHTML = '<tr class="table-feedback-row"><td colspan="8"><div class="empty-state">No hay ayuntamientos registrados.</div></td></tr>';
       return;
     }
     
@@ -198,7 +199,6 @@ async function cargarAyuntamientos() {
       ayuntamientosBody.innerHTML += `<tr>
         <td data-label="Nombre">${escapeHtml(data.nombre)}</td>
         <td data-label="Usuario">${escapeHtml(data.usuario || "")}</td>
-        <td data-label="Correo" style="display:none">${escapeHtml(data.correo)}</td>
         <td data-label="Teléfono">${escapeHtml(data.telefono || "")}</td>
         <td data-label="Dirección">${escapeHtml(data.direccion || "")}</td>
         <td data-label="Provincia">${escapeHtml(data.provincia || "")}</td>
@@ -213,7 +213,7 @@ async function cargarAyuntamientos() {
     });
   } catch (error) {
     console.error("Error al cargar ayuntamientos:", error);
-    ayuntamientosBody.innerHTML = '<tr class="table-feedback-row"><td colspan="9"><div class="empty-state text-danger">Error al cargar ayuntamientos.</div></td></tr>';
+    ayuntamientosBody.innerHTML = '<tr class="table-feedback-row"><td colspan="8"><div class="empty-state text-danger">Error al cargar ayuntamientos.</div></td></tr>';
   }
 }
 
@@ -241,7 +241,6 @@ window.editarAyuntamiento = async function(id) {
     ayuntamientoIdInput.value = id;
     document.getElementById("nombre").value = data.nombre || "";
     document.getElementById("usuario").value = data.usuario || "";
-    document.getElementById("correo").value = data.correo || "";
     document.getElementById("telefono").value = data.telefono || "";
     document.getElementById("direccion").value = data.direccion || "";
     document.getElementById("provincia").value = data.provincia || "";
