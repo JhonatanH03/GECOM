@@ -137,6 +137,12 @@ form.addEventListener("submit", async (event) => {
       };
       
       await db.collection("Ayuntamientos").doc(nuevoUid).set(ayuntamientoData);
+      await db.collection("loginIndex").doc(usuarioNormalizado).set({
+        uid: nuevoUid,
+        email: correo,
+        rol: "ayuntamiento",
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
       showAlert(`Ayuntamiento creado correctamente. Usuario: ${usuario}, Contraseña temporal: ${contrasenaTemporal}`, "success");
     }
     

@@ -96,6 +96,7 @@ window.ir = function (ruta) {
 };
 
 window.logout = function () {
+  if (!confirm("¿Cerrar sesión?")) return;
   localStorage.clear();
   window.location.href = "index.html";
 };

@@ -247,6 +247,12 @@ form.addEventListener("submit", async (event) => {
       };
       
       await db.collection("JuntasDeVecinos").doc(nuevoUid).set(juntaData);
+      await db.collection("loginIndex").doc(usuarioNormalizado).set({
+        uid: nuevoUid,
+        email: correo,
+        rol: "junta",
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
       showAlert(`Junta creada correctamente. Usuario: ${usuario}, Contraseña temporal: ${contrasenaTemporal}`, "success");
     }
     
