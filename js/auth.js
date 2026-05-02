@@ -57,8 +57,8 @@ async function obtenerPerfilPorUid(uid) {
   return null;
 }
 
-// Limpieza de colecciones antiguas (solo admin)
-window.limpiarFirebase = async function () {
+// Limpieza de colecciones antiguas (solo admin, acceso restringido)
+async function limpiarFirebase() {
   if (!confirm("¿Seguro que deseas borrar todas las colecciones antiguas? Esta acción no se puede deshacer.")) return;
   const colecciones = ["provincias", "municipios", "sectores", "ayuntamientos", "juntas"];
   let total = 0;
@@ -70,7 +70,7 @@ window.limpiarFirebase = async function () {
     }
   }
   mostrarExito(`Limpieza completada. Documentos eliminados: ${total}`);
-};
+}
 
 // Permitir login con ENTER desde el campo de contraseña
 document.addEventListener("DOMContentLoaded", function () {
@@ -174,6 +174,12 @@ window.registrarDesdeAdmin = async function () {
     const uid = userCredential.user.uid;
     if (collectionName) {
       await db.collection(collectionName).doc(uid).set(userData);
+      await db.collection("loginIndex").doc(usuarioNormalizado).set({
+        uid,
+        email,
+        rol,
+        updatedAt: new Date()
+      });
     } else {
       throw new Error("Rol no válido");
     }
@@ -221,19 +227,14 @@ window.login = async function () {
       return;
     }
 
-    // Buscar el email real del usuario en Firestore por el campo "usuario"
+    // Buscar el email real del usuario en loginIndex (colección pública de solo lectura)
     try {
-      const colecciones = ["Administradores", "Ayuntamientos", "JuntasDeVecinos"];
       let emailReal = null;
-      for (const col of colecciones) {
-        const snap = await db.collection(col).where("usuario", "==", usuarioNormalizado).limit(1).get();
-        if (!snap.empty) {
-          const data = snap.docs[0].data();
-          emailReal = data.correo || data.email || null;
-          break;
-        }
+      const loginDoc = await db.collection("loginIndex").doc(usuarioNormalizado).get();
+      if (loginDoc.exists) {
+        emailReal = loginDoc.data().email || null;
       }
-      // Si no se encontró correo real, intentar con el email derivado (usuarios admin legacy)
+      // Si no se encontró en loginIndex, intentar con el email derivado (usuarios admin legacy)
       if (!emailReal) {
         emailReal = usuarioNormalizado.replace(/[^a-z0-9_]/g, '') + '@gecom.internal';
       }

@@ -1,5 +1,5 @@
 import app from "./firebase.js";
-
+import { ESTADOS, ESTADOS_LISTA } from "./constants.js";
 import {
   getFirestore,
   collection,
@@ -46,7 +46,7 @@ function crearGraficos(datos) {
   chartBarras = new Chart(ctxBarras, {
     type: "bar",
     data: {
-      labels: ["Pendiente", "En proceso", "Resuelta", "Rechazada"],
+      labels: ESTADOS_LISTA,
       datasets: [{
         label: "Denuncias",
         data: datos
@@ -57,7 +57,7 @@ function crearGraficos(datos) {
   chartPastel = new Chart(ctxPastel, {
     type: "pie",
     data: {
-      labels: ["Pendiente", "En proceso", "Resuelta", "Rechazada"],
+      labels: ESTADOS_LISTA,
       datasets: [{
         data: datos
       }]
@@ -114,10 +114,10 @@ function actualizarEstadisticas() {
   let rechazada = 0;
 
   filtradas.forEach(d => {
-    if (d.estado === "Pendiente") pendiente++;
-    else if (d.estado === "En proceso") proceso++;
-    else if (d.estado === "Resuelta") resuelta++;
-    else if (d.estado === "Rechazada") rechazada++;
+    if (d.estado === ESTADOS.PENDIENTE) pendiente++;
+    else if (d.estado === ESTADOS.EN_PROCESO) proceso++;
+    else if (d.estado === ESTADOS.RESUELTA) resuelta++;
+    else if (d.estado === ESTADOS.RECHAZADA) rechazada++;
   });
 
   // 🔢 KPIs

@@ -1,4 +1,5 @@
 import app from "./firebase.js";
+import { ESTADOS, ESTADO_DEFAULT, debounce } from "./constants.js";
 import {
   getFirestore,
   collection,
@@ -177,7 +178,7 @@ function convertirAFecha(valorFecha) {
 }
 
 function obtenerDiasEnProceso(data) {
-  if ((data.estado || "Pendiente") !== "En proceso") return null;
+  if ((data.estado || ESTADO_DEFAULT) !== ESTADOS.EN_PROCESO) return null;
 
   const fechaInicio = convertirAFecha(data.fecha_en_proceso || data.fecha_respuesta || data.fecha);
   if (!fechaInicio) return null;
@@ -237,7 +238,7 @@ async function crearEntradaHistorial(denunciaId, denunciaData, actualizacion) {
 function hubosCambiosEnRespuesta(denunciaActual, actualizacion) {
   if (!denunciaActual) return true;
   return (
-    (denunciaActual.estado || "Pendiente") !== actualizacion.estado ||
+    (denunciaActual.estado || ESTADO_DEFAULT) !== actualizacion.estado ||
     (denunciaActual.respuesta_ayuntamiento || "") !== actualizacion.respuesta_ayuntamiento ||
     (denunciaActual.plazo_estimado || "") !== actualizacion.plazo_estimado ||
     (denunciaActual.presupuesto_estimado || "") !== actualizacion.presupuesto_estimado
@@ -249,7 +250,7 @@ function mostrarDetalleDenuncia(data, id) {
   document.getElementById("detalleId").value = id;
   document.getElementById("detalleTitulo").textContent = data.titulo || "Sin título";
   document.getElementById("detalleTipo").textContent = data.tipo || "No especificado";
-  document.getElementById("detalleEstado").textContent = data.estado || "Pendiente";
+  document.getElementById("detalleEstado").textContent = data.estado || ESTADO_DEFAULT;
   document.getElementById("detalleComunidad").textContent = data.comunidad || "Sin comunidad";
   document.getElementById("detalleUbicacion").textContent = `${escapeHtml(data.provincia || "")} / ${escapeHtml(data.municipio || "")} / ${escapeHtml(data.distrito_municipal || "")} / ${escapeHtml(data.sector || "")}`;
   document.getElementById("detalleFechaIncidente").textContent = data.fecha_incidente ? new Date(data.fecha_incidente.seconds * 1000).toLocaleDateString() : "No especificado";
@@ -580,7 +581,12 @@ async function responderDenuncia(event) {
   const presupuesto = document.getElementById("respuestaPresupuesto").value.trim();
   const respuesta = document.getElementById("respuestaTexto").value.trim();
 
-  if (!plazo || !presupuesto || !respuesta) {
+  if (estado === "Rechazada") {
+    if (!respuesta) {
+      mostrarModalFeedback("Debes indicar el motivo del rechazo en la respuesta oficial.", "danger");
+      return;
+    }
+  } else if (!plazo || !presupuesto || !respuesta) {
     mostrarModalFeedback("Todos los campos de respuesta son obligatorios.", "danger");
     return;
   }
@@ -648,25 +654,25 @@ async function init() {
   await cargarCatalogoProvincias();
   await obtenerMunicipioAyuntamiento();
   await cargarDenuncias();
-  document.getElementById("filtroEstado").addEventListener("change", () => {
+  document.getElementById("filtroEstado").addEventListener("change", debounce(() => {
     paginaActual = 1;
     renderizarPagina();
-  });
+  }, 300));
   if (rol === "admin") {
-    document.getElementById("filtroProvincia")?.addEventListener("change", () => {
+    document.getElementById("filtroProvincia")?.addEventListener("change", debounce(() => {
       poblarFiltrosZonaAdmin();
       paginaActual = 1;
       renderizarPagina();
-    });
-    document.getElementById("filtroMunicipio")?.addEventListener("change", () => {
+    }, 300));
+    document.getElementById("filtroMunicipio")?.addEventListener("change", debounce(() => {
       poblarFiltrosZonaAdmin();
       paginaActual = 1;
       renderizarPagina();
-    });
-    document.getElementById("filtroComunidad")?.addEventListener("change", () => {
+    }, 300));
+    document.getElementById("filtroComunidad")?.addEventListener("change", debounce(() => {
       paginaActual = 1;
       renderizarPagina();
-    });
+    }, 300));
   }
   document.getElementById("detalleForm").addEventListener("submit", responderDenuncia);
   document.getElementById("btnDescargarDetalle")?.addEventListener("click", descargarDenunciaSeleccionada);

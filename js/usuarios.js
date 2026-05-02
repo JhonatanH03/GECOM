@@ -143,6 +143,12 @@ form.addEventListener("submit", async (event) => {
         fecha_creacion: serverTimestamp(),
         primerLogin: true
       });
+      await setDoc(doc(db, "loginIndex", usuarioNormalizado), {
+        uid: nuevoUid,
+        email: correo,
+        rol: "junta",
+        updatedAt: serverTimestamp()
+      });
       showAlert(`Junta creada correctamente. Usuario: ${usuario}, Contraseña temporal: ${contrasenaTemporal}`, "success");
     }
 

@@ -31,13 +31,21 @@ service cloud.firestore {
     }
 
     match /Administradores/{adminId} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn();
+      // Cada usuario solo puede leer su propio documento (para el flujo de login)
+      allow get: if isAdmin() || request.auth.uid == adminId;
+      allow list: if isAdmin();
+      // create: permite que el propio usuario recién creado escriba su documento inicial
+      allow create: if isSignedIn() && request.auth.uid == adminId;
+      allow update, delete: if isAdmin();
     }
 
     match /Ayuntamientos/{ayuntamientoId} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn();
+      // Lectura individual permitida a usuarios autenticados (necesario para lookup de perfil)
+      allow get: if isSignedIn();
+      allow list: if isAdmin();
+      // create: permite que el propio usuario recién creado escriba su documento inicial
+      allow create: if isSignedIn() && request.auth.uid == ayuntamientoId;
+      allow update, delete: if isAdmin();
     }
 
     match /provincias/{provinciaId} {
@@ -46,8 +54,11 @@ service cloud.firestore {
     }
 
     match /JuntasDeVecinos/{juntaId} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn();
+      allow get: if isSignedIn();
+      allow list: if isAdmin() || isAyuntamiento();
+      // create: permite que el propio usuario recién creado escriba su documento inicial
+      allow create: if isSignedIn() && request.auth.uid == juntaId;
+      allow update, delete: if isAdmin();
 
       match /historial/{entryId} {
         allow read: if isAdmin() ||
