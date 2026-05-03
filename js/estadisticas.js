@@ -209,54 +209,143 @@ function actualizarTendencias(filtradas) {
   }
 }
 
-// Función para exportar a CSV
-function exportarCSV() {
+// Exportar reporte PDF institucional
+function exportarPDF() {
   const fechaDesde = document.getElementById("fechaDesde").value;
   const fechaHasta = document.getElementById("fechaHasta").value;
   const usuarioFiltro = document.getElementById("usuarioFiltro").value;
 
   let filtradas = denuncias.filter(d => {
     let incluir = true;
-
     if (fechaDesde) {
       const desde = new Date(fechaDesde);
-      const fechaDenuncia = d.fecha.toDate ? d.fecha.toDate() : new Date(d.fecha);
+      const fechaDenuncia = d.fecha?.toDate ? d.fecha.toDate() : new Date(d.fecha);
       if (fechaDenuncia < desde) incluir = false;
     }
     if (fechaHasta) {
       const hasta = new Date(fechaHasta);
       hasta.setHours(23, 59, 59, 999);
-      const fechaDenuncia = d.fecha.toDate ? d.fecha.toDate() : new Date(d.fecha);
+      const fechaDenuncia = d.fecha?.toDate ? d.fecha.toDate() : new Date(d.fecha);
       if (fechaDenuncia > hasta) incluir = false;
     }
-
     if (usuarioFiltro && d.uid !== usuarioFiltro) incluir = false;
-
     return incluir;
   });
 
-  // Crear CSV
-  let csv = "ID,Título,Descripción,Estado,Fecha,Usuario\n";
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  const pageW = doc.internal.pageSize.getWidth();
+  const fechaHoy = new Date().toLocaleDateString("es-DO", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+
+  // ── Cabecera ──
+  doc.setFillColor(18, 48, 74);
+  doc.rect(0, 0, pageW, 28, "F");
+  doc.setTextColor(255, 255, 255);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(18);
+  doc.text("GECOM", 14, 12);
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  doc.text("Gestión Comunitaria — Reporte de Denuncias", 14, 20);
+  doc.text(fechaHoy, pageW - 14, 20, { align: "right" });
+
+  // ── KPIs resumen ──
+  let pendiente = 0, proceso = 0, resuelta = 0, rechazada = 0;
   filtradas.forEach(d => {
-    const fecha = d.fecha.toDate ? d.fecha.toDate().toLocaleDateString() : new Date(d.fecha).toLocaleDateString();
-    const usuario = usuarios[d.uid] || d.uid;
-    csv += `"${d.id}","${d.titulo}","${d.descripcion}","${d.estado}","${fecha}","${usuario}"\n`;
+    if (d.estado === "Pendiente") pendiente++;
+    else if (d.estado === "En proceso") proceso++;
+    else if (d.estado === "Resuelta") resuelta++;
+    else if (d.estado === "Rechazada") rechazada++;
   });
 
-  // Descargar
-  const blob = new Blob([csv], { type: "text/csv" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "reporte_denuncias.csv";
-  a.click();
-  URL.revokeObjectURL(url);
+  doc.setTextColor(30, 30, 30);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.text("Resumen", 14, 38);
+
+  doc.autoTable({
+    startY: 42,
+    head: [["Total", "Pendientes", "En proceso", "Resueltas", "Rechazadas"]],
+    body: [[filtradas.length, pendiente, proceso, resuelta, rechazada]],
+    styles: { fontSize: 10, halign: "center" },
+    headStyles: { fillColor: [18, 48, 74], textColor: 255, fontStyle: "bold" },
+    columnStyles: {
+      1: { textColor: [100, 116, 139] },
+      2: { textColor: [180, 120, 0] },
+      3: { textColor: [5, 150, 105] },
+      4: { textColor: [220, 38, 38] }
+    },
+    margin: { left: 14, right: 14 }
+  });
+
+  // ── Filtros aplicados ──
+  const filtroTexto = [
+    fechaDesde ? `Desde: ${fechaDesde}` : null,
+    fechaHasta ? `Hasta: ${fechaHasta}` : null,
+    usuarioFiltro ? `Usuario: ${usuarios[usuarioFiltro] || usuarioFiltro}` : null
+  ].filter(Boolean).join("   |   ") || "Sin filtros aplicados";
+
+  const afterKpi = doc.lastAutoTable.finalY + 6;
+  doc.setFont("helvetica", "italic");
+  doc.setFontSize(8.5);
+  doc.setTextColor(100, 100, 100);
+  doc.text(`Filtros: ${filtroTexto}`, 14, afterKpi);
+
+  // ── Tabla de denuncias ──
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.setTextColor(30, 30, 30);
+  doc.text("Detalle de denuncias", 14, afterKpi + 8);
+
+  const rows = filtradas.map(d => {
+    const fecha = d.fecha?.toDate ? d.fecha.toDate().toLocaleDateString("es-DO") : new Date(d.fecha).toLocaleDateString("es-DO");
+    return [
+      (d.titulo || "Sin título").slice(0, 40),
+      d.provincia || "",
+      d.municipio || "",
+      d.estado || "Pendiente",
+      fecha
+    ];
+  });
+
+  doc.autoTable({
+    startY: afterKpi + 12,
+    head: [["Título", "Provincia", "Municipio", "Estado", "Fecha"]],
+    body: rows,
+    styles: { fontSize: 8.5, cellPadding: 2 },
+    headStyles: { fillColor: [18, 48, 74], textColor: 255, fontStyle: "bold" },
+    alternateRowStyles: { fillColor: [245, 248, 252] },
+    columnStyles: { 0: { cellWidth: 70 } },
+    margin: { left: 14, right: 14 },
+    didDrawPage(data) {
+      // Pie de página
+      const pageCount = doc.internal.getNumberOfPages();
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.setTextColor(150, 150, 150);
+      doc.text(`GECOM — Gestión Comunitaria`, 14, doc.internal.pageSize.getHeight() - 8);
+      doc.text(`Página ${data.pageNumber} de ${pageCount}`, pageW - 14, doc.internal.pageSize.getHeight() - 8, { align: "right" });
+    }
+  });
+
+  const nombreArchivo = `reporte_denuncias_${new Date().toISOString().split("T")[0]}.pdf`;
+
+  // Vista previa
+  const blobUrl = doc.output("bloburl");
+  const iframe = document.getElementById("iframePreviaPDF");
+  const btnDescargar = document.getElementById("btnConfirmarDescargaPDF");
+  iframe.src = blobUrl;
+  // Reemplazar listener para evitar duplicados
+  const btnClone = btnDescargar.cloneNode(true);
+  btnDescargar.parentNode.replaceChild(btnClone, btnDescargar);
+  btnClone.addEventListener("click", () => { doc.save(nombreArchivo); });
+  bootstrap.Modal.getOrCreateInstance(document.getElementById("modalPreviaPDF")).show();
 }
 
 // Inicializar
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("aplicarFiltros").addEventListener("click", actualizarEstadisticas);
-  document.getElementById("exportarCSV").addEventListener("click", exportarCSV);
+  document.getElementById("exportarPDF").addEventListener("click", exportarPDF);
 
   onAuthStateChanged(auth, async (user) => {
     if (user) {

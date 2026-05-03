@@ -275,6 +275,14 @@ initThemeSelector();
 
 <!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  // Fade-in al cargar el login
+  document.documentElement.style.opacity = '0';
+  document.documentElement.style.transition = 'opacity 0.16s ease';
+  document.addEventListener('DOMContentLoaded', () => {
+    requestAnimationFrame(() => { document.documentElement.style.opacity = '1'; });
+  });
+</script>
 
 </body>
 </html>

@@ -20,7 +20,7 @@ const auth = getAuth(app);
 const uid = localStorage.getItem("uid");
 const rol = localStorage.getItem("rol");
 
-const LIMITE = 20;
+const LIMITE = 15;
 let paginaActual = 1;
 // iniciosDePagina[i] = cursor para cargar la página (i+1); null = desde el principio
 const iniciosDePagina = [null];

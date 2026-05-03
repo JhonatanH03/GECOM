@@ -258,7 +258,7 @@
     "Presupuesto": "Budget",
 
     // Estadísticas
-    "Exportar a CSV": "Export to CSV",
+    "Exportar reporte PDF": "Export PDF Report",
     "Gráfico Circular": "Pie Chart",
     "Gráfico de Barras": "Bar Chart",
     "Tendencias (Últimos 30 días)": "Trends (Last 30 days)",
