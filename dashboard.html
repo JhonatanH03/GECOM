@@ -318,20 +318,89 @@
         </section>
       </div>
     </aside>
-
   </div>
-
-  <!-- Footer info strip -->
-  <footer class="dashboard-footer mt-auto pt-4">
-    <div class="dashboard-footer-inner d-flex flex-wrap align-items-center justify-content-between gap-2">
-      <span class="dashboard-footer-brand">
-        <i class="bi bi-shield-check me-1"></i><strong>GECOM</strong> &mdash; Gestión Comunitaria
-      </span>
-      <span class="dashboard-footer-meta" id="dashboardFooterFecha"></span>
-    </div>
-  </footer>
-
 </div>
+
+<!-- Footer -->
+<footer class="dashboard-footer dashboard-footer-modern pt-4">
+  <div class="dashboard-footer-surface">
+    <div id="dashboardFooterLinks" class="dashboard-footer-grid">
+      <div class="dashboard-footer-brandcol">
+        <div class="dashboard-footer-brandrow">
+          <img src="assets/LOGO SHIELD RD.png"
+                alt="Escudo de la República Dominicana"
+                class="dashboard-footer-shield"
+                width="56"
+                height="56"
+                loading="lazy"
+                decoding="async">
+          <div class="dashboard-footer-brand-block">
+            <span class="dashboard-footer-brand"><strong>GECOM</strong></span>
+            <span class="dashboard-footer-caption">Gestión Comunitaria República Dominicana</span>
+          </div>
+        </div>
+        <p class="dashboard-footer-lead">
+          Coordinación entre juntas de vecinos, ayuntamientos y equipos institucionales para el seguimiento de denuncias.
+        </p>
+        <div class="dashboard-footer-badges" aria-hidden="true">
+          <span class="dashboard-footer-chip"><i class="bi bi-shield-check"></i> Oficial</span>
+          <span class="dashboard-footer-chip"><i class="bi bi-cloud-check"></i> En línea</span>
+        </div>
+      </div>
+
+      <nav class="dashboard-footer-nav" aria-label="Casos y denuncias">
+        <h2 class="dashboard-footer-heading">Casos</h2>
+        <ul class="dashboard-footer-list">
+          <li class="dashboard-footer-li">
+            <a href="ver.html" data-roles="admin,ayuntamiento,junta"><i class="bi bi-collection"></i> Ver denuncias</a>
+          </li>
+          <li class="dashboard-footer-li">
+            <a href="crear.html" data-roles="junta,ayuntamiento"><i class="bi bi-plus-circle"></i> Nueva denuncia</a>
+          </li>
+          <li class="dashboard-footer-li">
+            <a href="historial.html" data-roles="junta"><i class="bi bi-journal-text"></i> Historial</a>
+          </li>
+        </ul>
+      </nav>
+
+      <nav class="dashboard-footer-nav" aria-label="Gestión">
+        <h2 class="dashboard-footer-heading">Gestión</h2>
+        <ul class="dashboard-footer-list">
+          <li class="dashboard-footer-li">
+            <a href="estadisticas.html" data-roles="admin"><i class="bi bi-graph-up-arrow"></i> Estadísticas</a>
+          </li>
+          <li class="dashboard-footer-li">
+            <a href="ayuntamientos.html" data-roles="admin"><i class="bi bi-building"></i> Ayuntamientos</a>
+          </li>
+          <li class="dashboard-footer-li">
+            <a href="usuarios.html" data-roles="admin"><i class="bi bi-people"></i> Usuarios</a>
+          </li>
+          <li class="dashboard-footer-li">
+            <a href="juntas.html" data-roles="ayuntamiento"><i class="bi bi-diagram-3"></i> Juntas del territorio</a>
+          </li>
+          <li class="dashboard-footer-li">
+            <a href="junta.html" data-roles="junta"><i class="bi bi-people-fill"></i> Mi junta</a>
+          </li>
+        </ul>
+      </nav>
+
+      <nav class="dashboard-footer-nav" aria-label="Ayuda y cuenta">
+        <h2 class="dashboard-footer-heading">Ayuda</h2>
+        <ul class="dashboard-footer-list">
+          <li class="dashboard-footer-li">
+            <a href="dashboard.html"><i class="bi bi-house-door"></i> Panel principal</a>
+          </li>
+          <li class="dashboard-footer-li">
+            <a href="ayuda.html"><i class="bi bi-book"></i> Centro de ayuda</a>
+          </li>
+          <li class="dashboard-footer-li">
+            <a href="cambiar-contrasena.html"><i class="bi bi-key"></i> Cambiar contraseña</a>
+          </li>
+        </ul>
+      </nav>
+    </div>
+  </div>
+</footer>
 
 <!-- Modal confirmación eliminar notificación -->
 <div class="modal fade" id="modalEliminarNotif" tabindex="-1" aria-labelledby="modalEliminarNotifLabel" aria-hidden="true">

@@ -408,18 +408,41 @@ function iniciarSuscripcionNotificaciones() {
     }).join("");
   }
 
+  function enlacesDatasetVisibleParaRol(enlace) {
+    const roles = String(enlace.dataset.roles || "")
+      .split(",")
+      .map((rol) => rol.trim())
+      .filter(Boolean);
+    return roles.length === 0 || roles.includes(rolLocal);
+  }
+
   function renderAccesosRapidos() {
     const cont = document.getElementById("dashboardQuickActions");
     if (!cont) return;
 
-    const enlaces = cont.querySelectorAll("a[data-roles]");
-    enlaces.forEach((enlace) => {
-      const roles = String(enlace.dataset.roles || "")
-        .split(",")
-        .map((rol) => rol.trim())
-        .filter(Boolean);
+    cont.querySelectorAll("a[data-roles]").forEach((enlace) => {
+      enlace.style.display = enlacesDatasetVisibleParaRol(enlace) ? "flex" : "none";
+    });
+  }
 
-      enlace.style.display = roles.includes(rolLocal) ? "flex" : "none";
+  function aplicarEnlacesFooterPorRol() {
+    const root = document.getElementById("dashboardFooterLinks");
+    if (!root) return;
+
+    root.querySelectorAll(".dashboard-footer-li").forEach((li) => {
+      const enlaceRoles = li.querySelector("a[data-roles]");
+      if (!enlaceRoles) {
+        li.style.display = "";
+        return;
+      }
+      li.style.display = enlacesDatasetVisibleParaRol(enlaceRoles) ? "" : "none";
+    });
+
+    root.querySelectorAll(".dashboard-footer-nav").forEach((nav) => {
+      const visibleItems = [...nav.querySelectorAll(".dashboard-footer-li")].filter(
+        (li) => li.style.display !== "none"
+      );
+      nav.hidden = visibleItems.length === 0;
     });
   }
 
@@ -504,6 +527,7 @@ if (!uid || !rolLocal) {
 } else {
   inicializarSelectorTemaDashboard();
     renderAccesosRapidos();
+    aplicarEnlacesFooterPorRol();
     pintarLineaUsuario();
     cargarResumenKpi();
 
