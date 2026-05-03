@@ -5,7 +5,11 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node --watch server.js"
+    "dev": "node --watch server.js",
+    "migrar:usuarios:dry": "node migrar-usuarios-username-only.mjs",
+    "migrar:usuarios:apply": "node migrar-usuarios-username-only.mjs --apply",
+    "migrar:usuarios:fix:dry": "node migrar-usuarios-username-only.mjs --auto-fix-invalid",
+    "migrar:usuarios:fix:apply": "node migrar-usuarios-username-only.mjs --auto-fix-invalid --apply"
   },
   "dependencies": {
     "cors": "^2.8.5",

@@ -78,10 +78,13 @@
     </div>
   </div>
 
-  <div class="row g-4 dashboard-grid">
+  <div class="row g-4 dashboard-grid dashboard-main-layout">
+
+    <div class="col-12 col-xl-8">
+      <div class="row g-4 dashboard-actions-grid">
 
     <!-- Registrar denuncia -->
-    <div class="col-md-6 col-xl-4" id="cardCrearDenuncia" style="display:none;">
+    <div class="col-md-6" id="cardCrearDenuncia" style="display:none;">
       <div class="card border-0 h-100 dashboard-card dash-action-card card-junta dashboard-card-primary">
         <div class="dash-action-card-inner">
           <div class="dash-action-card-top">
@@ -98,7 +101,7 @@
     </div>
 
     <!-- Ver denuncias -->
-    <div class="col-md-6 col-xl-4" id="cardVerDenuncias" style="display:none;">
+    <div class="col-md-6" id="cardVerDenuncias" style="display:none;">
       <div class="card border-0 h-100 dashboard-card dash-action-card card-general">
         <div class="dash-action-card-inner">
           <div class="dash-action-card-top">
@@ -115,7 +118,7 @@
     </div>
 
     <!-- Panel Junta de Vecinos -->
-    <div class="col-md-6 col-xl-4" id="cardJunta" style="display:none;">
+    <div class="col-md-6" id="cardJunta" style="display:none;">
       <div class="card border-0 h-100 dashboard-card dash-action-card card-junta">
         <div class="dash-action-card-inner">
           <div class="dash-action-card-top">
@@ -132,7 +135,7 @@
     </div>
 
     <!-- Historial de cambios (solo junta) -->
-    <div class="col-md-6 col-xl-4" id="cardHistorial" style="display:none;">
+    <div class="col-md-6" id="cardHistorial" style="display:none;">
       <div class="card border-0 h-100 dashboard-card dash-action-card card-junta">
         <div class="dash-action-card-inner">
           <div class="dash-action-card-top">
@@ -149,7 +152,7 @@
     </div>
 
     <!-- Estadísticas (solo admin) -->
-    <div class="col-md-6 col-xl-4" id="cardAdmin" style="display:none;">
+    <div class="col-md-6" id="cardAdmin" style="display:none;">
       <div class="card border-0 h-100 dashboard-card dash-action-card card-admin-stats">
         <div class="dash-action-card-inner">
           <div class="dash-action-card-top">
@@ -166,7 +169,7 @@
     </div>
 
     <!-- Gestión de Ayuntamientos (solo admin) -->
-    <div class="col-md-6 col-xl-4" id="cardAdminAyunt" style="display:none;">
+    <div class="col-md-6" id="cardAdminAyunt" style="display:none;">
       <div class="card border-0 h-100 dashboard-card dash-action-card card-admin-muni">
         <div class="dash-action-card-inner">
           <div class="dash-action-card-top">
@@ -183,7 +186,7 @@
     </div>
 
     <!-- Gestión de Usuarios (solo admin) -->
-    <div class="col-md-6 col-xl-4" id="cardAdminUsuarios" style="display:none;">
+    <div class="col-md-6" id="cardAdminUsuarios" style="display:none;">
       <div class="card border-0 h-100 dashboard-card dash-action-card card-admin-users">
         <div class="dash-action-card-inner">
           <div class="dash-action-card-top">
@@ -200,7 +203,7 @@
     </div>
 
     <!-- Gestión de Juntas (solo ayuntamiento) -->
-    <div class="col-md-6 col-xl-4" id="cardAyunt" style="display:none;">
+    <div class="col-md-6" id="cardAyunt" style="display:none;">
       <div class="card border-0 h-100 dashboard-card dash-action-card card-ayuntamiento">
         <div class="dash-action-card-inner">
           <div class="dash-action-card-top">
@@ -217,7 +220,7 @@
     </div>
 
     <!-- Registrar Denuncia (solo ayuntamiento) -->
-    <div class="col-md-6 col-xl-4" id="cardCrearDenunciaAyunt" style="display:none;">
+    <div class="col-md-6" id="cardCrearDenunciaAyunt" style="display:none;">
       <div class="card border-0 h-100 dashboard-card dash-action-card card-ayuntamiento dashboard-card-primary">
         <div class="dash-action-card-inner">
           <div class="dash-action-card-top">
@@ -232,6 +235,75 @@
         </div>
       </div>
     </div>
+
+    <!-- Centro de Ayuda (todos los roles) -->
+    <div class="col-md-6" id="cardAyuda">
+      <div class="card border-0 h-100 dashboard-card dash-action-card card-general">
+        <div class="dash-action-card-inner">
+          <div class="dash-action-card-top">
+            <div class="dashboard-card-icon-wrap" aria-hidden="true"><span class="dashboard-card-icon"><i class="bi bi-question-circle-fill"></i></span></div>
+            <h5 class="dash-action-card-title mb-2">Centro de Ayuda</h5>
+            <p class="dashboard-card-copy mb-0">Consulta guías de uso y resuelve dudas sobre el sistema.</p>
+          </div>
+          <button type="button" onclick="ir('ayuda.html')" class="btn gecom-btn dash-card-cta mt-auto">
+            <span><i class="bi bi-book me-2"></i>Ver ayuda</span>
+            <i class="bi bi-arrow-right-short dash-card-cta-arrow" aria-hidden="true"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+      </div>
+    </div>
+
+    <aside class="col-12 col-xl-4">
+      <div class="dashboard-sidepanel">
+        <section class="dashboard-side-card" aria-labelledby="dashRecentTitle">
+          <div class="dashboard-side-head">
+            <h6 id="dashRecentTitle" class="mb-0"><i class="bi bi-clock-history me-2"></i>Actividad reciente</h6>
+          </div>
+          <ul class="dashboard-activity-list" id="dashboardActividadList">
+            <li class="dashboard-activity-empty">Cargando actividad...</li>
+          </ul>
+        </section>
+
+        <section class="dashboard-side-card" aria-labelledby="dashQuickTitle">
+          <div class="dashboard-side-head">
+            <h6 id="dashQuickTitle" class="mb-0"><i class="bi bi-lightning-charge-fill me-2"></i>Accesos rápidos</h6>
+          </div>
+          <div class="dashboard-quick-grid" id="dashboardQuickActions">
+            <a class="dashboard-quick-link" href="ver.html" data-roles="admin,ayuntamiento,junta">
+              <i class="bi bi-eye"></i><span>Ver casos</span>
+            </a>
+            <a class="dashboard-quick-link" href="crear.html" data-roles="junta,ayuntamiento">
+              <i class="bi bi-pencil-square"></i><span>Nueva denuncia</span>
+            </a>
+            <a class="dashboard-quick-link" href="estadisticas.html" data-roles="admin">
+              <i class="bi bi-graph-up-arrow"></i><span>Reportes</span>
+            </a>
+            <a class="dashboard-quick-link" href="usuarios.html" data-roles="admin">
+              <i class="bi bi-people"></i><span>Usuarios</span>
+            </a>
+            <a class="dashboard-quick-link" href="juntas.html" data-roles="ayuntamiento">
+              <i class="bi bi-diagram-3"></i><span>Juntas</span>
+            </a>
+            <a class="dashboard-quick-link" href="historial.html" data-roles="junta">
+              <i class="bi bi-journal-text"></i><span>Historial</span>
+            </a>
+          </div>
+        </section>
+
+        <section class="dashboard-side-card" aria-labelledby="dashAlertsTitle">
+          <div class="dashboard-side-head">
+            <h6 id="dashAlertsTitle" class="mb-0"><i class="bi bi-bell me-2"></i>Alertas</h6>
+          </div>
+          <ul class="dashboard-alert-list" id="dashboardAlertasList">
+            <li class="dashboard-alert-item dashboard-alert-item--info" id="dashboardAlertaCarga">
+              Calculando estado operativo...
+            </li>
+          </ul>
+        </section>
+      </div>
+    </aside>
 
   </div>
 

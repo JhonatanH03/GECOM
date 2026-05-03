@@ -318,6 +318,132 @@ function iniciarSuscripcionNotificaciones() {
     });
   }
 
+  function claseEstadoLateral(estado) {
+    if (estado === ESTADOS.PENDIENTE) return "estado-pendiente";
+    if (estado === ESTADOS.EN_PROCESO) return "estado-proceso";
+    if (estado === ESTADOS.RESUELTA) return "estado-resuelta";
+    if (estado === ESTADOS.RECHAZADA) return "estado-rechazada";
+    return "estado-pendiente";
+  }
+
+  function etiquetaEstadoLateral(estado) {
+    if (estado === ESTADOS.EN_PROCESO) return "En proceso";
+    if (estado === ESTADOS.RESUELTA) return "Resuelta";
+    if (estado === ESTADOS.RECHAZADA) return "Rechazada";
+    return "Pendiente";
+  }
+
+  function formatFechaRelativa(fecha) {
+    if (!fecha) return "Sin fecha";
+
+    const ahora = Date.now();
+    const diffMs = ahora - fecha.getTime();
+    const minutos = Math.floor(diffMs / 60000);
+
+    if (minutos < 1) return "Hace unos segundos";
+    if (minutos < 60) return `Hace ${minutos} min`;
+
+    const horas = Math.floor(minutos / 60);
+    if (horas < 24) return `Hace ${horas} h`;
+
+    const dias = Math.floor(horas / 24);
+    if (dias < 7) return `Hace ${dias} d`;
+
+    return fecha.toLocaleDateString(getIdiomaUI() === "en" ? "en-US" : "es-DO", {
+      day: "2-digit",
+      month: "short"
+    });
+  }
+
+  function renderActividadReciente(docs) {
+    const lista = document.getElementById("dashboardActividadList");
+    if (!lista) return;
+
+    const items = (docs || [])
+      .map((docSnap) => {
+        const data = docSnap.data() || {};
+        const fecha = convertirAFecha(data.updatedAt || data.createdAt || data.fecha || data.timestamp);
+        const estado = String(data.estado || ESTADO_DEFAULT).trim();
+        const titulo = String(data.titulo || data.asunto || "Denuncia").trim();
+
+        return {
+          id: docSnap.id,
+          titulo,
+          estado,
+          fecha
+        };
+      })
+      .sort((a, b) => (b.fecha?.getTime() || 0) - (a.fecha?.getTime() || 0))
+      .slice(0, 4);
+
+    if (!items.length) {
+      lista.innerHTML = '<li class="dashboard-activity-empty">Aun no hay actividad reciente para mostrar.</li>';
+      return;
+    }
+
+    lista.innerHTML = items.map((item) => {
+      const tituloSeguro = escapeHtmlDash(item.titulo || "Denuncia");
+      const claseEstado = claseEstadoLateral(item.estado);
+      const textoEstado = etiquetaEstadoLateral(item.estado);
+      const tiempo = formatFechaRelativa(item.fecha);
+
+      return `
+        <li class="dashboard-activity-item">
+          <a class="dashboard-activity-link" href="ver.html?denuncia=${encodeURIComponent(item.id)}">
+            <div class="dashboard-activity-top">
+              <p class="dashboard-activity-title">${tituloSeguro}</p>
+              <span class="dashboard-activity-state ${claseEstado}">${textoEstado}</span>
+            </div>
+            <p class="dashboard-activity-time">${tiempo}</p>
+          </a>
+        </li>
+      `;
+    }).join("");
+  }
+
+  function renderAccesosRapidos() {
+    const cont = document.getElementById("dashboardQuickActions");
+    if (!cont) return;
+
+    const enlaces = cont.querySelectorAll("a[data-roles]");
+    enlaces.forEach((enlace) => {
+      const roles = String(enlace.dataset.roles || "")
+        .split(",")
+        .map((rol) => rol.trim())
+        .filter(Boolean);
+
+      enlace.style.display = roles.includes(rolLocal) ? "flex" : "none";
+    });
+  }
+
+  function renderAlertasOperativas(resumen) {
+    const lista = document.getElementById("dashboardAlertasList");
+    if (!lista) return;
+
+    const pendientes = Number(resumen?.[ESTADOS.PENDIENTE] || 0);
+    const enProceso = Number(resumen?.[ESTADOS.EN_PROCESO] || 0);
+    const acumuladas = pendientes + enProceso;
+
+    let clase = "dashboard-alert-item--info";
+    if (acumuladas >= 15) clase = "dashboard-alert-item--danger";
+    else if (acumuladas >= 8) clase = "dashboard-alert-item--warning";
+
+    const mensajePrincipal = acumuladas > 0
+      ? `${acumuladas} casos requieren atencion (${pendientes} pendientes y ${enProceso} en proceso).`
+      : "No hay casos activos pendientes de seguimiento.";
+
+    const mensajeSecundario = rolLocal === "admin"
+      ? "Vista global del sistema actualizada."
+      : (rolLocal === "ayuntamiento"
+        ? "Prioriza casos con impacto municipal esta semana."
+        : "Recuerda responder los reportes para evitar atrasos.");
+
+    lista.innerHTML = `
+      <li class="dashboard-alert-item ${clase}">${mensajePrincipal}</li>
+      <li class="dashboard-alert-item dashboard-alert-item--info">${mensajeSecundario}</li>
+    `;
+  }
+
   function contarEstadosDesdeDocs(docs) {
     const resumen = {
       [ESTADOS.PENDIENTE]: 0,
@@ -346,6 +472,8 @@ function iniciarSuscripcionNotificaciones() {
         const municipio = String(ayuntamientoData.municipio || "").trim();
         if (!municipio) {
           actualizarKpiVisual({});
+          renderActividadReciente([]);
+          renderAlertasOperativas({});
           return;
         }
         snap = await getDocs(query(collection(db, "denuncias"), where("municipio", "==", municipio)));
@@ -353,9 +481,14 @@ function iniciarSuscripcionNotificaciones() {
         snap = await getDocs(collection(db, "denuncias"));
       }
 
-      actualizarKpiVisual(contarEstadosDesdeDocs(snap.docs));
+      const resumen = contarEstadosDesdeDocs(snap.docs);
+      actualizarKpiVisual(resumen);
+      renderActividadReciente(snap.docs);
+      renderAlertasOperativas(resumen);
     } catch (error) {
       console.error("Error cargando resumen de KPIs:", error);
+      renderActividadReciente([]);
+      renderAlertasOperativas({});
     }
   }
 
@@ -363,6 +496,7 @@ if (!uid || !rolLocal) {
   window.location.href = "index.html";
 } else {
   inicializarSelectorTemaDashboard();
+    renderAccesosRapidos();
     pintarLineaUsuario();
     cargarResumenKpi();
 
