@@ -156,7 +156,14 @@
         </a>
       </div>
     `;
-    document.body.appendChild(wrap);
+
+    var slotInHeader = document.getElementById("perfilMenuSlot");
+    if (slotInHeader) {
+      wrap.classList.add("perfil-menu-wrap--in-header");
+      slotInHeader.appendChild(wrap);
+    } else {
+      document.body.appendChild(wrap);
+    }
 
     const avatarBtn = wrap.querySelector("#perfilAvatarBtn");
     const dropdown = wrap.querySelector("#perfilDropdown");
