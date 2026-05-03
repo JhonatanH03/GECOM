@@ -509,8 +509,6 @@ async function cargarDenuncias() {
   try {
     let q;
 
-    console.log("[GECOM ver] rol:", rol, "| uid:", uid, "| municipio ayuntamiento:", ayuntamientoMunicipio);
-
     if (rol === "admin") {
       q = collection(db, "denuncias");
     } else if (rol === "junta") {
@@ -524,7 +522,6 @@ async function cargarDenuncias() {
     }
 
     const querySnapshot = await getDocs(q);
-    console.log("[GECOM ver] total denuncias obtenidas:", querySnapshot.size);
 
     todasLasDenuncias = [];
     querySnapshot.forEach((docSnap) => {

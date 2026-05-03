@@ -120,8 +120,6 @@ form.addEventListener("submit", async (event) => {
 
   try {
     if (usuarioId) {
-      const previoDoc = await getDoc(doc(db, "JuntasDeVecinos", usuarioId));
-      const previoData = previoDoc.exists() ? (previoDoc.data() || {}) : {};
       await setDoc(doc(db, "JuntasDeVecinos", usuarioId), usuarioData, { merge: true });
       showAlert("Junta actualizada correctamente.", "success");
     } else {
@@ -148,7 +146,7 @@ form.addEventListener("submit", async (event) => {
       });
       await setDoc(doc(db, "loginIndex", usuarioNormalizado), {
         uid: nuevoUid,
-        email: correo,
+        email: emailInterno,
         rol: "junta",
         updatedAt: serverTimestamp()
       });
@@ -237,12 +235,24 @@ async function cargarUsuarios() {
         <td data-label="Sector">${escapeHtml(data.sector || data.comunidad)}</td>
         <td data-label="Estado"><span class="status-chip ${estadoClass}"><i class="bi ${chipIcon} chip-icon"></i>${escapeHtml(estadoLabel)}</span></td>
         <td class="text-center" data-label="Acciones">
-          <button class="btn btn-sm btn-warning me-1 px-2" onclick="editarUsuario('${data.id}')" title="Editar">
-            <i class="bi bi-pencil"></i>
-          </button>
-          <button class="btn btn-sm btn-danger px-2" onclick="eliminarUsuario('${data.id}', '${escapeHtml(data.nombre)}')" title="Eliminar">
-            <i class="bi bi-trash"></i>
-          </button>
+          <div class="dropdown">
+            <button class="btn btn-sm gecom-action-menu-btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="bi bi-three-dots-vertical"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end gecom-action-menu">
+              <li>
+                <button class="dropdown-item" type="button" onclick="editarUsuario('${data.id}')">
+                  <i class="bi bi-pencil-fill gecom-action-icon gecom-action-icon--edit"></i>Editar
+                </button>
+              </li>
+              <li><hr class="dropdown-divider"></li>
+              <li>
+                <button class="dropdown-item gecom-action-item--danger" type="button" onclick="eliminarUsuario('${data.id}', '${escapeHtml(data.nombre)}')">
+                  <i class="bi bi-trash-fill gecom-action-icon"></i>Eliminar
+                </button>
+              </li>
+            </ul>
+          </div>
         </td>
       `;
       usuariosBody.appendChild(fila);
@@ -284,9 +294,14 @@ window.editarUsuario = async function editarUsuario(id) {
 };
 
 window.eliminarUsuario = async function eliminarUsuario(id, nombre) {
-  if (!confirm(`¿Estás seguro de que deseas eliminar la junta "${nombre}"? Esta acción no se puede deshacer.`)) {
-    return;
-  }
+  const ok = await window.gecomConfirm({
+    title: "Eliminar usuario",
+    message: `¿Estás seguro de que deseas eliminar "${nombre}"? Esta acción no se puede deshacer.`,
+    confirmText: "Sí, eliminar",
+    cancelText: "Cancelar",
+    type: "danger",
+  });
+  if (!ok) return;
 
   try {
     const docSnap = await getDoc(doc(db, "JuntasDeVecinos", id));

@@ -97,8 +97,15 @@ window.ir = function (ruta) {
   window.location.href = ruta;
 };
 
-window.logout = function () {
-  if (!confirm("¿Cerrar sesión?")) return;
+window.logout = async function () {
+  const ok = await window.gecomConfirm({
+    title: "Cerrar sesión",
+    message: "¿Estás seguro de que deseas cerrar la sesión actual?",
+    confirmText: "Cerrar sesión",
+    cancelText: "Cancelar",
+    type: "warning",
+  });
+  if (!ok) return;
   localStorage.clear();
   window.location.href = "index.html";
 };

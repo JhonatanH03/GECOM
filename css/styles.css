@@ -121,8 +121,8 @@ h3 {
   --gecom-shadow: 0 4px 24px rgba(15, 23, 42, 0.06);
   --dash-kpi-accent-h: 3px;
   background:
-    radial-gradient(ellipse 42% 68% at -8% 52%, rgba(37, 99, 235, 0.11), transparent 78%),
-    radial-gradient(ellipse 40% 62% at 108% 50%, rgba(16, 185, 129, 0.09), transparent 76%),
+    radial-gradient(ellipse 52% 78% at -10% 52%, rgba(37, 99, 235, 0.22), transparent 76%),
+    radial-gradient(ellipse 50% 72% at 110% 50%, rgba(16, 185, 129, 0.18), transparent 74%),
     radial-gradient(ellipse 80% 50% at 50% -20%, rgba(59, 130, 246, 0.06), transparent),
     radial-gradient(ellipse 60% 40% at 100% 100%, rgba(16, 185, 129, 0.04), transparent),
     var(--gecom-bg);
@@ -141,10 +141,10 @@ h3 {
   inset: 0;
   pointer-events: none;
   background:
-    linear-gradient(90deg, rgba(7, 20, 39, 0.26) 0%, rgba(7, 20, 39, 0) 18%, rgba(7, 20, 39, 0) 82%, rgba(7, 20, 39, 0.26) 100%),
-    repeating-linear-gradient(120deg, rgba(255, 255, 255, 0.018) 0 1px, transparent 1px 14px);
+    linear-gradient(90deg, rgba(7, 20, 39, 0.44) 0%, rgba(7, 20, 39, 0) 22%, rgba(7, 20, 39, 0) 78%, rgba(7, 20, 39, 0.44) 100%),
+    repeating-linear-gradient(120deg, rgba(255, 255, 255, 0.032) 0 1px, transparent 1px 14px);
   mix-blend-mode: multiply;
-  opacity: 0.55;
+  opacity: 0.7;
   z-index: 0;
 }
 
@@ -947,6 +947,126 @@ h3 {
 }
 
 /* ── Leyenda de estados de denuncias ── */
+/* ── Tabla: menú de acciones dropdown ── */
+.gecom-action-menu-btn {
+  border: 1px solid var(--gecom-stroke);
+  background: color-mix(in srgb, var(--gecom-surface) 88%, transparent);
+  color: var(--gecom-subtext);
+  border-radius: 9px;
+  padding: 0.3rem 0.55rem;
+  font-size: 0.95rem;
+  line-height: 1;
+  transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+}
+
+.gecom-action-menu-btn:hover {
+  background: color-mix(in srgb, var(--gecom-surface) 100%, transparent);
+  color: var(--gecom-text);
+  border-color: color-mix(in srgb, var(--gecom-stroke) 140%, transparent);
+}
+
+.gecom-action-menu-btn::after {
+  display: none;
+}
+
+.gecom-action-menu {
+  border: 1px solid var(--gecom-stroke);
+  border-radius: 12px;
+  box-shadow: 0 8px 28px rgba(15, 23, 42, 0.1);
+  padding: 0.4rem;
+  min-width: 200px;
+  background: var(--gecom-surface);
+}
+
+.gecom-action-menu .dropdown-item {
+  border-radius: 8px;
+  padding: 0.52rem 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--gecom-text);
+  display: flex;
+  align-items: center;
+  gap: 0;
+  transition: background 0.15s ease;
+}
+
+.gecom-action-menu .dropdown-item:hover {
+  background: color-mix(in srgb, var(--gecom-stroke) 55%, transparent);
+  color: var(--gecom-text);
+}
+
+.gecom-action-menu .dropdown-item:active {
+  background: color-mix(in srgb, var(--gecom-stroke) 85%, transparent);
+}
+
+.gecom-action-icon {
+  width: 1.5rem;
+  flex-shrink: 0;
+  font-size: 0.82rem;
+}
+
+.gecom-action-icon--edit { color: #d97706; }
+.gecom-action-icon--key  { color: #0891b2; }
+
+.gecom-action-item--danger {
+  color: #dc2626 !important;
+}
+
+.gecom-action-item--danger:hover {
+  background: rgba(220, 38, 38, 0.1) !important;
+  color: #dc2626 !important;
+}
+
+.gecom-action-item--danger .gecom-action-icon {
+  color: #dc2626;
+}
+
+.gecom-action-menu .dropdown-divider {
+  margin: 0.3rem 0.5rem;
+  border-color: var(--gecom-stroke);
+}
+
+[data-bs-theme="dark"] .gecom-action-menu-btn {
+  border-color: rgba(148, 163, 184, 0.22);
+  background: rgba(255, 255, 255, 0.04);
+  color: #94a3b8;
+}
+
+[data-bs-theme="dark"] .gecom-action-menu-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #e2e8f0;
+}
+
+[data-bs-theme="dark"] .gecom-action-menu {
+  border-color: rgba(148, 163, 184, 0.2);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
+}
+
+[data-bs-theme="dark"] .gecom-action-menu .dropdown-item {
+  color: #e2e8f0;
+}
+
+[data-bs-theme="dark"] .gecom-action-menu .dropdown-item:hover {
+  background: rgba(148, 163, 184, 0.12);
+}
+
+[data-bs-theme="dark"] .gecom-action-icon--edit { color: #fbbf24; }
+[data-bs-theme="dark"] .gecom-action-icon--key  { color: #38bdf8; }
+
+[data-bs-theme="dark"] .gecom-action-item--danger {
+  color: #f87171 !important;
+}
+
+[data-bs-theme="dark"] .gecom-action-item--danger:hover {
+  background: rgba(248, 113, 113, 0.12) !important;
+  color: #f87171 !important;
+}
+
+[data-bs-theme="dark"] .gecom-action-item--danger .gecom-action-icon {
+  color: #f87171;
+}
+
+/* ── */
 .badge-leyenda {
   display: inline-flex;
   align-items: center;
@@ -1010,12 +1130,33 @@ h3 {
   --gecom-shadow: 0 14px 30px rgba(20, 55, 90, 0.08);
   --gecom-header-bg: color-mix(in srgb, var(--gecom-surface) 90%, transparent);
   background:
+    radial-gradient(ellipse 54% 78% at -10% 50%, rgba(37, 99, 235, 0.22), transparent 76%),
+    radial-gradient(ellipse 52% 74% at 110% 50%, rgba(16, 185, 129, 0.18), transparent 74%),
     radial-gradient(circle at 12% 14%, rgba(45, 125, 198, 0.12), transparent 34%),
     radial-gradient(circle at 88% 86%, rgba(46, 137, 94, 0.12), transparent 35%),
     var(--gecom-bg);
   color: var(--gecom-text);
   font-family: "Manrope", "Segoe UI", Tahoma, sans-serif;
   min-height: 100vh;
+  position: relative;
+}
+
+.app-page:not(.dashboard-page)::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(7, 20, 39, 0.44) 0%, rgba(7, 20, 39, 0) 22%, rgba(7, 20, 39, 0) 78%, rgba(7, 20, 39, 0.44) 100%),
+    repeating-linear-gradient(120deg, rgba(255, 255, 255, 0.032) 0 1px, transparent 1px 14px);
+  mix-blend-mode: multiply;
+  opacity: 0.7;
+  z-index: 0;
+}
+
+.app-page:not(.dashboard-page) > * {
+  position: relative;
+  z-index: 1;
 }
 
 .app-page,
@@ -1062,9 +1203,19 @@ h3 {
   --gecom-header-bg: color-mix(in srgb, var(--gecom-surface) 86%, #0c1220);
   color-scheme: dark;
   background:
+    radial-gradient(ellipse 58% 82% at -12% 50%, rgba(56, 189, 248, 0.22), transparent 76%),
+    radial-gradient(ellipse 56% 78% at 112% 50%, rgba(99, 102, 241, 0.2), transparent 76%),
     radial-gradient(circle at 14% 12%, rgba(59, 130, 246, 0.09), transparent 38%),
     radial-gradient(circle at 92% 88%, rgba(16, 185, 129, 0.045), transparent 40%),
     linear-gradient(180deg, var(--gecom-bg) 0%, #080d16 52%, var(--gecom-bg) 100%);
+}
+
+[data-bs-theme="dark"] .app-page:not(.dashboard-page)::before {
+  background:
+    linear-gradient(90deg, rgba(1, 8, 19, 0.82) 0%, rgba(1, 8, 19, 0) 24%, rgba(1, 8, 19, 0) 76%, rgba(1, 8, 19, 0.82) 100%),
+    repeating-linear-gradient(120deg, rgba(255, 255, 255, 0.036) 0 1px, transparent 1px 13px);
+  mix-blend-mode: screen;
+  opacity: 0.65;
 }
 
 /* Dashboard: mismo sistema de tokens, fondo algo más marcado que el resto de pantallas */
@@ -1072,8 +1223,8 @@ h3 {
   --gecom-surface: #141d2e;
   --gecom-shadow: 0 22px 52px rgba(0, 0, 0, 0.58);
   background:
-    radial-gradient(ellipse 46% 72% at -10% 48%, rgba(56, 189, 248, 0.11), transparent 78%),
-    radial-gradient(ellipse 45% 68% at 110% 52%, rgba(99, 102, 241, 0.1), transparent 78%),
+    radial-gradient(ellipse 58% 82% at -12% 48%, rgba(56, 189, 248, 0.22), transparent 76%),
+    radial-gradient(ellipse 56% 76% at 112% 52%, rgba(99, 102, 241, 0.2), transparent 76%),
     radial-gradient(ellipse 115% 95% at 50% -28%, rgba(59, 130, 246, 0.13), transparent 53%),
     radial-gradient(ellipse 72% 58% at 100% -2%, rgba(129, 140, 248, 0.07), transparent 52%),
     radial-gradient(ellipse 58% 48% at 0% 100%, rgba(16, 185, 129, 0.052), transparent 50%),
@@ -1082,10 +1233,10 @@ h3 {
 
 [data-bs-theme="dark"] .dashboard-page::before {
   background:
-    linear-gradient(90deg, rgba(1, 8, 19, 0.62) 0%, rgba(1, 8, 19, 0) 20%, rgba(1, 8, 19, 0) 80%, rgba(1, 8, 19, 0.62) 100%),
-    repeating-linear-gradient(120deg, rgba(255, 255, 255, 0.02) 0 1px, transparent 1px 13px);
+    linear-gradient(90deg, rgba(1, 8, 19, 0.82) 0%, rgba(1, 8, 19, 0) 24%, rgba(1, 8, 19, 0) 76%, rgba(1, 8, 19, 0.82) 100%),
+    repeating-linear-gradient(120deg, rgba(255, 255, 255, 0.036) 0 1px, transparent 1px 13px);
   mix-blend-mode: screen;
-  opacity: 0.5;
+  opacity: 0.65;
 }
 
 [data-bs-theme="dark"] .dashboard-side-card,

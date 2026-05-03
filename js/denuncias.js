@@ -289,8 +289,6 @@ async function cargarUbicacionDesdePerfil() {
   const uid = localStorage.getItem("uid");
   const rolLocal = localStorage.getItem("rol");
 
-  console.log("[GECOM] uid:", uid, "| rol:", rolLocal);
-
   if (!uid) {
     habilitarEnvioFormulario(false);
     mostrarMensajeFormulario("No hay una sesión activa. Inicia sesión para registrar denuncias.");
@@ -299,8 +297,6 @@ async function cargarUbicacionDesdePerfil() {
 
   try {
     perfilUsuario = await obtenerPerfilUsuario(uid);
-
-    console.log("[GECOM] perfilUsuario:", perfilUsuario);
 
     if (!perfilUsuario) {
       habilitarEnvioFormulario(false);
@@ -311,8 +307,6 @@ async function cargarUbicacionDesdePerfil() {
     const provinciaPerfil = (perfilUsuario.provincia || "").trim();
     const municipioPerfil = (perfilUsuario.municipio || "").trim();
     const comunidadPerfil = (perfilUsuario.comunidad || "").trim();
-
-    console.log("[GECOM] provincia:", provinciaPerfil, "| municipio:", municipioPerfil, "| comunidad:", comunidadPerfil);
 
     setSelectValue("provincia", provinciaPerfil, "Seleccionar provincia");
     setSelectValue("municipio", municipioPerfil, "Seleccionar municipio");
@@ -482,11 +476,15 @@ window.crearDenuncia = async function () {
         evidenciaURL = await subirEvidenciaACloudinary(evidenciaProcesada, uid);
       } catch (uploadError) {
         console.error("Error en carga de archivo:", uploadError);
-        const continuarSinEvidencia = window.confirm(
-          "No se pudo subir la imagen a Cloudinary. ¿Deseas guardar la denuncia sin evidencia?"
-        );
+        const continuarSinEvidencia = await window.gecomConfirm({
+          title: "Error al subir imagen",
+          message: "No se pudo subir la imagen. ¿Deseas guardar la denuncia sin evidencia?",
+          confirmText: "Guardar sin imagen",
+          cancelText: "Cancelar",
+          type: "warning",
+        });
         if (!continuarSinEvidencia) {
-          alert("Error al cargar la evidencia: " + uploadError.message);
+          mostrarMensajeFormulario("Error al cargar la evidencia: " + uploadError.message, "danger");
           return;
         }
       }
