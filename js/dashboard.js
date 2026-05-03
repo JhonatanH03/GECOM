@@ -425,7 +425,7 @@ function iniciarSuscripcionNotificaciones() {
     });
   }
 
-  function aplicarEnlacesFooterPorRol() {
+  export default function aplicarEnlacesFooterPorRol() {
     const root = document.getElementById("dashboardFooterLinks");
     if (!root) return;
 
