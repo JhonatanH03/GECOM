@@ -323,9 +323,29 @@ async function cargarJuntas() {
         <td data-label="Comunidad">${escapeHtml(data.comunidad || "")}</td>
         <td data-label="Estado"><span class="status-chip ${estadoClass}"><i class="bi ${chipIcon} chip-icon"></i>${escapeHtml(label)}</span></td>
         <td class="text-center" data-label="Acciones">
-          <button class="btn btn-sm btn-warning me-1 px-2" onclick="editarJunta('${data.id}')"><i class="bi bi-pencil"></i></button>
-          <button class="btn btn-sm btn-info me-1 px-2" onclick="abrirModalResetContrasenaJunta('${data.id}', '${escapeHtml(data.nombre)}')" title="Restablecer contraseña"><i class="bi bi-key"></i></button>
-          <button class="btn btn-sm btn-danger px-2" onclick="eliminarJunta('${data.id}', '${escapeHtml(data.nombre)}')"><i class="bi bi-trash"></i></button>
+          <div class="dropdown">
+            <button class="btn btn-sm gecom-action-menu-btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="bi bi-three-dots-vertical"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end gecom-action-menu">
+              <li>
+                <button class="dropdown-item" type="button" onclick="editarJunta('${data.id}')">
+                  <i class="bi bi-pencil-fill gecom-action-icon gecom-action-icon--edit"></i>Editar
+                </button>
+              </li>
+              <li>
+                <button class="dropdown-item" type="button" onclick="abrirModalResetContrasenaJunta('${data.id}', '${escapeHtml(data.nombre)}')">
+                  <i class="bi bi-key-fill gecom-action-icon gecom-action-icon--key"></i>Restablecer contraseña
+                </button>
+              </li>
+              <li><hr class="dropdown-divider"></li>
+              <li>
+                <button class="dropdown-item gecom-action-item--danger" type="button" onclick="eliminarJunta('${data.id}', '${escapeHtml(data.nombre)}')">
+                  <i class="bi bi-trash-fill gecom-action-icon"></i>Eliminar
+                </button>
+              </li>
+            </ul>
+          </div>
         </td>
       </tr>`;
     });
@@ -445,24 +465,30 @@ window.confirmarResetContrasenaJunta = async function() {
 };
 
 window.eliminarJunta = async function(id, nombre) {
-  if (confirm("¿Eliminar a " + nombre + "?")) {
-    try {
-      const docSnap = await db.collection("JuntasDeVecinos").doc(id).get();
-      if (!docSnap.exists) {
-        showAlert("Junta no encontrada.", "danger");
-        return;
-      }
-      if (!esMismaUbicacion(docSnap.data())) {
-        showAlert("No puedes eliminar juntas fuera de tu municipio.", "danger");
-        return;
-      }
-      await db.collection("JuntasDeVecinos").doc(id).delete();
-      showAlert("Junta eliminada.", "success");
-      await cargarJuntas();
-    } catch (error) {
-      console.error("Error:", error);
-      showAlert("Error al eliminar.", "danger");
+  const ok = await window.gecomConfirm({
+    title: "Eliminar junta",
+    message: `¿Estás seguro de que deseas eliminar "${nombre}"? Esta acción no se puede deshacer.`,
+    confirmText: "Sí, eliminar",
+    cancelText: "Cancelar",
+    type: "danger",
+  });
+  if (!ok) return;
+  try {
+    const docSnap = await db.collection("JuntasDeVecinos").doc(id).get();
+    if (!docSnap.exists) {
+      showAlert("Junta no encontrada.", "danger");
+      return;
     }
+    if (!esMismaUbicacion(docSnap.data())) {
+      showAlert("No puedes eliminar juntas fuera de tu municipio.", "danger");
+      return;
+    }
+    await db.collection("JuntasDeVecinos").doc(id).delete();
+    showAlert("Junta eliminada.", "success");
+    await cargarJuntas();
+  } catch (error) {
+    console.error("Error:", error);
+    showAlert("Error al eliminar.", "danger");
   }
 };
 

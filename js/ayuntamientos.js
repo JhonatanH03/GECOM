@@ -205,9 +205,29 @@ async function cargarAyuntamientos() {
         <td data-label="Municipio">${escapeHtml(data.municipio || "")}</td>
         <td data-label="Estado"><span class="status-chip ${estadoClass}"><i class="bi ${chipIcon} chip-icon"></i>${escapeHtml(label)}</span></td>
         <td class="text-center" data-label="Acciones">
-          <button class="btn btn-sm btn-warning me-1 px-2" onclick="editarAyuntamiento('${data.id}')"><i class="bi bi-pencil"></i></button>
-          <button class="btn btn-sm btn-info me-1 px-2" onclick="abrirModalResetContrasenaAyuntamiento('${data.id}', '${escapeHtml(data.nombre)}')" title="Restablecer contraseña"><i class="bi bi-key"></i></button>
-          <button class="btn btn-sm btn-danger px-2" onclick="eliminarAyuntamiento('${data.id}', '${escapeHtml(data.nombre)}')"><i class="bi bi-trash"></i></button>
+          <div class="dropdown">
+            <button class="btn btn-sm gecom-action-menu-btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="bi bi-three-dots-vertical"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end gecom-action-menu">
+              <li>
+                <button class="dropdown-item" type="button" onclick="editarAyuntamiento('${data.id}')">
+                  <i class="bi bi-pencil-fill gecom-action-icon gecom-action-icon--edit"></i>Editar
+                </button>
+              </li>
+              <li>
+                <button class="dropdown-item" type="button" onclick="abrirModalResetContrasenaAyuntamiento('${data.id}', '${escapeHtml(data.nombre)}')">
+                  <i class="bi bi-key-fill gecom-action-icon gecom-action-icon--key"></i>Restablecer contraseña
+                </button>
+              </li>
+              <li><hr class="dropdown-divider"></li>
+              <li>
+                <button class="dropdown-item gecom-action-item--danger" type="button" onclick="eliminarAyuntamiento('${data.id}', '${escapeHtml(data.nombre)}')">
+                  <i class="bi bi-trash-fill gecom-action-icon"></i>Eliminar
+                </button>
+              </li>
+            </ul>
+          </div>
         </td>
       </tr>`;
     });
@@ -261,17 +281,21 @@ window.editarAyuntamiento = async function(id) {
 };
 
 window.eliminarAyuntamiento = async function(id, nombre) {
-  if (confirm("¿Eliminar a " + nombre + "?")) {
-    try {
-      const docSnap = await db.collection("Ayuntamientos").doc(id).get();
-      const data = docSnap.exists ? (docSnap.data() || {}) : {};
-      await db.collection("Ayuntamientos").doc(id).delete();
-      showAlert("Ayuntamiento eliminado.", "success");
-      await cargarAyuntamientos();
-    } catch (error) {
-      console.error("Error:", error);
-      showAlert("Error al eliminar.", "danger");
-    }
+  const ok = await window.gecomConfirm({
+    title: "Eliminar ayuntamiento",
+    message: `¿Estás seguro de que deseas eliminar "${nombre}"? Esta acción no se puede deshacer.`,
+    confirmText: "Sí, eliminar",
+    cancelText: "Cancelar",
+    type: "danger",
+  });
+  if (!ok) return;
+  try {
+    await db.collection("Ayuntamientos").doc(id).delete();
+    showAlert("Ayuntamiento eliminado.", "success");
+    await cargarAyuntamientos();
+  } catch (error) {
+    console.error("Error:", error);
+    showAlert("Error al eliminar.", "danger");
   }
 };
 
