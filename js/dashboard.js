@@ -290,9 +290,11 @@ function iniciarSuscripcionNotificaciones() {
     const rol = formatearRol(rolLocal);
 
     userLine.innerHTML = `
+      <h4>${saludo} <strong>${escapeHtmlDash(usuario)}</strong>
       <span class="dashboard-role-badge ${badgeClass}">
         <i class="bi ${icono}"></i>${rol}
-      </span>${saludo}, <strong>${escapeHtmlDash(usuario)}</strong>
+      </span></h4>
+
     `;
   }
 

@@ -102,6 +102,10 @@ h3 {
   color: #0d6efd;
 }
 
+[data-bs-theme="dark"] .app-page h3 {
+  color: var(--gecom-text);
+}
+
 /* Estilos para el párrafo descriptivo */
 .text-muted {
   font-size: 14px;
@@ -109,30 +113,22 @@ h3 {
 
 /* Dashboard theme system */
 .dashboard-page {
-  --gecom-bg: #eef3f7;
+  --gecom-bg: #f4f6f9;
   --gecom-surface: #ffffff;
-  --gecom-stroke: #dce5ee;
-  --gecom-text: #12304a;
-  --gecom-subtext: #5d7286;
-  --gecom-shadow: 0 14px 30px rgba(20, 55, 90, 0.08);
+  --gecom-stroke: #e8ecf1;
+  --gecom-text: #1a2332;
+  --gecom-subtext: #6b7785;
+  --gecom-shadow: 0 4px 24px rgba(15, 23, 42, 0.06);
+  --dash-kpi-accent-h: 3px;
   background:
-    radial-gradient(circle at 12% 14%, rgba(45, 125, 198, 0.12), transparent 34%),
-    radial-gradient(circle at 88% 86%, rgba(46, 137, 94, 0.12), transparent 35%),
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(59, 130, 246, 0.06), transparent),
+    radial-gradient(ellipse 60% 40% at 100% 100%, rgba(16, 185, 129, 0.04), transparent),
     var(--gecom-bg);
   color: var(--gecom-text);
   font-family: "Manrope", "Segoe UI", Tahoma, sans-serif;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-}
-
-[data-bs-theme="dark"] .dashboard-page {
-  --gecom-bg: #0f1720;
-  --gecom-surface: #16202d;
-  --gecom-stroke: #233447;
-  --gecom-text: #dce8f5;
-  --gecom-subtext: #92a7bc;
-  --gecom-shadow: 0 18px 34px rgba(0, 0, 0, 0.34);
 }
 
 .dashboard-shell {
@@ -142,138 +138,573 @@ h3 {
   padding-bottom: 2rem;
 }
 
+.dashboard-shell--pad {
+  padding-top: clamp(1.15rem, 3vw, 1.85rem);
+}
+
 .dashboard-shell > .dashboard-grid {
   flex: 1;
   align-content: start;
 }
 
-.dashboard-header {
-  background: color-mix(in srgb, var(--gecom-surface) 92%, transparent);
-  border: 1px solid var(--gecom-stroke);
-  border-radius: 18px;
-  padding: 18px 20px;
-  box-shadow: var(--gecom-shadow);
+.dashboard-header-modern {
+  padding: 0 0 clamp(1.25rem, 3vw, 1.85rem);
+  margin-bottom: 0;
+}
+
+/* Fila tipo barra app: texto a la izquierda, hueco amplio al centro, avatar a la derecha */
+.dashboard-header-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: clamp(1rem, 4vw, 3rem);
+  width: 100%;
+}
+
+.dashboard-header-copy {
+  min-width: 0;
+}
+
+.dashboard-header-aside {
+  position: relative;
+  flex-shrink: 0;
+  padding-top: 0.2rem;
 }
 
 .dashboard-title {
-  font-size: 1.7rem;
+  font-size: clamp(1.4rem, 2.8vw, 1.82rem);
   font-weight: 800;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.035em;
   color: var(--gecom-text);
+  line-height: 1.2;
 }
 
 .dashboard-subtitle {
   color: var(--gecom-subtext) !important;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  line-height: 1.35;
 }
 
 .dashboard-userline {
-  color: var(--gecom-subtext);
-  font-size: 0.82rem;
-  margin-top: 0.18rem;
+  color: color-mix(in srgb, var(--gecom-subtext) 88%, var(--gecom-text));
+  font-size: 0.94rem;
+  font-weight: 500;
+  line-height: 1.55;
 }
 
+.dashboard-page .dashboard-userline strong {
+  color: var(--gecom-text);
+  font-weight: 700;
+}
+
+[data-bs-theme="dark"] .dashboard-page .dashboard-userline .dashboard-role-badge.role-admin {
+  background: rgba(244, 200, 95, 0.07);
+  border-color: rgba(244, 200, 95, 0.55);
+  color: #fcd34d;
+}
+
+/* KPI strip — minimalist horizontal cards + bottom accent bar */
 .kpi-card {
-  border: 1px solid var(--gecom-stroke);
-  border-radius: 14px;
-  padding: 1.1rem 1.25rem;
-  background: color-mix(in srgb, var(--gecom-surface) 94%, transparent);
+  position: relative;
+  border: none;
+  border-radius: 15px;
+  padding: 0;
+  overflow: hidden;
+  background: var(--gecom-surface);
   box-shadow: var(--gecom-shadow);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
+}
+
+.kpi-card::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--dash-kpi-accent-h);
+  border-radius: 0 0 15px 15px;
+}
+
+.kpi-pendiente::after {
+  background: linear-gradient(90deg, rgba(148, 163, 184, 0.85), rgba(100, 116, 139, 0.75));
+}
+
+.kpi-proceso::after {
+  background: linear-gradient(90deg, #fcd34d, #f59e0b);
+}
+
+.kpi-resuelta::after {
+  background: linear-gradient(90deg, #6ee7b7, #10b981);
+}
+
+.kpi-rechazada::after {
+  background: linear-gradient(90deg, #fca5a5, #f43f5e);
+}
+
+.kpi-card-body {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.15rem calc(1rem + var(--dash-kpi-accent-h));
+}
+
+.kpi-icon-ring {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.kpi-meta {
+  min-width: 0;
+}
+
+.kpi-card .kpi-label {
+  margin: 0 0 0.2rem;
+  color: var(--gecom-subtext);
+  font-size: 0.78rem;
+  text-transform: none;
+  letter-spacing: 0.01em;
+  font-weight: 600;
 }
 
 .kpi-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 16px 32px rgba(16, 52, 84, 0.12);
+  transform: translateY(-3px);
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.09);
+}
+
+[data-bs-theme="dark"] .kpi-card {
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
 }
 
 [data-bs-theme="dark"] .kpi-card:hover {
-  box-shadow: 0 16px 32px rgba(0,0,0,0.38);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.5);
 }
 
-.kpi-label {
-  margin: 0;
-  color: var(--gecom-subtext);
-  font-size: 0.8rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  font-weight: 700;
+[data-bs-theme="dark"] .kpi-pendiente::after {
+  background: linear-gradient(90deg, rgba(148, 163, 184, 0.5), rgba(100, 116, 139, 0.45));
+}
+
+[data-bs-theme="dark"] .kpi-proceso::after {
+  background: linear-gradient(90deg, rgba(251, 191, 36, 0.75), rgba(217, 119, 6, 0.65));
+}
+
+[data-bs-theme="dark"] .kpi-resuelta::after {
+  background: linear-gradient(90deg, rgba(52, 211, 153, 0.65), rgba(5, 150, 105, 0.55));
+}
+
+[data-bs-theme="dark"] .kpi-rechazada::after {
+  background: linear-gradient(90deg, rgba(251, 113, 133, 0.65), rgba(225, 29, 72, 0.55));
 }
 
 .kpi-value {
   color: var(--gecom-text);
-  font-size: 1.55rem;
-  line-height: 1.05;
+  font-size: 1.5rem;
+  line-height: 1.1;
   font-weight: 800;
+  letter-spacing: -0.02em;
 }
 
-.dashboard-grid .dashboard-card {
-  border-radius: 18px;
-  border: 1px solid var(--gecom-stroke);
+/* Action cards grid */
+.dashboard-grid .dashboard-card.dash-action-card {
+  border-radius: 15px;
+  border: none;
   background: var(--gecom-surface);
   box-shadow: var(--gecom-shadow) !important;
-  transition: transform 0.28s ease, box-shadow 0.28s ease, border-color 0.28s ease;
+  transition: transform 0.26s ease, box-shadow 0.26s ease;
 }
 
-.dashboard-grid .dashboard-card:hover {
+.dashboard-grid .dashboard-card.dash-action-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 20px 36px rgba(16, 52, 84, 0.14) !important;
+  box-shadow: 0 14px 40px rgba(15, 23, 42, 0.1) !important;
 }
 
-[data-bs-theme="dark"] .dashboard-grid .dashboard-card:hover {
-  box-shadow: 0 20px 36px rgba(0, 0, 0, 0.42) !important;
+[data-bs-theme="dark"] .dashboard-grid .dashboard-card.dash-action-card:hover {
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.55) !important;
 }
 
-.dashboard-grid .dashboard-card h5 {
-  font-weight: 700;
+[data-bs-theme="dark"] .dashboard-grid .dashboard-card.dash-action-card {
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.dash-action-card-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  min-height: 240px;
+  height: 100%;
+  padding: 1.35rem 1.35rem 1.15rem;
+  text-align: left;
+}
+
+.dashboard-card-primary.dash-action-card .dash-action-card-inner {
+  min-height: 248px;
+}
+
+.dash-action-card-title {
+  font-weight: 800;
   color: var(--gecom-text);
-  margin-bottom: 0.9rem;
+  font-size: 1.06rem;
+  letter-spacing: -0.02em;
 }
 
 .dashboard-card-copy {
   color: var(--gecom-subtext);
-  font-size: 0.9rem;
-  min-height: 3.2em;
-  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.52;
+  min-height: 2.8em;
   flex: 1;
 }
 
-.dashboard-grid .dashboard-card .card {
+.dashboard-page .dash-card-cta {
+  width: 100%;
+  min-width: 0;
+  border: none;
+  border-radius: 14px;
+  padding: 0.72rem 1rem;
+  font-weight: 700;
+  font-size: 0.9rem;
+  letter-spacing: 0.015em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  transition: transform 0.18s ease, filter 0.18s ease, box-shadow 0.18s ease;
+}
+
+.dashboard-page .dash-card-cta:active {
+  transform: scale(0.99);
+}
+
+.dash-card-cta-arrow {
+  font-size: 1.55rem;
+  line-height: 1;
+  margin-right: -0.15rem;
+  opacity: 0.92;
+}
+
+/* Icon disc per card personality */
+.dashboard-card-icon-wrap {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
   display: flex;
-  flex-direction: column;
-  min-height: 200px;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
 }
 
-.dashboard-card-primary {
-  border-width: 2px;
+.dashboard-card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.45rem;
+  line-height: 1;
+  margin-bottom: 0;
+  opacity: 1;
+  transition: transform 0.25s ease;
 }
 
-.dashboard-card.card-junta {
-  border-top: 4px solid #2b8f6f;
+.dashboard-grid .dash-action-card:hover .dashboard-card-icon {
+  transform: scale(1.06);
 }
 
-.dashboard-card.card-admin {
-  border-top: 4px solid #ce8b25;
+/* KPI icon tints */
+.kpi-pendiente .kpi-icon-ring {
+  background: rgba(148, 163, 184, 0.2);
+}
+.kpi-pendiente .kpi-icon {
+  color: #64748b;
 }
 
-.dashboard-card.card-ayuntamiento {
-  border-top: 4px solid #3377c8;
+.kpi-proceso .kpi-icon-ring {
+  background: rgba(251, 191, 36, 0.22);
+}
+.kpi-proceso .kpi-icon {
+  color: #d97706;
 }
 
-.dashboard-card.card-general {
-  border-top: 4px solid #4f8ca5;
+.kpi-resuelta .kpi-icon-ring {
+  background: rgba(52, 211, 153, 0.2);
+}
+.kpi-resuelta .kpi-icon {
+  color: #059669;
+}
+
+.kpi-rechazada .kpi-icon-ring {
+  background: rgba(251, 113, 133, 0.2);
+}
+.kpi-rechazada .kpi-icon {
+  color: #e11d48;
+}
+
+[data-bs-theme="dark"] .kpi-pendiente .kpi-icon-ring {
+  background: rgba(148, 163, 184, 0.14);
+}
+[data-bs-theme="dark"] .kpi-pendiente .kpi-icon {
+  color: #94a3b8;
+}
+
+[data-bs-theme="dark"] .kpi-proceso .kpi-icon-ring {
+  background: rgba(251, 191, 36, 0.12);
+}
+[data-bs-theme="dark"] .kpi-proceso .kpi-icon {
+  color: #fbbf24;
+}
+
+[data-bs-theme="dark"] .kpi-resuelta .kpi-icon-ring {
+  background: rgba(52, 211, 153, 0.12);
+}
+[data-bs-theme="dark"] .kpi-resuelta .kpi-icon {
+  color: #34d399;
+}
+
+[data-bs-theme="dark"] .kpi-rechazada .kpi-icon-ring {
+  background: rgba(251, 113, 133, 0.12);
+}
+[data-bs-theme="dark"] .kpi-rechazada .kpi-icon {
+  color: #fb7185;
+}
+
+/* Card-general — azul documentos */
+.card-general .dashboard-card-icon-wrap {
+  background: rgba(59, 130, 246, 0.12);
+}
+
+.card-general .dashboard-card-icon {
+  color: #2563eb;
+}
+
+.card-general .dash-card-cta {
+  background: rgba(59, 130, 246, 0.1);
+  color: #1d4ed8;
+}
+
+.card-general .dash-card-cta:hover {
+  filter: brightness(1.03);
+}
+
+/* Crear denuncia + primary accent */
+.dashboard-card-primary.dash-action-card:not(.card-ayuntamiento) .dashboard-card-icon-wrap,
+.card-junta.dashboard-card-primary:not(.card-ayuntamiento) .dashboard-card-icon-wrap {
+  background: rgba(43, 143, 111, 0.14);
+}
+
+.dashboard-card-primary:not(.card-ayuntamiento) .dashboard-card-icon {
+  color: #207056;
+}
+
+.dashboard-card-primary:not(.card-ayuntamiento) .dash-card-cta {
+  background: rgba(43, 143, 111, 0.12);
+  color: #16614a;
+}
+
+/* Junta panels (historial gestión) */
+.card-junta:not(.dashboard-card-primary) .dashboard-card-icon-wrap {
+  background: rgba(43, 143, 111, 0.12);
+}
+
+.card-junta:not(.dashboard-card-primary) .dashboard-card-icon {
+  color: #2b8f6f;
+}
+
+.card-junta:not(.dashboard-card-primary) .dash-card-cta {
+  background: rgba(43, 143, 111, 0.1);
+  color: #1e6b52;
+}
+
+/* Ayuntamiento */
+.card-ayuntamiento.dashboard-card-primary .dashboard-card-icon-wrap {
+  background: rgba(51, 119, 200, 0.14);
+}
+
+.card-ayuntamiento.dashboard-card-primary .dashboard-card-icon {
+  color: #2b68b5;
+}
+
+.card-ayuntamiento.dashboard-card-primary .dash-card-cta {
+  background: rgba(51, 119, 200, 0.11);
+  color: #1d5fa5;
+}
+
+.card-ayuntamiento:not(.dashboard-card-primary) .dashboard-card-icon-wrap {
+  background: rgba(51, 119, 200, 0.12);
+}
+
+.card-ayuntamiento:not(.dashboard-card-primary) .dashboard-card-icon {
+  color: #3377c8;
+}
+
+.card-ayuntamiento:not(.dashboard-card-primary) .dash-card-cta {
+  background: rgba(51, 119, 200, 0.09);
+  color: #2968af;
+}
+
+/* Admin — estadísticas verdes */
+.card-admin-stats .dashboard-card-icon-wrap {
+  background: rgba(16, 185, 129, 0.12);
+}
+
+.card-admin-stats .dashboard-card-icon {
+  color: #059669;
+}
+
+.card-admin-stats .dash-card-cta {
+  background: rgba(16, 185, 129, 0.1);
+  color: #047857;
+}
+
+/* Admin — municipios violeta */
+.card-admin-muni .dashboard-card-icon-wrap {
+  background: rgba(139, 92, 246, 0.12);
+}
+
+.card-admin-muni .dashboard-card-icon {
+  color: #7c3aed;
+}
+
+.card-admin-muni .dash-card-cta {
+  background: rgba(139, 92, 246, 0.1);
+  color: #6d28d9;
+}
+
+/* Admin — usuarios naranja */
+.card-admin-users .dashboard-card-icon-wrap {
+  background: rgba(251, 146, 60, 0.14);
+}
+
+.card-admin-users .dashboard-card-icon {
+  color: #ea580c;
+}
+
+.card-admin-users .dash-card-cta {
+  background: rgba(251, 146, 60, 0.12);
+  color: #c2410c;
+}
+
+/* Historial muted CTA */
+.dash-card-cta.dash-card-cta--muted {
+  background: color-mix(in srgb, var(--gecom-subtext) 12%, transparent) !important;
+  color: var(--gecom-text) !important;
+}
+
+.dash-card-cta.dash-card-cta--muted .dash-card-cta-arrow {
+  opacity: 0.65;
+}
+
+[data-bs-theme="dark"] .dash-card-cta.dash-card-cta--muted {
+  background: rgba(147, 166, 187, 0.14) !important;
+}
+
+/* ── Dashboard: CTAs e iconos en oscuro (texto pastel legible sobre tintes) ── */
+[data-bs-theme="dark"] .dashboard-page .card-general .dashboard-card-icon-wrap {
+  background: rgba(96, 165, 250, 0.16);
+}
+[data-bs-theme="dark"] .dashboard-page .card-general .dashboard-card-icon {
+  color: #7cb3fb;
+}
+[data-bs-theme="dark"] .dashboard-page .card-general .dash-card-cta {
+  background: rgba(96, 165, 250, 0.14);
+  color: #bfdbfe;
+}
+
+[data-bs-theme="dark"] .dashboard-page .dashboard-card-primary:not(.card-ayuntamiento) .dashboard-card-icon-wrap,
+[data-bs-theme="dark"] .dashboard-page .card-junta.dashboard-card-primary:not(.card-ayuntamiento) .dashboard-card-icon-wrap {
+  background: rgba(52, 211, 153, 0.12);
+}
+[data-bs-theme="dark"] .dashboard-page .dashboard-card-primary:not(.card-ayuntamiento) .dashboard-card-icon,
+[data-bs-theme="dark"] .dashboard-page .card-junta.dashboard-card-primary:not(.card-ayuntamiento) .dashboard-card-icon {
+  color: #6ee7b7;
+}
+[data-bs-theme="dark"] .dashboard-page .dashboard-card-primary:not(.card-ayuntamiento) .dash-card-cta,
+[data-bs-theme="dark"] .dashboard-page .card-junta.dashboard-card-primary:not(.card-ayuntamiento) .dash-card-cta {
+  background: rgba(52, 211, 153, 0.11);
+  color: #a7f3d0;
+}
+
+[data-bs-theme="dark"] .dashboard-page .card-junta:not(.dashboard-card-primary) .dashboard-card-icon-wrap {
+  background: rgba(52, 211, 153, 0.1);
+}
+[data-bs-theme="dark"] .dashboard-page .card-junta:not(.dashboard-card-primary) .dashboard-card-icon {
+  color: #5eead4;
+}
+[data-bs-theme="dark"] .dashboard-page .card-junta:not(.dashboard-card-primary) .dash-card-cta {
+  background: rgba(52, 211, 153, 0.09);
+  color: #99f6e4;
+}
+
+[data-bs-theme="dark"] .dashboard-page .card-ayuntamiento.dashboard-card-primary .dashboard-card-icon-wrap {
+  background: rgba(96, 165, 250, 0.15);
+}
+[data-bs-theme="dark"] .dashboard-page .card-ayuntamiento.dashboard-card-primary .dashboard-card-icon {
+  color: #93c5fd;
+}
+[data-bs-theme="dark"] .dashboard-page .card-ayuntamiento.dashboard-card-primary .dash-card-cta {
+  background: rgba(96, 165, 250, 0.12);
+  color: #cfe2ff;
+}
+
+[data-bs-theme="dark"] .dashboard-page .card-ayuntamiento:not(.dashboard-card-primary) .dashboard-card-icon-wrap {
+  background: rgba(96, 165, 250, 0.12);
+}
+[data-bs-theme="dark"] .dashboard-page .card-ayuntamiento:not(.dashboard-card-primary) .dashboard-card-icon {
+  color: #7cb3fb;
+}
+[data-bs-theme="dark"] .dashboard-page .card-ayuntamiento:not(.dashboard-card-primary) .dash-card-cta {
+  background: rgba(96, 165, 250, 0.1);
+  color: #bfdbfe;
+}
+
+[data-bs-theme="dark"] .dashboard-page .card-admin-stats .dashboard-card-icon-wrap {
+  background: rgba(52, 211, 153, 0.12);
+}
+[data-bs-theme="dark"] .dashboard-page .card-admin-stats .dashboard-card-icon {
+  color: #6ee7b7;
+}
+[data-bs-theme="dark"] .dashboard-page .card-admin-stats .dash-card-cta {
+  background: rgba(52, 211, 153, 0.1);
+  color: #a7f3d0;
+}
+
+[data-bs-theme="dark"] .dashboard-page .card-admin-muni .dashboard-card-icon-wrap {
+  background: rgba(167, 139, 250, 0.15);
+}
+[data-bs-theme="dark"] .dashboard-page .card-admin-muni .dashboard-card-icon {
+  color: #c4b5fd;
+}
+[data-bs-theme="dark"] .dashboard-page .card-admin-muni .dash-card-cta {
+  background: rgba(167, 139, 250, 0.11);
+  color: #ddd6fe;
+}
+
+[data-bs-theme="dark"] .dashboard-page .card-admin-users .dashboard-card-icon-wrap {
+  background: rgba(251, 146, 60, 0.14);
+}
+[data-bs-theme="dark"] .dashboard-page .card-admin-users .dashboard-card-icon {
+  color: #fdba74;
+}
+[data-bs-theme="dark"] .dashboard-page .card-admin-users .dash-card-cta {
+  background: rgba(251, 146, 60, 0.1);
+  color: #fed7aa;
 }
 
 .dashboard-page .gecom-btn {
-  min-width: 132px;
-  border-radius: 12px;
+  min-width: 0;
+  border-radius: 14px;
   font-weight: 700;
-  letter-spacing: 0.02em;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  letter-spacing: 0.015em;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
 }
 
 .dashboard-page .gecom-btn:hover {
   transform: translateY(-1px);
+  filter: brightness(1.02);
 }
 
 .dashboard-page #btnPaletaTema,
@@ -369,6 +800,10 @@ h3 {
   background-color: rgba(79, 140, 165, 0.1);
 }
 
+[data-bs-theme="dark"] .dashboard-page .notif-item:hover {
+  background-color: rgba(96, 165, 250, 0.1);
+}
+
 @media (max-width: 768px) {
   .dashboard-header {
     align-items: flex-start !important;
@@ -428,14 +863,35 @@ h3 {
   outline-offset: 2px;
 }
 
+[data-bs-theme="dark"] .app-page :focus-visible {
+  outline-color: rgba(129, 172, 252, 0.55);
+}
+
 [data-bs-theme="dark"] .app-page {
-  --gecom-bg: #0f1720;
-  --gecom-surface: #16202d;
-  --gecom-stroke: #233447;
-  --gecom-text: #dce8f5;
-  --gecom-subtext: #92a7bc;
-  --gecom-shadow: 0 18px 34px rgba(0, 0, 0, 0.34);
-  --gecom-header-bg: color-mix(in srgb, var(--gecom-surface) 92%, transparent);
+  /* Paleta oscura única para toda la app (slate/azul petrol, acentos suaves) */
+  --gecom-bg: #060a12;
+  --gecom-surface: #121a29;
+  --gecom-stroke: #2c3b4e;
+  --gecom-text: #f0f4fa;
+  --gecom-subtext: #94a3b8;
+  --gecom-shadow: 0 20px 50px rgba(0, 0, 0, 0.55);
+  --gecom-header-bg: color-mix(in srgb, var(--gecom-surface) 86%, #0c1220);
+  color-scheme: dark;
+  background:
+    radial-gradient(circle at 14% 12%, rgba(59, 130, 246, 0.09), transparent 38%),
+    radial-gradient(circle at 92% 88%, rgba(16, 185, 129, 0.045), transparent 40%),
+    linear-gradient(180deg, var(--gecom-bg) 0%, #080d16 52%, var(--gecom-bg) 100%);
+}
+
+/* Dashboard: mismo sistema de tokens, fondo algo más marcado que el resto de pantallas */
+[data-bs-theme="dark"] .dashboard-page.app-page {
+  --gecom-surface: #141d2e;
+  --gecom-shadow: 0 22px 52px rgba(0, 0, 0, 0.58);
+  background:
+    radial-gradient(ellipse 115% 95% at 50% -28%, rgba(59, 130, 246, 0.13), transparent 53%),
+    radial-gradient(ellipse 72% 58% at 100% -2%, rgba(129, 140, 248, 0.07), transparent 52%),
+    radial-gradient(ellipse 58% 48% at 0% 100%, rgba(16, 185, 129, 0.052), transparent 50%),
+    linear-gradient(180deg, var(--gecom-bg) 0%, #080e18 48%, var(--gecom-bg) 100%);
 }
 
 .app-page .container {
@@ -504,19 +960,27 @@ h3 {
 }
 
 [data-bs-theme="dark"] .status-pendiente {
-  color: #b8c1cc;
+  background: rgba(148, 163, 184, 0.16);
+  border-color: rgba(148, 163, 184, 0.32);
+  color: #cbd5e1;
 }
 
 [data-bs-theme="dark"] .status-proceso {
-  color: #f4c85f;
+  background: rgba(251, 191, 36, 0.14);
+  border-color: rgba(251, 191, 36, 0.32);
+  color: #fde68a;
 }
 
 [data-bs-theme="dark"] .status-resuelta {
-  color: #7ad5a8;
+  background: rgba(52, 211, 153, 0.12);
+  border-color: rgba(52, 211, 153, 0.3);
+  color: #a7f3d0;
 }
 
 [data-bs-theme="dark"] .status-rechazada {
-  color: #ff8ca2;
+  background: rgba(251, 113, 133, 0.12);
+  border-color: rgba(251, 113, 133, 0.32);
+  color: #fecdd3;
 }
 
 .table-feedback-row td {
@@ -635,6 +1099,10 @@ h3 {
 .app-page #log {
   border: 1px solid var(--gecom-stroke);
   background: color-mix(in srgb, var(--gecom-surface) 88%, #e8eff6 12%) !important;
+}
+
+[data-bs-theme="dark"] .app-page #log {
+  background: color-mix(in srgb, var(--gecom-surface) 92%, #1a2332 8%) !important;
 }
 
 @media (max-width: 992px) {
@@ -801,40 +1269,8 @@ h3 {
    PHASE 2 – ICONOGRAPHY, SKELETONS, MICROINTERACTIONS
    ============================================================ */
 
-/* --- KPI card accent icons --- */
-.kpi-icon {
-  font-size: 1.5rem;
-  margin-bottom: 0.35rem;
-  line-height: 1;
-}
+/* --- KPI / dashboard icons (layouts definidos arriba en bloque dashboard) --- */
 
-.kpi-pendiente .kpi-icon { color: #7e8997; }
-.kpi-proceso   .kpi-icon { color: #e4a92a; }
-.kpi-resuelta  .kpi-icon { color: #22a05c; }
-.kpi-rechazada .kpi-icon { color: #dc3856; }
-
-.kpi-pendiente { border-left: 4px solid rgba(126,137,151,.55); }
-.kpi-proceso   { border-left: 4px solid rgba(228,169,42,.65); }
-.kpi-resuelta  { border-left: 4px solid rgba(34,160,92,.6); }
-.kpi-rechazada { border-left: 4px solid rgba(220,56,86,.6); }
-
-/* --- Dashboard card icon --- */
-.dashboard-card-icon {
-  font-size: 2rem;
-  margin-bottom: 0.6rem;
-  line-height: 1;
-  opacity: 0.75;
-  transition: opacity 0.2s ease, transform 0.25s ease;
-}
-.dashboard-card:hover .dashboard-card-icon {
-  opacity: 1;
-  transform: scale(1.12);
-}
-
-.card-junta        .dashboard-card-icon { color: #2b8f6f; }
-.card-admin        .dashboard-card-icon { color: #ce8b25; }
-.card-ayuntamiento .dashboard-card-icon { color: #3377c8; }
-.card-general      .dashboard-card-icon { color: #4f8ca5; }
 
 /* --- Skeleton shimmer rows --- */
 @keyframes skeletonShimmer {
@@ -884,13 +1320,32 @@ tr.skeleton-row td {
 }
 
 /* ============================================================
-   PERFIL MENU — avatar fijo en esquina superior derecha
+   PERFIL MENU — fijo viewport (general) | incrustado en header (dashboard)
    ============================================================ */
-#perfilMenuWrap {
+#perfilMenuWrap:not(.perfil-menu-wrap--in-header) {
   position: fixed;
   top: 14px;
-  right: 18px;
+  right: clamp(14px, 3vw, 22px);
   z-index: 1090;
+}
+
+#perfilMenuWrap.perfil-menu-wrap--in-header {
+  position: relative;
+  top: auto;
+  right: auto;
+  left: auto;
+  z-index: 20;
+}
+
+/* Avatar un poco más visible cuando va en barra del dashboard */
+.dashboard-page #perfilMenuWrap.perfil-menu-wrap--in-header .pm-avatar-btn {
+  width: 46px;
+  height: 46px;
+  font-size: 1.05rem;
+}
+
+.dashboard-page #perfilMenuWrap.perfil-menu-wrap--in-header .pm-dropdown {
+  top: calc(100% + 10px);
 }
 
 /* Avatar circular */
@@ -1327,7 +1782,7 @@ h1, h2, h3, h4, h5, h6 {
   display: inline-flex;
   align-items: center;
   gap: 0.28rem;
-  font-size: 0.78rem;
+  font-size: 0.98rem;
   font-weight: 700;
   padding: 0.18rem 0.55rem;
   border-radius: 999px;
@@ -1340,9 +1795,23 @@ h1, h2, h3, h4, h5, h6 {
 .role-ayuntamiento { background: rgba(51,119,200,.15); color: #1d5fa5; border: 1px solid rgba(51,119,200,.35); }
 .role-admin        { background: rgba(206,139,37,.15); color: #8a5c10; border: 1px solid rgba(206,139,37,.35); }
 
-[data-bs-theme="dark"] .role-junta        { color: #7ad5a8; }
-[data-bs-theme="dark"] .role-ayuntamiento { color: #7eb9f5; }
-[data-bs-theme="dark"] .role-admin        { color: #f4c85f; }
+[data-bs-theme="dark"] .role-junta {
+  background: rgba(52, 211, 153, 0.1);
+  border-color: rgba(52, 211, 153, 0.28);
+  color: #86efac;
+}
+
+[data-bs-theme="dark"] .role-ayuntamiento {
+  background: rgba(96, 165, 250, 0.1);
+  border-color: rgba(96, 165, 250, 0.3);
+  color: #93c5fd;
+}
+
+[data-bs-theme="dark"] .role-admin {
+  background: rgba(251, 191, 36, 0.08);
+  border-color: rgba(251, 191, 36, 0.35);
+  color: #fde047;
+}
 
 /* --- Dashboard footer --- */
 .dashboard-footer {
@@ -1367,4 +1836,7 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--gecom-subtext);
   opacity: 0.75;
 }
+
+
+
 
