@@ -306,11 +306,15 @@ window.login = async function () {
       // Si es primer login, redirigir a cambiar contraseña
       if (userDoc.primerLogin) {
         setTimeout(() => {
-          window.location.href = "cambiar-contrasena.html?v=3";
+          document.documentElement.style.transition = 'opacity 0.16s ease';
+          document.documentElement.style.opacity = '0';
+          setTimeout(() => { window.location.href = "cambiar-contrasena.html?v=3"; }, 150);
         }, 800);
       } else {
         setTimeout(() => {
-          window.location.href = "dashboard.html?v=3";
+          document.documentElement.style.transition = 'opacity 0.16s ease';
+          document.documentElement.style.opacity = '0';
+          setTimeout(() => { window.location.href = "dashboard.html?v=3"; }, 150);
         }, 800);
       }
     } catch (authError) {

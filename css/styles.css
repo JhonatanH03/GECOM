@@ -148,7 +148,7 @@ h3 {
   z-index: 0;
 }
 
-.dashboard-page > * {
+.dashboard-page > *:not(.modal):not(.modal-backdrop) {
   position: relative;
   z-index: 1;
 }
@@ -278,31 +278,6 @@ h3 {
   margin-top: 0.8rem;
   display: grid;
   gap: 0.55rem;
-}
-
-.dashboard-quick-link {
-  text-decoration: none;
-  color: var(--gecom-text);
-  border-radius: 11px;
-  border: 1px solid color-mix(in srgb, var(--gecom-stroke) 72%, transparent);
-  background: color-mix(in srgb, var(--gecom-surface) 90%, transparent);
-  padding: 0.62rem 0.72rem;
-  display: flex;
-  align-items: center;
-  gap: 0.55rem;
-  font-size: 0.84rem;
-  font-weight: 600;
-  transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
-}
-
-.dashboard-quick-link:hover {
-  transform: translateX(2px);
-  border-color: color-mix(in srgb, var(--gecom-text) 20%, var(--gecom-stroke));
-  background: color-mix(in srgb, var(--gecom-surface) 96%, #dbeafe 4%);
-}
-
-.dashboard-quick-link i {
-  font-size: 0.95rem;
 }
 
 .dashboard-alert-item {
@@ -1162,7 +1137,7 @@ h3 {
   z-index: 0;
 }
 
-.app-page:not(.dashboard-page) > * {
+.app-page:not(.dashboard-page) > *:not(.modal):not(.modal-backdrop) {
   position: relative;
   z-index: 1;
 }
@@ -1669,15 +1644,6 @@ h3 {
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  * {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
-}
-
 /* ============================================================
    PHASE 2 – ICONOGRAPHY, SKELETONS, MICROINTERACTIONS
    ============================================================ */
@@ -1911,8 +1877,13 @@ tr.skeleton-row td {
 /* Brave y algunos sistemas tienen prefers-reduced-motion activado,
    lo que hace que Animate.css deshabilite todo. Lo anulamos aquí. */
 @media (prefers-reduced-motion: reduce) {
-  .animate__animated {
-    animation-duration: var(--animate-duration) !important;
+  .animate__animated,
+  .card,
+  .dash-kpi-card,
+  .dash-action-card,
+  .table tbody tr,
+  h1, h2, h3, h4, h5, h6 {
+    animation-duration: var(--animate-duration, 0.4s) !important;
     transition-duration: 0.3s !important;
     animation-iteration-count: 1 !important;
   }
@@ -1920,32 +1891,23 @@ tr.skeleton-row td {
 
 /* Cards animadas al cargar */
 .card {
-  animation: fadeIn 0.6s ease-in-out;
+  animation: fadeIn 0.24s ease-out;
 }
 
-/* Títulos con slide */
-h1, h2, h3, h4, h5, h6 {
-  animation: slideInLeft 0.5s ease-in-out;
+/* Dashboard: entrada inmediata para evitar sensación de lentitud */
+.dashboard-page .card,
+.dashboard-page .dashboard-side-card,
+.dashboard-page .kpi-card,
+.dashboard-page .dash-action-card {
+  animation: none !important;
 }
 
-/* Botones con bounce suave */
+/* Botones con transición suave sin bounce */
 .btn {
-  transition: all 0.3s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
 }
 
-.btn:hover {
-  animation: pulse 0.6s ease-in-out;
-}
-
-/* Filas de tabla animadas */
-.table tbody tr {
-  animation: fadeInUp 0.4s ease-in-out;
-}
-
-.table tbody tr:nth-child(1) { animation-delay: 0.05s; }
-.table tbody tr:nth-child(2) { animation-delay: 0.1s; }
-.table tbody tr:nth-child(3) { animation-delay: 0.15s; }
-.table tbody tr:nth-child(n+4) { animation-delay: 0.2s; }
+/* Sin animación por fila para evitar fatiga visual en tablas largas */
 
 /* Formularios animados */
 .form-group, .mb-3 {

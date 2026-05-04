@@ -89,6 +89,12 @@
       <span class="badge-leyenda-dot" style="background:#dc3856;"></span>
       <span>Rechazada</span>
     </span>
+    <span class="badge-leyenda">
+      <span class="badge bg-info" style="font-size:0.7rem; padding:3px 6px; vertical-align:middle;">
+        <i class="bi bi-chat-text-fill"></i>
+      </span>
+      <span>Con respuesta oficial</span>
+    </span>
   </div>
 
   <div id="paginaFeedback"></div>
@@ -118,7 +124,7 @@
 
 <!-- Modal Detalle de Denuncia -->
 <div class="modal fade" id="detalleModal" tabindex="-1" aria-labelledby="detalleModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title" id="detalleModalLabel">Detalle de Denuncia</h5>
@@ -196,11 +202,9 @@
       </div>
       <div class="modal-footer">
         <div class="d-flex gap-2 align-items-center me-auto">
-          <select id="formatoDescargaDetalle" class="form-select form-select-sm" style="width:120px;">
-            <option value="excel">Excel</option>
-            <option value="pdf">PDF</option>
-          </select>
-          <button type="button" id="btnDescargarDetalle" class="btn btn-success btn-sm">Descargar</button>
+          <button type="button" id="btnDescargarDetalle" class="btn btn-danger btn-sm">
+            <i class="bi bi-file-earmark-pdf-fill me-1"></i>Descargar PDF
+          </button>
         </div>
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="modalCerrar">Cerrar</button>
       </div>
@@ -246,7 +250,6 @@
     });
   })();
 </script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
 <script type="module" src="js/ver.js?v=2"></script>

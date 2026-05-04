@@ -141,7 +141,7 @@ form.addEventListener("submit", async (event) => {
       await db.collection("Ayuntamientos").doc(nuevoUid).set(ayuntamientoData);
       await db.collection("loginIndex").doc(usuarioNormalizado).set({
         uid: nuevoUid,
-        email: correo,
+        email: emailInterno,
         rol: "ayuntamiento",
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       });

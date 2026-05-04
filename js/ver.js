@@ -25,7 +25,7 @@ let ayuntamientoMunicipio = null;
 let currentDenunciaId = null;
 const detalleModal = new bootstrap.Modal(document.getElementById("detalleModal"));
 
-const ITEMS_POR_PAGINA = 20;
+const ITEMS_POR_PAGINA = 15;
 let todasLasDenuncias = [];
 let paginaActual = 1;
 let catalogoProvincias = [];
@@ -252,7 +252,7 @@ function mostrarDetalleDenuncia(data, id) {
   document.getElementById("detalleTipo").textContent = data.tipo || "No especificado";
   document.getElementById("detalleEstado").textContent = data.estado || ESTADO_DEFAULT;
   document.getElementById("detalleComunidad").textContent = data.comunidad || "Sin comunidad";
-  document.getElementById("detalleUbicacion").textContent = `${escapeHtml(data.provincia || "")} / ${escapeHtml(data.municipio || "")} / ${escapeHtml(data.distrito_municipal || "")} / ${escapeHtml(data.sector || "")}`;
+  document.getElementById("detalleUbicacion").textContent = [data.provincia, data.municipio, data.distrito_municipal, data.sector].filter(Boolean).map(escapeHtml).join(" / ");
   document.getElementById("detalleFechaIncidente").textContent = data.fecha_incidente ? new Date(data.fecha_incidente.seconds * 1000).toLocaleDateString() : "No especificado";
   document.getElementById("detalleFechaRegistro").textContent = data.fecha ? new Date(data.fecha.seconds * 1000).toLocaleString() : "No especificado";
   document.getElementById("detalleDiasEnProceso").textContent = obtenerTextoDiasEnProceso(data);
@@ -446,7 +446,6 @@ async function descargarDenunciaSeleccionada() {
     return;
   }
 
-  const formato = document.getElementById("formatoDescargaDetalle")?.value || "excel";
   let detalle = todasLasDenuncias.find((item) => item.id === currentDenunciaId);
 
   if (!detalle) {
@@ -459,38 +458,72 @@ async function descargarDenunciaSeleccionada() {
   }
 
   const { id, data } = detalle;
-  const row = {
-    ID: id,
-    Titulo: data.titulo || "Sin titulo",
-    Descripcion: data.descripcion || "Sin descripcion",
-    Provincia: data.provincia || "",
-    Municipio: data.municipio || "",
-    Comunidad: data.comunidad || "",
-    Estado: data.estado || "Pendiente",
-    DiasEnProceso: obtenerTextoDiasEnProceso(data),
-    Fecha: obtenerFechaTexto(data.fecha)
-  };
-
-  if (formato === "excel") {
-    const ws = XLSX.utils.json_to_sheet([row]);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Denuncia");
-    XLSX.writeFile(wb, `denuncia_${id}.xlsx`);
-    return;
-  }
-
   const { jsPDF } = window.jspdf;
-  const docPdf = new jsPDF({ orientation: "landscape" });
-  docPdf.setFontSize(12);
-  docPdf.text("Detalle de denuncia", 14, 14);
+  const docPdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  const pageW = docPdf.internal.pageSize.getWidth();
+  const fechaHoy = new Date().toLocaleDateString("es-DO", { year: "numeric", month: "long", day: "numeric" });
+
+  // ── Cabecera ──
+  docPdf.setFillColor(18, 48, 74);
+  docPdf.rect(0, 0, pageW, 28, "F");
+  docPdf.setTextColor(255, 255, 255);
+  docPdf.setFont("helvetica", "bold");
+  docPdf.setFontSize(18);
+  docPdf.text("GECOM", 14, 12);
+  docPdf.setFontSize(10);
+  docPdf.setFont("helvetica", "normal");
+  docPdf.text("Gestión Comunitaria — Expediente de Denuncia", 14, 20);
+  docPdf.text(fechaHoy, pageW - 14, 20, { align: "right" });
+
+  // ── Datos principales ──
+  docPdf.setTextColor(30, 30, 30);
+  docPdf.setFont("helvetica", "bold");
+  docPdf.setFontSize(13);
+  docPdf.text(data.titulo || "Sin título", 14, 38);
+  docPdf.setFont("helvetica", "normal");
+  docPdf.setFontSize(9);
+  docPdf.setTextColor(100, 100, 100);
+  docPdf.text(`ID: ${id}`, 14, 44);
+
   docPdf.autoTable({
-    startY: 20,
-    head: [["ID", "Titulo", "Descripcion", "Provincia", "Municipio", "Comunidad", "Estado", "Dias en proceso", "Fecha"]],
-    body: [[row.ID, row.Titulo, row.Descripcion, row.Provincia, row.Municipio, row.Comunidad, row.Estado, row.DiasEnProceso, row.Fecha]],
-    styles: { fontSize: 8, cellWidth: "wrap" },
-    headStyles: { fillColor: [33, 37, 41] }
+    startY: 50,
+    head: [["Campo", "Valor"]],
+    body: [
+      ["Estado",        data.estado || "Pendiente"],
+      ["Provincia",     data.provincia || "—"],
+      ["Municipio",     data.municipio || "—"],
+      ["Comunidad",     data.comunidad || "—"],
+      ["Días en proceso", obtenerTextoDiasEnProceso(data)],
+      ["Fecha",         obtenerFechaTexto(data.fecha)]
+    ],
+    styles: { fontSize: 10, cellPadding: 3 },
+    headStyles: { fillColor: [18, 48, 74], textColor: 255, fontStyle: "bold" },
+    columnStyles: { 0: { fontStyle: "bold", cellWidth: 55 } },
+    alternateRowStyles: { fillColor: [245, 248, 252] },
+    margin: { left: 14, right: 14 }
   });
-  docPdf.save(`denuncia_${id}.pdf`);
+
+  // ── Descripción ──
+  const afterTable = docPdf.lastAutoTable.finalY + 8;
+  docPdf.setFont("helvetica", "bold");
+  docPdf.setFontSize(10);
+  docPdf.setTextColor(30, 30, 30);
+  docPdf.text("Descripción", 14, afterTable);
+  docPdf.setFont("helvetica", "normal");
+  docPdf.setFontSize(9.5);
+  const desc = docPdf.splitTextToSize(data.descripcion || "Sin descripción.", pageW - 28);
+  docPdf.text(desc, 14, afterTable + 6);
+
+  // ── Pie de página ──
+  docPdf.setFont("helvetica", "normal");
+  docPdf.setFontSize(8);
+  docPdf.setTextColor(160, 160, 160);
+  docPdf.text("GECOM — Gestión Comunitaria", 14, docPdf.internal.pageSize.getHeight() - 8);
+  docPdf.text(fechaHoy, pageW - 14, docPdf.internal.pageSize.getHeight() - 8, { align: "right" });
+
+  // Abrir PDF en nueva pestaña (evita problema de modales apilados con Bootstrap)
+  const blobUrl = docPdf.output("bloburl");
+  window.open(blobUrl, "_blank");
 }
 
 async function cargarDenuncias() {
