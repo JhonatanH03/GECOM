@@ -214,14 +214,11 @@ form.addEventListener("submit", async (event) => {
       await db.collection("JuntasDeVecinos").doc(juntaId).set(juntaData, { merge: true });
       showAlert("Junta actualizada correctamente.", "success");
     } else {
-      const existingSnap = await db.collection("JuntasDeVecinos").get();
-      const usuarioDuplicado = existingSnap.docs.some((docSnap) => {
-        const data = docSnap.data() || {};
-        const rolDoc = (data.rol || "junta").toLowerCase();
-        const usuarioDoc = (data.usuario || "").toLowerCase();
-        return rolDoc === "junta" && usuarioDoc === usuarioNormalizado;
-      });
-      if (usuarioDuplicado) {
+      const duplicadoSnap = await db.collection("JuntasDeVecinos")
+        .where("usuario", "==", usuarioNormalizado)
+        .limit(1)
+        .get();
+      if (!duplicadoSnap.empty) {
         showModalAlert("Ya existe un usuario con ese nombre y ese rol.", "danger");
         return;
       }

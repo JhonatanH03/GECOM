@@ -1,6 +1,6 @@
 import app from "./firebase.js";
 import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, doc, setDoc, getDoc, collection, getDocs, serverTimestamp, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, doc, setDoc, getDoc, collection, getDocs, query, where, limit, serverTimestamp, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const auth = getAuth(app);
 const db = getFirestore(app);
@@ -123,14 +123,10 @@ form.addEventListener("submit", async (event) => {
       await setDoc(doc(db, "JuntasDeVecinos", usuarioId), usuarioData, { merge: true });
       showAlert("Junta actualizada correctamente.", "success");
     } else {
-      const snapshot = await getDocs(collection(db, "JuntasDeVecinos"));
-      const usuarioDuplicado = snapshot.docs.some((docSnap) => {
-        const data = docSnap.data() || {};
-        const rolDoc = (data.rol || "junta").toLowerCase();
-        const usuarioDoc = (data.usuario || "").toLowerCase();
-        return rolDoc === "junta" && usuarioDoc === usuarioNormalizado;
-      });
-      if (usuarioDuplicado) {
+      const duplicadoSnap = await getDocs(
+        query(collection(db, "JuntasDeVecinos"), where("usuario", "==", usuarioNormalizado), limit(1))
+      );
+      if (!duplicadoSnap.empty) {
         showModalAlert("Ya existe un usuario con ese nombre y ese rol.", "danger");
         return;
       }

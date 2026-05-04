@@ -44,7 +44,11 @@ service cloud.firestore {
       allow get: if isSignedIn();
       allow list: if isAdmin();
       // create: permite que el propio usuario recién creado escriba su documento inicial
-      allow create: if isSignedIn() && request.auth.uid == ayuntamientoId;
+      // y restringe el campo rol al valor correcto para evitar escalada de privilegios
+      allow create: if isSignedIn() &&
+        request.auth.uid == ayuntamientoId &&
+        (!request.resource.data.keys().hasAny(["rol"]) ||
+          request.resource.data.rol == "ayuntamiento");
       allow update, delete: if isAdmin();
     }
 
@@ -57,7 +61,11 @@ service cloud.firestore {
       allow get: if isSignedIn();
       allow list: if isAdmin() || isAyuntamiento();
       // create: permite que el propio usuario recién creado escriba su documento inicial
-      allow create: if isSignedIn() && request.auth.uid == juntaId;
+      // y restringe el campo rol al valor correcto para evitar escalada de privilegios
+      allow create: if isSignedIn() &&
+        request.auth.uid == juntaId &&
+        (!request.resource.data.keys().hasAny(["rol"]) ||
+          request.resource.data.rol == "junta");
       allow update, delete: if isAdmin();
 
       match /historial/{entryId} {
@@ -82,6 +90,7 @@ service cloud.firestore {
     }
 
     match /loginIndex/{identifier} {
+      // get público: necesario para resolver email antes de autenticar
       allow get: if true;
       allow list: if false;
       allow create, update: if isSignedIn() &&
@@ -93,8 +102,12 @@ service cloud.firestore {
         ]) &&
         request.resource.data.uid is string &&
         request.resource.data.email is string &&
-        request.resource.data.rol is string;
-      allow delete: if isSignedIn();
+        request.resource.data.rol is string &&
+        // El índice solo puede apuntar al propio UID del usuario autenticado
+        request.resource.data.uid == request.auth.uid;
+      // Solo el propietario del índice o un admin puede eliminarlo
+      allow delete: if isAdmin() ||
+        (isSignedIn() && resource.data.uid == request.auth.uid);
     }
 
     match /denuncias/{denunciaId} {
