@@ -408,20 +408,7 @@ function iniciarSuscripcionNotificaciones() {
     }).join("");
   }
 
-  function renderAccesosRapidos() {
-    const cont = document.getElementById("dashboardQuickActions");
-    if (!cont) return;
 
-    const enlaces = cont.querySelectorAll("a[data-roles]");
-    enlaces.forEach((enlace) => {
-      const roles = String(enlace.dataset.roles || "")
-        .split(",")
-        .map((rol) => rol.trim())
-        .filter(Boolean);
-
-      enlace.style.display = roles.includes(rolLocal) ? "flex" : "none";
-    });
-  }
 
   function renderAlertasOperativas(resumen) {
     const lista = document.getElementById("dashboardAlertasList");
@@ -503,7 +490,6 @@ if (!uid || !rolLocal) {
   window.location.href = "index.html";
 } else {
   inicializarSelectorTemaDashboard();
-    renderAccesosRapidos();
     pintarLineaUsuario();
     cargarResumenKpi();
 

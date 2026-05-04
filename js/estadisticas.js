@@ -39,28 +39,157 @@ async function cargarUsuarios() {
   });
 }
 
+function obtenerColoresEstados() {
+  return {
+    pendiente: "#64748b",
+    proceso: "#d97706",
+    resuelta: "#059669",
+    rechazada: "#e11d48"
+  };
+}
+
+function crearOpcionesComunesGraficos() {
+  return {
+    responsive: true,
+    maintainAspectRatio: true,
+    animation: {
+      duration: 320,
+      easing: "easeOutQuart"
+    },
+    plugins: {
+      legend: {
+        labels: {
+          usePointStyle: true,
+          pointStyle: "circle",
+          boxWidth: 10,
+          boxHeight: 10,
+          padding: 14,
+          font: {
+            family: "Manrope",
+            size: 12,
+            weight: "600"
+          }
+        }
+      },
+      tooltip: {
+        backgroundColor: "rgba(15, 23, 42, 0.92)",
+        titleColor: "#f8fafc",
+        bodyColor: "#e2e8f0",
+        borderColor: "rgba(148, 163, 184, 0.35)",
+        borderWidth: 1,
+        padding: 10,
+        displayColors: true,
+        titleFont: {
+          family: "Manrope",
+          size: 12,
+          weight: "700"
+        },
+        bodyFont: {
+          family: "Manrope",
+          size: 12,
+          weight: "500"
+        }
+      }
+    }
+  };
+}
+
 function crearGraficos(datos) {
   const ctxBarras = document.getElementById("graficoBarras").getContext("2d");
   const ctxPastel = document.getElementById("graficoPastel").getContext("2d");
+  const colores = obtenerColoresEstados();
+  const coloresArray = [
+    colores.pendiente,
+    colores.proceso,
+    colores.resuelta,
+    colores.rechazada
+  ];
+  const coloresSuaves = [
+    "rgba(100, 116, 139, 0.18)",
+    "rgba(217, 119, 6, 0.18)",
+    "rgba(5, 150, 105, 0.18)",
+    "rgba(225, 29, 72, 0.18)"
+  ];
+
+  const opcionesBase = crearOpcionesComunesGraficos();
 
   chartBarras = new Chart(ctxBarras, {
     type: "bar",
     data: {
       labels: ESTADOS_LISTA,
       datasets: [{
-        label: "Denuncias",
-        data: datos
+        label: "Cantidad de denuncias",
+        data: datos,
+        backgroundColor: coloresSuaves,
+        borderColor: coloresArray,
+        borderWidth: 1.5,
+        borderRadius: 12,
+        borderSkipped: false,
+        maxBarThickness: 44
       }]
+    },
+    options: {
+      ...opcionesBase,
+      plugins: {
+        ...opcionesBase.plugins,
+        legend: {
+          display: false
+        }
+      },
+      scales: {
+        x: {
+          grid: {
+            display: false
+          },
+          ticks: {
+            font: {
+              family: "Manrope",
+              size: 12,
+              weight: "600"
+            }
+          }
+        },
+        y: {
+          beginAtZero: true,
+          ticks: {
+            precision: 0,
+            font: {
+              family: "Manrope",
+              size: 11
+            }
+          },
+          grid: {
+            color: "rgba(148, 163, 184, 0.2)",
+            drawBorder: false
+          }
+        }
+      }
     }
   });
 
   chartPastel = new Chart(ctxPastel, {
-    type: "pie",
+    type: "doughnut",
     data: {
       labels: ESTADOS_LISTA,
       datasets: [{
-        data: datos
+        data: datos,
+        backgroundColor: coloresArray,
+        borderColor: "#ffffff",
+        borderWidth: 2,
+        hoverOffset: 8
       }]
+    },
+    options: {
+      ...opcionesBase,
+      aspectRatio: 2,
+      cutout: "62%",
+      plugins: {
+        ...opcionesBase.plugins,
+        legend: {
+          ...opcionesBase.plugins.legend,
+          position: "bottom"
+        }
+      }
     }
   });
 }
@@ -147,9 +276,9 @@ function actualizarEstadisticas() {
 function actualizarTendencias(filtradas) {
   // Agrupar por fecha (día)
   const agrupadas = {};
-  filtradas.forEach(d => {
+  filtradas.forEach((d) => {
     const fecha = d.fecha.toDate ? d.fecha.toDate() : new Date(d.fecha);
-    const dia = fecha.toISOString().split('T')[0]; // YYYY-MM-DD
+    const dia = fecha.toISOString().split("T")[0];
     if (!agrupadas[dia]) agrupadas[dia] = 0;
     agrupadas[dia]++;
   });
@@ -161,16 +290,23 @@ function actualizarTendencias(filtradas) {
   for (let i = 29; i >= 0; i--) {
     const fecha = new Date(hoy);
     fecha.setDate(hoy.getDate() - i);
-    const dia = fecha.toISOString().split('T')[0];
-    fechas.push(dia);
+    const dia = fecha.toISOString().split("T")[0];
+    fechas.push(fecha.toLocaleDateString("es-DO", { day: "2-digit", month: "2-digit" }));
     datos.push(agrupadas[dia] || 0);
   }
 
   // Crear o actualizar gráfico
   const ctx = document.getElementById("graficoTendencias").getContext("2d");
+  const gradiente = ctx.createLinearGradient(0, 0, 0, 280);
+  gradiente.addColorStop(0, "rgba(14, 165, 233, 0.28)");
+  gradiente.addColorStop(1, "rgba(14, 165, 233, 0.02)");
+
+  const opcionesBase = crearOpcionesComunesGraficos();
+
   if (chartTendencias) {
     chartTendencias.data.labels = fechas;
     chartTendencias.data.datasets[0].data = datos;
+    chartTendencias.data.datasets[0].backgroundColor = gradiente;
     chartTendencias.update();
   } else {
     chartTendencias = new Chart(ctx, {
@@ -180,28 +316,53 @@ function actualizarTendencias(filtradas) {
         datasets: [{
           label: "Denuncias por día",
           data: datos,
-          borderColor: "rgba(75, 192, 192, 1)",
-          backgroundColor: "rgba(75, 192, 192, 0.2)",
+          borderColor: "#0284c7",
+          backgroundColor: gradiente,
+          pointBackgroundColor: "#0369a1",
+          pointBorderColor: "#ffffff",
+          pointBorderWidth: 1.5,
+          pointRadius: 3,
+          pointHoverRadius: 5,
+          borderWidth: 2.2,
+          tension: 0.34,
           fill: true
         }]
       },
       options: {
-        responsive: true,
+        ...opcionesBase,
+        plugins: {
+          ...opcionesBase.plugins,
+          legend: {
+            ...opcionesBase.plugins.legend,
+            display: false
+          }
+        },
         scales: {
           x: {
-            display: true,
-            title: {
-              display: true,
-              text: 'Fecha'
+            grid: {
+              display: false
+            },
+            ticks: {
+              maxTicksLimit: 8,
+              font: {
+                family: "Manrope",
+                size: 11
+              }
             }
           },
           y: {
-            display: true,
-            title: {
-              display: true,
-              text: 'Número de Denuncias'
+            beginAtZero: true,
+            ticks: {
+              precision: 0,
+              font: {
+                family: "Manrope",
+                size: 11
+              }
             },
-            beginAtZero: true
+            grid: {
+              color: "rgba(148, 163, 184, 0.2)",
+              drawBorder: false
+            }
           }
         }
       }

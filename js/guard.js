@@ -60,6 +60,8 @@
   
   // Si hay autenticación válida, mostrar la página
   if (rol && uid) {
+    const esDashboard = window.location.pathname.toLowerCase().includes("dashboard.html");
+    const fadeMs = esDashboard ? 90 : 160;
     document.documentElement.style.display = 'block';
     if (showSessionBanner) {
       if (document.readyState === "loading") {
@@ -74,7 +76,7 @@
     // ── Transiciones de página ──────────────────────────────────────
     // Fade-in al cargar
     document.documentElement.style.opacity = '0';
-    document.documentElement.style.transition = 'opacity 0.16s ease';
+    document.documentElement.style.transition = `opacity ${fadeMs}ms ease`;
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', () => {
         requestAnimationFrame(() => { document.documentElement.style.opacity = '1'; });
@@ -91,7 +93,7 @@
       if (!href || href.startsWith('#') || href.startsWith('http') || href.startsWith('mailto') || a.target === '_blank') return;
       e.preventDefault();
       document.documentElement.style.opacity = '0';
-      setTimeout(() => { window.location.href = href; }, 150);
+      setTimeout(() => { window.location.href = href; }, fadeMs);
     });
 
   } else {

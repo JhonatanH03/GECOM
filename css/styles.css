@@ -280,31 +280,6 @@ h3 {
   gap: 0.55rem;
 }
 
-.dashboard-quick-link {
-  text-decoration: none;
-  color: var(--gecom-text);
-  border-radius: 11px;
-  border: 1px solid color-mix(in srgb, var(--gecom-stroke) 72%, transparent);
-  background: color-mix(in srgb, var(--gecom-surface) 90%, transparent);
-  padding: 0.62rem 0.72rem;
-  display: flex;
-  align-items: center;
-  gap: 0.55rem;
-  font-size: 0.84rem;
-  font-weight: 600;
-  transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
-}
-
-.dashboard-quick-link:hover {
-  transform: translateX(2px);
-  border-color: color-mix(in srgb, var(--gecom-text) 20%, var(--gecom-stroke));
-  background: color-mix(in srgb, var(--gecom-surface) 96%, #dbeafe 4%);
-}
-
-.dashboard-quick-link i {
-  font-size: 0.95rem;
-}
-
 .dashboard-alert-item {
   border-radius: 10px;
   padding: 0.72rem;
@@ -1909,6 +1884,14 @@ tr.skeleton-row td {
 /* Cards animadas al cargar */
 .card {
   animation: fadeIn 0.24s ease-out;
+}
+
+/* Dashboard: entrada inmediata para evitar sensación de lentitud */
+.dashboard-page .card,
+.dashboard-page .dashboard-side-card,
+.dashboard-page .kpi-card,
+.dashboard-page .dash-action-card {
+  animation: none !important;
 }
 
 /* Botones con transición suave sin bounce */
