@@ -15,7 +15,8 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import {
   getAuth,
-  onAuthStateChanged
+  onAuthStateChanged,
+  signOut
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 const uid = localStorage.getItem("uid");
@@ -106,6 +107,9 @@ window.logout = async function () {
     type: "warning",
   });
   if (!ok) return;
+  try {
+    await signOut(auth);
+  } catch (_) { /* ignorar: limpiar sesión local de todas formas */ }
   localStorage.clear();
   window.location.href = "index.html";
 };

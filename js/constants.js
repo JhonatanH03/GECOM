@@ -40,3 +40,12 @@ export const ESTADO_CLASE = Object.freeze({
   [ESTADOS.RESUELTA]:   "status-resuelta",
   [ESTADOS.RECHAZADA]:  "status-rechazada"
 });
+
+export function escapeHtml(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}

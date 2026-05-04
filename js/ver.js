@@ -1,5 +1,5 @@
 import app from "./firebase.js";
-import { ESTADOS, ESTADO_DEFAULT, debounce } from "./constants.js";
+import { ESTADOS, ESTADO_DEFAULT, debounce, escapeHtml } from "./constants.js";
 import {
   getFirestore,
   collection,
@@ -145,14 +145,6 @@ function poblarFiltrosZonaAdmin() {
   wrap.classList.remove("d-none");
 }
 
-function escapeHtml(value) {
-  return String(value || "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/\"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
 
 function mostrarModalFeedback(message, type = "danger") {
   const feedback = document.getElementById("modalFeedback");

@@ -1,5 +1,5 @@
 import app from "./firebase.js";
-import { debounce } from "./constants.js";
+import { debounce, escapeHtml } from "./constants.js";
 import {
   getFirestore,
   collection,
@@ -34,14 +34,6 @@ function validarSesion() {
   return true;
 }
 
-function escapeHtml(str) {
-  if (!str) return "";
-  return String(str)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
 
 function convertirAFecha(ts) {
   if (!ts) return null;
