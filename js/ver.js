@@ -252,7 +252,7 @@ function mostrarDetalleDenuncia(data, id) {
   document.getElementById("detalleTipo").textContent = data.tipo || "No especificado";
   document.getElementById("detalleEstado").textContent = data.estado || ESTADO_DEFAULT;
   document.getElementById("detalleComunidad").textContent = data.comunidad || "Sin comunidad";
-  document.getElementById("detalleUbicacion").textContent = `${escapeHtml(data.provincia || "")} / ${escapeHtml(data.municipio || "")} / ${escapeHtml(data.distrito_municipal || "")} / ${escapeHtml(data.sector || "")}`;
+  document.getElementById("detalleUbicacion").textContent = [data.provincia, data.municipio, data.distrito_municipal, data.sector].filter(Boolean).map(escapeHtml).join(" / ");
   document.getElementById("detalleFechaIncidente").textContent = data.fecha_incidente ? new Date(data.fecha_incidente.seconds * 1000).toLocaleDateString() : "No especificado";
   document.getElementById("detalleFechaRegistro").textContent = data.fecha ? new Date(data.fecha.seconds * 1000).toLocaleString() : "No especificado";
   document.getElementById("detalleDiasEnProceso").textContent = obtenerTextoDiasEnProceso(data);
