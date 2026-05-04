@@ -496,10 +496,18 @@ h3 {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  min-height: 240px;
+  min-height: 210px;
   height: 100%;
   padding: 1.35rem 1.35rem 1.15rem;
   text-align: left;
+  gap: 16px;
+}
+
+.dash-action-card-top {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
 }
 
 .dashboard-card-primary.dash-action-card .dash-action-card-inner {
@@ -510,7 +518,7 @@ h3 {
   font-weight: 800;
   color: var(--gecom-text);
   font-size: 1.06rem;
-  letter-spacing: -0.02em;
+  margin-bottom: 0px;
 }
 
 .dashboard-card-copy {
@@ -556,7 +564,7 @@ h3 {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 1rem;
+
 }
 
 .dashboard-card-icon {
@@ -1539,7 +1547,7 @@ h3 {
     padding: 1rem !important;
   }
 
-  .app-page h2 {
+  .app-page {
     font-size: 1.4rem;
   }
 
@@ -2180,30 +2188,238 @@ tr.skeleton-row td {
   color: #fde047;
 }
 
-/* --- Dashboard footer --- */
+/* --- Dashboard footer (modern layout) --- */
 .dashboard-footer {
-  border-top: 1px solid var(--gecom-stroke);
-  padding-bottom: 1.2rem;
-  margin-top: 2rem;
+  margin-top: clamp(2rem, 5vw, 3rem);
+  padding-bottom: 2rem;
+  border-top: none;
 }
 
-.dashboard-footer-inner {
-  padding-top: 0.85rem;
+.dashboard-footer-modern {
+  background-color: #0c1220;
+  width: 100%;
+  margin-top: clamp(2rem, 5vw, 3rem);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dashboard-footer-surface {
+  width: 60rem;
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+.dashboard-footer-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) repeat(3, minmax(0, 1fr));
+  gap: clamp(1.35rem, 3vw, 2.25rem);
+  padding: clamp(1.35rem, 4vw, 2rem);
+  align-items: start;
+}
+
+
+.dashboard-footer-brandrow {
+  display: flex;
+  align-items: center;
+  gap: 1rem 1.15rem;
+  margin-bottom: 1rem;
+}
+
+.dashboard-footer-shield {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.dashboard-footer-brand-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+  min-width: 0;
 }
 
 .dashboard-footer-brand {
-  font-size: 0.82rem;
-  font-weight: 700;
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--gecom-text);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.dashboard-footer-caption {
+  font-size: 0.76rem;
+  font-weight: 600;
   color: var(--gecom-subtext);
-  letter-spacing: 0.01em;
+  letter-spacing: 0.04em;
+  line-height: 1.35;
+}
+
+.dashboard-footer-lead {
+  font-size: 0.84rem;
+  line-height: 1.58;
+  color: var(--gecom-subtext);
+  margin: 0 0 1rem;
+  max-width: 28rem;
+}
+
+.dashboard-footer-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.dashboard-footer-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.28rem 0.62rem;
+  border-radius: 999px;
+  font-size: 0.71rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: color-mix(in srgb, var(--gecom-text) 76%, var(--gecom-subtext));
+
+}
+
+.dashboard-footer-chip i {
+  font-size: 0.85rem;
+  opacity: 0.82;
+}
+
+.dashboard-footer-heading {
+  font-size: 0.98rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--gecom-subtext);
+  margin: 0 0 0.9rem;
+}
+
+.dashboard-footer-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.dashboard-footer-li a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem 0;
+  font-size: 0.865rem;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--gecom-text) 92%, var(--gecom-subtext));
+  text-decoration: none;
+  transition: color 0.18s ease, transform 0.18s ease, opacity 0.18s ease;
+}
+
+.dashboard-footer-li a i {
+  font-size: 1rem;
+  opacity: 0.65;
+  flex-shrink: 0;
+}
+
+.dashboard-footer-li a:hover {
+  color: var(--gecom-text);
+  transform: translateX(3px);
+}
+
+.dashboard-footer-li a:hover i {
+  opacity: 1;
+}
+
+.dashboard-footer-li a:focus-visible {
+  outline: 2px solid color-mix(in srgb, #3b82f6 65%, transparent);
+  outline-offset: 3px;
+}
+
+.dashboard-footer-bottom {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1.25rem;
+  padding: 0.85rem clamp(1.25rem, 4vw, 2rem);
+  border-top: 1px solid var(--gecom-stroke);
+  background: color-mix(in srgb, var(--gecom-surface) 94%, transparent);
+}
+
+.dashboard-footer-copy {
+  font-size: 0.78rem;
+  color: var(--gecom-subtext);
+  opacity: 0.92;
+  max-width: min(42rem, 100%);
 }
 
 .dashboard-footer-meta {
   font-size: 0.78rem;
   color: var(--gecom-subtext);
-  opacity: 0.75;
+  text-align: right;
+  opacity: 0.88;
+  font-weight: 600;
+}
+
+.dashboard-footer-meta--date {
+  font-variant-numeric: tabular-nums;
+  text-transform: capitalize;
 }
 
 
+
+[data-bs-theme="dark"] .dashboard-footer-chip {
+  background: rgba(148, 163, 184, 0.08);
+}
+
+[data-bs-theme="dark"] .dashboard-footer-brandcol {
+  border-right-color: rgba(148, 163, 184, 0.12);
+}
+
+[data-bs-theme="dark"] .dashboard-footer-shield {
+  filter: drop-shadow(0 4px 14px rgba(0, 0, 0, 0.45));
+}
+
+@media (max-width: 1199.98px) {
+  .dashboard-footer-grid {
+    grid-template-columns: minmax(0, 1.2fr) repeat(2, minmax(0, 1fr));
+  }
+
+  .dashboard-footer-brandcol {
+    grid-column: 1 / -1;
+    border-right: 0;
+    border-bottom: 1px solid color-mix(in srgb, var(--gecom-stroke) 80%, transparent);
+    padding-right: 0;
+    padding-bottom: 1.25rem;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .dashboard-footer-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-footer-brandcol {
+    border-bottom: 1px solid color-mix(in srgb, var(--gecom-stroke) 80%, transparent);
+    padding-bottom: 1.15rem;
+  }
+}
+
+@media (max-width: 576px) {
+
+  .dashboard-footer-bottom {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .dashboard-footer-heading {
+    font-size: 0.98;
+  }
+
+  
+}
 
 

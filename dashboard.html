@@ -106,7 +106,9 @@
         <div class="dash-action-card-inner">
           <div class="dash-action-card-top">
             <div class="dashboard-card-icon-wrap" aria-hidden="true"><span class="dashboard-card-icon"><i class="bi bi-file-earmark-text-fill"></i></span></div>
-            <h5 class="dash-action-card-title mb-2">Ver Denuncias</h5>
+            <h5 class="dash-action-card-title">Ver Denuncias</h5>
+          </div>
+          <div>
             <p class="dashboard-card-copy mb-0">Consulta estado, respuestas y detalle completo de cada caso.</p>
           </div>
           <button type="button" onclick="ir('ver.html')" class="btn gecom-btn dash-card-cta mt-auto">
@@ -157,7 +159,9 @@
         <div class="dash-action-card-inner">
           <div class="dash-action-card-top">
             <div class="dashboard-card-icon-wrap" aria-hidden="true"><span class="dashboard-card-icon"><i class="bi bi-bar-chart-fill"></i></span></div>
-            <h5 class="dash-action-card-title mb-2">Estadísticas</h5>
+            <h5 class="dash-action-card-title">Estadísticas</h5>
+          </div>
+          <div>
             <p class="dashboard-card-copy mb-0">Analiza tendencias y exporta reportes para decisiones rápidas.</p>
           </div>
           <button type="button" onclick="ir('estadisticas.html')" class="btn gecom-btn dash-card-cta mt-auto">
@@ -174,7 +178,9 @@
         <div class="dash-action-card-inner">
           <div class="dash-action-card-top">
             <div class="dashboard-card-icon-wrap" aria-hidden="true"><span class="dashboard-card-icon"><i class="bi bi-building"></i></span></div>
-            <h5 class="dash-action-card-title mb-2">Gestión de Ayuntamientos</h5>
+            <h5 class="dash-action-card-title">Gestión de Ayuntamientos</h5>
+          </div>
+          <div>
             <p class="dashboard-card-copy mb-0">Crea y administra entidades municipales desde un solo lugar.</p>
           </div>
           <button type="button" onclick="ir('ayuntamientos.html')" class="btn gecom-btn dash-card-cta mt-auto">
@@ -191,7 +197,9 @@
         <div class="dash-action-card-inner">
           <div class="dash-action-card-top">
             <div class="dashboard-card-icon-wrap" aria-hidden="true"><span class="dashboard-card-icon"><i class="bi bi-person-fill"></i></span></div>
-            <h5 class="dash-action-card-title mb-2">Gestión de Usuarios</h5>
+            <h5 class="dash-action-card-title">Gestión de Usuarios</h5>
+          </div>
+          <div>
             <p class="dashboard-card-copy mb-0">Controla altas, ediciones y permisos de juntas de vecinos.</p>
           </div>
           <button type="button" onclick="ir('usuarios.html')" class="btn gecom-btn dash-card-cta mt-auto">
@@ -208,7 +216,9 @@
         <div class="dash-action-card-inner">
           <div class="dash-action-card-top">
             <div class="dashboard-card-icon-wrap" aria-hidden="true"><span class="dashboard-card-icon"><i class="bi bi-diagram-3-fill"></i></span></div>
-            <h5 class="dash-action-card-title mb-2">Gestión de Juntas</h5>
+            <h5 class="dash-action-card-title">Gestión de Juntas</h5>
+          </div>
+          <div>
             <p class="dashboard-card-copy mb-0">Supervisa juntas y coordina su operación dentro del territorio.</p>
           </div>
           <button type="button" onclick="ir('juntas.html')" class="btn gecom-btn dash-card-cta mt-auto">
@@ -225,7 +235,9 @@
         <div class="dash-action-card-inner">
           <div class="dash-action-card-top">
             <div class="dashboard-card-icon-wrap" aria-hidden="true"><span class="dashboard-card-icon"><i class="bi bi-plus-circle-fill"></i></span></div>
-            <h5 class="dash-action-card-title mb-2">Registrar Denuncia</h5>
+            <h5 class="dash-action-card-title">Registrar Denuncia</h5>
+          </div>
+          <div>
             <p class="dashboard-card-copy mb-0">Registra reportes directamente para activar la gestión municipal.</p>
           </div>
           <button type="button" onclick="ir('crear.html')" class="btn gecom-btn dash-card-cta mt-auto">
@@ -242,7 +254,9 @@
         <div class="dash-action-card-inner">
           <div class="dash-action-card-top">
             <div class="dashboard-card-icon-wrap" aria-hidden="true"><span class="dashboard-card-icon"><i class="bi bi-question-circle-fill"></i></span></div>
-            <h5 class="dash-action-card-title mb-2">Centro de Ayuda</h5>
+            <h5 class="dash-action-card-title">Centro de Ayuda</h5>
+          </div>
+          <div>
             <p class="dashboard-card-copy mb-0">Consulta guías de uso y resuelve dudas sobre el sistema.</p>
           </div>
           <button type="button" onclick="ir('ayuda.html')" class="btn gecom-btn dash-card-cta mt-auto">
@@ -278,20 +292,13 @@
         </section>
       </div>
     </aside>
-
   </div>
-
-  <!-- Footer info strip -->
-  <footer class="dashboard-footer mt-auto pt-4">
-    <div class="dashboard-footer-inner d-flex flex-wrap align-items-center justify-content-between gap-2">
-      <span class="dashboard-footer-brand">
-        <i class="bi bi-shield-check me-1"></i><strong>GECOM</strong> &mdash; Gestión Comunitaria
-      </span>
-      <span class="dashboard-footer-meta" id="dashboardFooterFecha"></span>
-    </div>
-  </footer>
-
 </div>
+
+<!-- Footer -->
+<div id="footer-container"></div>
+
+<script type="module" src="./js/footer.js"></script>
 
 <!-- Modal confirmación eliminar notificación -->
 <div class="modal fade" id="modalEliminarNotif" tabindex="-1" aria-labelledby="modalEliminarNotifLabel" aria-hidden="true">

@@ -409,6 +409,35 @@ function iniciarSuscripcionNotificaciones() {
   }
 
 
+  function enlacesDatasetVisibleParaRol(enlace) {
+    const roles = String(enlace.dataset.roles || "")
+      .split(",")
+      .map((rol) => rol.trim())
+      .filter(Boolean);
+    return roles.length === 0 || roles.includes(rolLocal);
+  }
+
+  export default function aplicarEnlacesFooterPorRol() {
+    const root = document.getElementById("dashboardFooterLinks");
+    if (!root) return;
+
+    root.querySelectorAll(".dashboard-footer-li").forEach((li) => {
+      const enlaceRoles = li.querySelector("a[data-roles]");
+      if (!enlaceRoles) {
+        li.style.display = "";
+        return;
+      }
+      li.style.display = enlacesDatasetVisibleParaRol(enlaceRoles) ? "" : "none";
+    });
+
+    root.querySelectorAll(".dashboard-footer-nav").forEach((nav) => {
+      const visibleItems = [...nav.querySelectorAll(".dashboard-footer-li")].filter(
+        (li) => li.style.display !== "none"
+      );
+      nav.hidden = visibleItems.length === 0;
+    });
+  }
+
 
   function renderAlertasOperativas(resumen) {
     const lista = document.getElementById("dashboardAlertasList");
@@ -490,6 +519,7 @@ if (!uid || !rolLocal) {
   window.location.href = "index.html";
 } else {
   inicializarSelectorTemaDashboard();
+    aplicarEnlacesFooterPorRol();
     pintarLineaUsuario();
     cargarResumenKpi();
 
