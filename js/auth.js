@@ -155,14 +155,11 @@ window.registrarDesdeAdmin = async function () {
     }
 
     const usuarioNormalizado = usuario.toLowerCase();
-    const existentes = await db.collection(collectionName).get();
-    const usuarioDuplicado = existentes.docs.some((docSnap) => {
-      const data = docSnap.data() || {};
-      const rolDoc = (data.rol || rol).toLowerCase();
-      const usuarioDoc = (data.usuario || "").toLowerCase();
-      return rolDoc === rol.toLowerCase() && usuarioDoc === usuarioNormalizado;
-    });
-    if (usuarioDuplicado) {
+    const duplicadoSnap = await db.collection(collectionName)
+      .where("usuario", "==", usuarioNormalizado)
+      .limit(1)
+      .get();
+    if (!duplicadoSnap.empty) {
       mostrarError("Ya existe un usuario con ese nombre y ese rol.");
       return;
     }
@@ -177,7 +174,7 @@ window.registrarDesdeAdmin = async function () {
       await db.collection(collectionName).doc(uid).set(userData);
       await db.collection("loginIndex").doc(usuarioNormalizado).set({
         uid,
-        email,
+        email: emailInterno,
         rol,
         updatedAt: new Date()
       });
@@ -328,8 +325,6 @@ window.login = async function () {
         mensaje = "Usuario deshabilitado";
       } else if (authError.code === "auth/too-many-requests") {
         mensaje = "Demasiados intentos. Intenta más tarde.";
-      } else if (authError.code === "auth/user-not-found") {
-        mensaje = "Usuario no encontrado.";
       } else if (authError.code === "auth/internal-error" || authError.code === "auth/invalid-credential") {
         mensaje = "Usuario o contraseña incorrectos.";
       }
