@@ -299,21 +299,12 @@ window.login = async function () {
       document.getElementById("password").value = "";
 
       mostrarExito("Inicio de sesión exitoso. Redirigiendo...");
-      
-      // Si es primer login, redirigir a cambiar contraseña
-      if (userDoc.primerLogin) {
-        setTimeout(() => {
-          document.documentElement.style.transition = 'opacity 0.16s ease';
-          document.documentElement.style.opacity = '0';
-          setTimeout(() => { window.location.href = "cambiar-contrasena.html?v=3"; }, 150);
-        }, 800);
-      } else {
-        setTimeout(() => {
-          document.documentElement.style.transition = 'opacity 0.16s ease';
-          document.documentElement.style.opacity = '0';
-          setTimeout(() => { window.location.href = "dashboard.html?v=3"; }, 150);
-        }, 800);
-      }
+
+      setTimeout(() => {
+        document.documentElement.style.transition = 'opacity 0.16s ease';
+        document.documentElement.style.opacity = '0';
+        setTimeout(() => { window.location.href = "dashboard.html?v=3"; }, 150);
+      }, 800);
     } catch (authError) {
       console.error("Error de autenticación:", authError.code);
       let mensaje = "Contraseña incorrecta";

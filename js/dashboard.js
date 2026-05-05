@@ -16,7 +16,8 @@ import {
 import {
   getAuth,
   onAuthStateChanged,
-  signOut
+  signOut,
+  updatePassword
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 const uid = localStorage.getItem("uid");
@@ -519,6 +520,111 @@ function iniciarSuscripcionNotificaciones() {
     }
   }
 
+function inicializarModalPrimerLogin() {
+  const primerLogin = localStorage.getItem("primerLogin") === "true";
+  if (!primerLogin) return;
+
+  const modalEl = document.getElementById("modalCambioContrasena");
+  if (!modalEl) return;
+
+  const modal = new bootstrap.Modal(modalEl);
+  modal.show();
+
+  // Inicializar tooltips en los botones de ver/ocultar
+  modalEl.querySelectorAll("[data-bs-toggle='tooltip']").forEach(el => {
+    new bootstrap.Tooltip(el, { trigger: "hover" });
+  });
+
+  // Toggle ver/ocultar contraseña
+  function setupToggle(btnId, inputId, iconId) {
+    const btn = document.getElementById(btnId);
+    const input = document.getElementById(inputId);
+    const icon = document.getElementById(iconId);
+    if (!btn || !input || !icon) return;
+    btn.addEventListener("click", () => {
+      const showing = input.type === "text";
+      input.type = showing ? "password" : "text";
+      icon.className = showing ? "bi bi-eye" : "bi bi-eye-slash";
+      const tip = bootstrap.Tooltip.getInstance(btn);
+      if (tip) {
+        btn.setAttribute("data-bs-original-title", showing ? "Mostrar contraseña" : "Ocultar contraseña");
+        tip.hide();
+      }
+    });
+  }
+  setupToggle("ccToggleNew", "ccNewPassword", "ccToggleNewIcon");
+  setupToggle("ccToggleConfirm", "ccConfirmPassword", "ccToggleConfirmIcon");
+
+  const ccNew = document.getElementById("ccNewPassword");
+  if (ccNew) {
+    ccNew.addEventListener("input", () => {
+      const pwd = ccNew.value;
+      const reqs = [
+        [document.getElementById("ccReqLength"), pwd.length >= 6, "Al menos 6 caracteres"],
+        [document.getElementById("ccReqUpper"), /[A-Z]/.test(pwd), "Una letra may\u00fascula"],
+        [document.getElementById("ccReqLower"), /[a-z]/.test(pwd), "Una letra min\u00fascula"],
+        [document.getElementById("ccReqNumber"), /\d/.test(pwd), "Un n\u00famero"],
+      ];
+      reqs.forEach(([el, ok, label]) => {
+        if (!el) return;
+        el.textContent = (ok ? "\u2713 " : "\u2717 ") + label;
+        el.className = ok ? "text-success" : "text-danger";
+      });
+    });
+  }
+
+  document.getElementById("btnGuardarNuevaContrasena")?.addEventListener("click", async () => {
+    const btn = document.getElementById("btnGuardarNuevaContrasena");
+    const alertEl = document.getElementById("alertCambioContrasena");
+    const newPwd = document.getElementById("ccNewPassword").value;
+    const confirmPwd = document.getElementById("ccConfirmPassword").value;
+
+    function showCCError(msg) {
+      alertEl.innerHTML = `<div class="alert alert-danger py-2 small">${msg}</div>`;
+    }
+
+    if (!newPwd || !confirmPwd) return showCCError("Completa todos los campos.");
+    if (newPwd !== confirmPwd) return showCCError("Las contrase\u00f1as no coinciden.");
+    if (newPwd.length < 6) return showCCError("La contrase\u00f1a debe tener al menos 6 caracteres.");
+    if (!/[A-Z]/.test(newPwd)) return showCCError("La contrase\u00f1a debe tener al menos una may\u00fascula.");
+    if (!/[a-z]/.test(newPwd)) return showCCError("La contrase\u00f1a debe tener al menos una min\u00fascula.");
+    if (!/\d/.test(newPwd)) return showCCError("La contrase\u00f1a debe tener al menos un n\u00famero.");
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Guardando...';
+    alertEl.innerHTML = "";
+
+    try {
+      const user = auth.currentUser;
+      if (!user) throw new Error("Sesi\u00f3n no disponible.");
+
+      await updatePassword(user, newPwd);
+
+      const coleccionPorRol = { admin: "Administradores", ayuntamiento: "Ayuntamientos", junta: "JuntasDeVecinos" };
+      const coleccion = coleccionPorRol[rolLocal];
+      if (coleccion) {
+        await updateDoc(doc(db, coleccion, uid), { primerLogin: false });
+      }
+
+      localStorage.setItem("primerLogin", "false");
+      modal.hide();
+      if (typeof window.gecomToast === "function") {
+        window.gecomToast("Contrase\u00f1a actualizada correctamente.", "success");
+      }
+    } catch (error) {
+      let msg = "No se pudo cambiar la contrase\u00f1a.";
+      if (error.code === "auth/weak-password") {
+        msg = "La contrase\u00f1a es muy d\u00e9bil.";
+      } else if (error.code === "auth/requires-recent-login") {
+        msg = "La sesi\u00f3n expir\u00f3. Cierra sesi\u00f3n e inicia de nuevo para cambiar la contrase\u00f1a.";
+      }
+      showCCError(msg);
+      btn.disabled = false;
+      btn.innerHTML = '<i class="bi bi-check-circle me-1"></i> Guardar contrase\u00f1a';
+    }
+  });
+}
+
 if (!uid || !rolLocal) {
   window.location.href = "index.html";
 } else {
@@ -526,6 +632,7 @@ if (!uid || !rolLocal) {
     aplicarEnlacesFooterPorRol();
     pintarLineaUsuario();
     cargarResumenKpi();
+  inicializarModalPrimerLogin();
 
   renderizarFechaFooter();
 
