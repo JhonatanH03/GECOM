@@ -305,6 +305,59 @@
   </div>
 </div>
 
+<!-- Modal Cambio Contraseña Obligatorio (primer login) -->
+<div class="modal fade" id="modalCambioContrasena" tabindex="-1"
+     data-bs-backdrop="static" data-bs-keyboard="false"
+     aria-labelledby="modalCambioContrasenaLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-0 pb-0">
+        <div class="d-flex align-items-center gap-2">
+          <span class="badge bg-warning text-dark fs-6"><i class="bi bi-shield-lock-fill"></i></span>
+          <h5 class="modal-title mb-0" id="modalCambioContrasenaLabel">Cambia tu contraseña temporal</h5>
+        </div>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted small mb-3">Por seguridad, debes establecer una contraseña personal antes de continuar.</p>
+        <div id="alertCambioContrasena"></div>
+        <div class="mb-3">
+          <label class="form-label">Nueva contraseña</label>
+          <div class="input-group">
+            <input type="password" id="ccNewPassword" class="form-control" autocomplete="new-password">
+            <button class="btn btn-outline-secondary" type="button" id="ccToggleNew"
+                    title="Mostrar u ocultar contraseña"
+                    data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Mostrar contraseña">
+              <i class="bi bi-eye" id="ccToggleNewIcon"></i>
+            </button>
+          </div>
+          <div class="mt-2 small">
+            <div id="ccReqLength" class="text-danger">✗ Al menos 6 caracteres</div>
+            <div id="ccReqUpper" class="text-danger">✗ Una letra mayúscula</div>
+            <div id="ccReqLower" class="text-danger">✗ Una letra minúscula</div>
+            <div id="ccReqNumber" class="text-danger">✗ Un número</div>
+          </div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Confirmar nueva contraseña</label>
+          <div class="input-group">
+            <input type="password" id="ccConfirmPassword" class="form-control" autocomplete="new-password">
+            <button class="btn btn-outline-secondary" type="button" id="ccToggleConfirm"
+                    title="Mostrar u ocultar contraseña"
+                    data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Mostrar contraseña">
+              <i class="bi bi-eye" id="ccToggleConfirmIcon"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer border-0 pt-0">
+        <button type="button" class="btn btn-primary w-100" id="btnGuardarNuevaContrasena">
+          <i class="bi bi-check-circle me-1"></i> Guardar contraseña
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Toast container -->
 <div id="gecomToastContainer" aria-live="polite" aria-atomic="true"></div>
 

@@ -107,14 +107,11 @@ form.addEventListener("submit", async (event) => {
       await db.collection("Ayuntamientos").doc(ayuntamientoId).set(ayuntamientoData, { merge: true });
       showAlert("Ayuntamiento actualizado correctamente.", "success");
     } else {
-      const existingSnap = await db.collection("Ayuntamientos").get();
-      const usuarioDuplicado = existingSnap.docs.some((docSnap) => {
-        const data = docSnap.data() || {};
-        const rolDoc = (data.rol || "ayuntamiento").toLowerCase();
-        const usuarioDoc = (data.usuario || "").toLowerCase();
-        return rolDoc === "ayuntamiento" && usuarioDoc === usuarioNormalizado;
-      });
-      if (usuarioDuplicado) {
+      const duplicadoSnap = await db.collection("Ayuntamientos")
+        .where("usuario", "==", usuarioNormalizado)
+        .limit(1)
+        .get();
+      if (!duplicadoSnap.empty) {
         showModalAlert("Ya existe un usuario con ese nombre y ese rol.", "danger");
         return;
       }

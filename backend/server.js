@@ -167,6 +167,98 @@ app.get("/", (_req, res) => {
   });
 });
 
+async function verifyToken(req, _res, next) {
+  try {
+    const authorization = String(req.headers.authorization || "");
+    if (!authorization.startsWith("Bearer ")) {
+      throw createHttpError(401, "unauthenticated", "Falta el token de autenticación.");
+    }
+    const idToken = authorization.slice(7).trim();
+    const decodedToken = await admin.auth().verifyIdToken(idToken);
+    req.auth = { uid: decodedToken.uid, decodedToken };
+    next();
+  } catch (error) {
+    next(error);
+  }
+}
+
+function backendUsuarioAEmailInterno(usuario) {
+  return String(usuario || "").trim().toLowerCase().replace(/[^a-z0-9_]/g, "") + "@gecom.internal";
+}
+
+function backendGenerarContrasena(length = 12) {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%";
+  const bytes = require("crypto").randomBytes(length);
+  return Array.from(bytes, (b) => chars[b % chars.length]).join("");
+}
+
+app.post("/api/juntas/crear", verifyToken, async (req, res, next) => {
+  try {
+    const callerUid = req.auth.uid;
+    const callerProfile = await resolveCallerProfile(callerUid);
+
+    if (callerProfile.role !== "ayuntamiento" && callerProfile.role !== "admin") {
+      throw createHttpError(403, "permission-denied", "Solo los ayuntamientos y administradores pueden crear juntas.");
+    }
+
+    const { nombre, usuario, telefono, comunidad, provincia, municipio, cedula } = req.body || {};
+
+    if (!nombre || !usuario || !telefono || !comunidad || !provincia || !municipio) {
+      throw createHttpError(400, "missing-fields", "Todos los campos son obligatorios.");
+    }
+
+    const usuarioNormalizado = String(usuario).trim().toLowerCase();
+    const emailInterno = backendUsuarioAEmailInterno(usuarioNormalizado);
+
+    const duplicateSnap = await admin.firestore()
+      .collection("JuntasDeVecinos")
+      .where("usuario", "==", usuarioNormalizado)
+      .limit(1)
+      .get();
+
+    if (!duplicateSnap.empty) {
+      throw createHttpError(409, "already-exists", "Ya existe una junta con ese nombre de usuario.");
+    }
+
+    const contrasenaTemporal = backendGenerarContrasena();
+
+    let userRecord;
+    try {
+      userRecord = await admin.auth().createUser({
+        email: emailInterno,
+        password: contrasenaTemporal,
+        displayName: String(nombre)
+      });
+    } catch (authError) {
+      if (authError.code === "auth/email-already-exists") {
+        throw createHttpError(409, "already-exists", "Ya existe una junta con ese nombre de usuario.");
+      }
+      throw authError;
+    }
+
+    const nuevoUid = userRecord.uid;
+
+    await admin.firestore().collection("JuntasDeVecinos").doc(nuevoUid).set({
+      nombre,
+      usuario: usuarioNormalizado,
+      rol: "junta",
+      telefono,
+      comunidad,
+      provincia: String(provincia || ""),
+      municipio: String(municipio || ""),
+      cedula: String(cedula || ""),
+      estado: true,
+      fecha_creacion: admin.firestore.FieldValue.serverTimestamp(),
+      creada_por: callerUid,
+      primerLogin: true
+    });
+
+    res.json({ uid: nuevoUid, contrasenaTemporal });
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.post("/api/password-resets/generic", verifyCaller, async (req, res, next) => {
   try {
     const { targetUid, targetRole } = req.body || {};

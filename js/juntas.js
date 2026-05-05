@@ -223,35 +223,28 @@ form.addEventListener("submit", async (event) => {
         return;
       }
 
-      // Crear nueva junta con usuario y contraseña temporal aleatoria.
-      const contrasenaTemporal = generarContrasenaTemporal();
-      
-      // Crear usuario en Firebase Auth
-      const credential = await auth.createUserWithEmailAndPassword(emailInterno, contrasenaTemporal);
-      const nuevoUid = credential.user.uid;
-      
-      const juntaData = {
-        nombre,
-        usuario,
-        rol: "junta",
-        telefono,
-        comunidad,
-        provincia: provinciaFinal,
-        municipio: municipioFinal,
-        cedula,
-        estado: true,
-        fecha_creacion: firebase.firestore.FieldValue.serverTimestamp(),
-        creada_por: uid,
-        primerLogin: true // Indica que es el primer login
-      };
-      
-      await db.collection("JuntasDeVecinos").doc(nuevoUid).set(juntaData);
-      await db.collection("loginIndex").doc(usuarioNormalizado).set({
-        uid: nuevoUid,
-        email: correo,
-        rol: "junta",
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      // Crear nueva junta via backend (Admin SDK, sin cambiar la sesión activa).
+      const token = await auth.currentUser.getIdToken();
+      const response = await fetch(window.gecomBuildBackendUrl("/api/juntas/crear"), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ nombre, usuario: usuarioNormalizado, telefono, comunidad, provincia: provinciaFinal, municipio: municipioFinal, cedula })
       });
+
+      const responseData = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        if (responseData.error?.code === "already-exists") {
+          showModalAlert("Ya existe un usuario con ese nombre y ese rol.", "danger");
+          return;
+        }
+        throw new Error(responseData.error?.message || "Error al crear la junta.");
+      }
+
+      const { contrasenaTemporal } = responseData;
       showAlert(`Junta creada correctamente. Usuario: ${usuario}, Contraseña temporal: ${contrasenaTemporal}`, "success");
     }
     
@@ -261,9 +254,7 @@ form.addEventListener("submit", async (event) => {
     await cargarJuntas();
   } catch (error) {
     console.error("ERROR:", error);
-    if (error.code === "auth/email-already-in-use") {
-      showModalAlert("No se puede crear: el usuario ya existe.", "danger");
-    } else if (error.code === "auth/weak-password") {
+    if (error.code === "auth/weak-password") {
       showModalAlert("Error con la contraseña temporal. Contacta al administrador.", "danger");
     } else {
       showModalAlert(error.message || "Ocurrió un error.", "danger");
