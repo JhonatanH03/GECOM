@@ -101,7 +101,7 @@
     "Esta contraseña es de un solo uso. El ayuntamiento debe cambiarla al iniciar sesión por primera vez.": "This is a one-time password. The municipality must change it on first login.",
 
     // Usuarios
-    "Gestión de Usuarios": "User Management",
+    "Gestión de Juntas": "Junta Management",
     "Los Administradores pueden crear, editar o eliminar todas las Juntas de Vecinos.": "Administrators can create, edit, or delete all Neighborhood Boards.",
     "Usuarios registrados": "Registered Users",
     "Crear Usuario": "Create User",
