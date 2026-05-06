@@ -335,11 +335,11 @@ function renderizarPagina() {
       }[data.estado || "Pendiente"] || "status-pendiente";
 
       const chipIcon = {
-        Pendiente: "bi-hourglass-split",
+        Pendiente: "bi-record-circle",
         "En proceso": "bi-arrow-repeat",
-        Resuelta: "bi-check-circle-fill",
-        Rechazada: "bi-x-circle-fill"
-      }[data.estado || "Pendiente"] || "bi-hourglass-split";
+        Resuelta: "bi-check2",
+        Rechazada: "bi-x-lg"
+      }[data.estado || "Pendiente"] || "bi-record-circle";
 
       const tieneRespuesta = !!data.respuesta_ayuntamiento;
 

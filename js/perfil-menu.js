@@ -1,11 +1,9 @@
 (function () {
-  // Roles legibles por idioma
   const ROLES = {
     es: { admin: "Administrador", ayuntamiento: "Ayuntamiento", junta: "Junta de Vecinos" },
     en: { admin: "Administrator", ayuntamiento: "City Hall", junta: "Neighborhood Board" },
   };
 
-  // Traducciones básicas ES/EN
   const I18N = {
     es: {
       perfil: "Perfil",
@@ -15,7 +13,6 @@
       claro: "Claro",
       oscuro: "Oscuro",
       sistema: "Sistema",
-      cambiarContrasena: "Cambiar contraseña",
     },
     en: {
       perfil: "Profile",
@@ -25,7 +22,6 @@
       claro: "Light",
       oscuro: "Dark",
       sistema: "System",
-      cambiarContrasena: "Change password",
     },
   };
 
@@ -66,11 +62,6 @@
     }
     localStorage.setItem("tema", tema);
 
-    // Actualizar botones de tema en el menú
-    const btns = document.querySelectorAll(".pm-tema-btn");
-    btns.forEach(function (b) {
-      b.classList.toggle("pm-tema-btn--active", b.dataset.tema === tema);
-    });
   }
 
   function doLogout() {
@@ -168,21 +159,18 @@
     const avatarBtn = wrap.querySelector("#perfilAvatarBtn");
     const dropdown = wrap.querySelector("#perfilDropdown");
 
-    // Toggle dropdown
     avatarBtn.addEventListener("click", function (e) {
       e.stopPropagation();
       const visible = dropdown.style.display !== "none";
       dropdown.style.display = visible ? "none" : "block";
     });
 
-    // Cerrar al hacer click fuera
     document.addEventListener("click", function (e) {
       if (!wrap.contains(e.target)) {
         dropdown.style.display = "none";
       }
     });
 
-    // Botones de tema (submenú flotante)
     wrap.querySelectorAll(".pm-sub-opt[data-tema]").forEach(function (btn) {
       btn.addEventListener("click", function (e) {
         e.preventDefault();
@@ -194,7 +182,6 @@
       });
     });
 
-    // Botones de idioma (submenú flotante)
     wrap.querySelectorAll(".pm-sub-opt[data-lang]").forEach(function (btn) {
       btn.addEventListener("click", function (e) {
         e.preventDefault();
@@ -202,11 +189,9 @@
         localStorage.setItem("idioma", btn.dataset.lang);
         if (typeof window.applyI18n === "function") window.applyI18n(btn.dataset.lang);
         window.dispatchEvent(new CustomEvent("gecom:language-changed", { detail: { lang: btn.dataset.lang } }));
-        // Actualizar activo visualmente
         wrap.querySelectorAll(".pm-sub-opt[data-lang]").forEach(function (b) {
           b.classList.toggle("pm-sub-opt--active", b.dataset.lang === btn.dataset.lang);
         });
-        // Reconstruir etiquetas del menú con nuevo idioma
         var pmItemLabel = wrap.querySelectorAll(".pm-item-sub-trigger span");
         var keys = ["diseno", "idioma"];
         pmItemLabel.forEach(function(el, i){ el.textContent = t(keys[i]); });
@@ -222,7 +207,6 @@
       });
     });
 
-    // Cerrar sesión
     wrap.querySelector("#pmItemLogout").addEventListener("click", function (e) {
       e.preventDefault();
       dropdown.style.display = "none";
@@ -231,10 +215,27 @@
   }
 
   function init() {
-    // Aplicar tema guardado al arrancar
+    const hasAppLayout = !!document.getElementById("appLayoutContainer");
+    if (hasAppLayout) {
+      const usuario = localStorage.getItem("usuario") || "Usuario";
+      const rol = localStorage.getItem("rol") || "";
+      const lang = getLang();
+      const rolLabel = getRolLabel(rol, lang);
+
+      const bindHeaderProfile = function () {
+        const profileName = document.getElementById("profileName");
+        if (profileName) {
+          profileName.textContent = `${usuario} ${rolLabel ? `(${rolLabel})` : ""}`.trim();
+        }
+      };
+
+      bindHeaderProfile();
+      setTimeout(bindHeaderProfile, 250);
+      return;
+    }
+
     aplicarTema(localStorage.getItem("tema") || "sistema");
 
-    // Ocultar controles viejos de tema si existen en la página
     var viejoBtnTema = document.getElementById("btnPaletaTema");
     if (viejoBtnTema) {
       var wrapViejo = viejoBtnTema.closest(".dropdown");
