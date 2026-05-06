@@ -1,0 +1,201 @@
+<header class="app-header">
+  <div class="app-header-left">
+    <div class="app-brand">
+      <img src="assets/LOGO SHIELD RD.png" alt="GECOM" class="app-logo">
+      <span class="app-brand-text">GECOM</span>
+    </div>
+  </div>
+
+  <nav class="app-breadcrumbs d-none d-md-flex">
+    <a href="dashboard.html" class="breadcrumb-item">
+      <i class="bi bi-house"></i> Inicio
+    </a>
+    <span class="breadcrumb-separator">/</span>
+    <span class="breadcrumb-current" id="breadcrumbCurrent">Página</span>
+  </nav>
+
+  <div class="app-header-right">
+    <div class="profile-menu" id="perfilMenuWrap">
+      <button id="perfilAvatarBtn" class="pm-avatar-btn" aria-label="Menú de usuario" title="Usuario" aria-expanded="false">
+        <span id="profileInitial" class="pm-avatar-initial">U</span>
+      </button>
+      <div id="perfilDropdown" class="pm-dropdown" style="display: none;">
+        <div class="pm-dropdown-header">
+          <div class="pm-avatar-lg"><span id="profileInitialLg">U</span></div>
+          <div class="pm-user-info">
+            <div class="pm-username" id="profileName">Usuario</div>
+            <div class="pm-rol" id="profileRole">Administrador</div>
+          </div>
+        </div>
+
+        <div class="pm-divider"></div>
+
+        <a class="pm-item" href="cambiar-contrasena.html" id="pmItemPerfil">
+          <i class="bi bi-person-circle"></i>
+          <span data-pm-i18n="perfil">Perfil</span>
+        </a>
+
+        <div class="pm-item-sub" id="pmTemaWrap">
+          <div class="pm-item-sub-trigger">
+            <i class="bi bi-circle-half"></i>
+            <span data-pm-i18n="diseno">Diseño</span>
+            <i class="bi bi-chevron-right pm-chevron"></i>
+          </div>
+          <div class="pm-submenu" id="pmTemaSubmenu">
+            <button class="pm-sub-opt" data-tema="claro">
+              <i class="bi bi-sun"></i> <span data-pm-i18n="claro">Claro</span>
+            </button>
+            <button class="pm-sub-opt" data-tema="sistema">
+              <i class="bi bi-display"></i> <span data-pm-i18n="sistema">Sistema</span>
+            </button>
+            <button class="pm-sub-opt" data-tema="oscuro">
+              <i class="bi bi-moon"></i> <span data-pm-i18n="oscuro">Oscuro</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="pm-item-sub" id="pmLangWrap">
+          <div class="pm-item-sub-trigger">
+            <i class="bi bi-translate"></i>
+            <span data-pm-i18n="idioma">Idioma</span>
+            <i class="bi bi-chevron-right pm-chevron"></i>
+          </div>
+          <div class="pm-submenu" id="pmLangSubmenu">
+            <button class="pm-sub-opt" data-lang="es">
+              <i class="bi bi-chat-text"></i> Español
+            </button>
+            <button class="pm-sub-opt" data-lang="en">
+              <i class="bi bi-chat-text"></i> English
+            </button>
+          </div>
+        </div>
+
+        <div class="pm-divider"></div>
+        <a class="pm-item pm-item-logout" href="#" id="btnCerrarSesion">
+          <i class="bi bi-box-arrow-right"></i>
+          <span data-pm-i18n="cerrarSesion">Cerrar Sesión</span>
+        </a>
+      </div>
+    </div>
+  </div>
+</header>
+
+<style>
+.app-header {
+  background: var(--gecom-surface);
+  border-bottom: 1px solid var(--gecom-stroke);
+  padding: 1rem 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  position: sticky;
+  top: 0;
+  z-index: 1060;
+}
+
+.app-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.app-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  text-decoration: none;
+  color: inherit;
+  font-weight: 800;
+  font-size: 1.1rem;
+}
+
+.app-logo {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+}
+
+.app-brand-text {
+  letter-spacing: 1px;
+  color: var(--gecom-text);
+}
+
+.app-breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.9rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.breadcrumb-item {
+  color: var(--gecom-subtext);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: color 0.25s ease;
+}
+
+.breadcrumb-item:hover {
+  color: var(--gecom-text);
+}
+
+.breadcrumb-separator {
+  color: var(--gecom-stroke);
+}
+
+.breadcrumb-current {
+  color: var(--gecom-text);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.app-header-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-shrink: 0;
+}
+
+.profile-menu {
+  position: relative;
+}
+
+.profile-menu #perfilDropdown {
+  z-index: 1200;
+}
+
+@media (max-width: 991px) {
+  .app-breadcrumbs {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .app-header {
+    padding: 0.75rem 1rem;
+  }
+
+  .profile-menu #perfilDropdown {
+    right: 0;
+    left: auto;
+    min-width: 210px;
+    max-width: min(90vw, 280px);
+  }
+}
+
+[data-bs-theme="dark"] .app-header {
+  background: #1a2332;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+</style>
+
+
