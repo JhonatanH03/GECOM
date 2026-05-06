@@ -4,20 +4,16 @@
       "nombre": "Santo Domingo",
       "municipios": [
         {
-          "nombre": "Distrito Nacional",
-          "distritos": ["Distrito Nacional"]
-        },
-        {
           "nombre": "Santo Domingo Este",
           "distritos": ["Santo Domingo Este"]
         },
         {
-          "nombre": "Santo Domingo Norte",
-          "distritos": ["Santo Domingo Norte"]
-        },
-        {
           "nombre": "Santo Domingo Oeste",
           "distritos": ["Santo Domingo Oeste"]
+        },
+        {
+          "nombre": "Santo Domingo Norte",
+          "distritos": ["Santo Domingo Norte"]
         },
         {
           "nombre": "Boca Chica",
@@ -30,6 +26,10 @@
         {
           "nombre": "Los Alcarrizos",
           "distritos": ["Los Alcarrizos"]
+        },
+        {
+          "nombre": "Pedro Brand",
+          "distritos": ["Pedro Brand"]
         }
       ]
     },

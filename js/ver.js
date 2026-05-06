@@ -417,7 +417,6 @@ function obtenerDenunciasFiltradas() {
   return todasLasDenuncias.filter(({ data }) => {
     let cumpleEstado;
     if (filtro === "Todos") cumpleEstado = true;
-    else if (filtro === "Sin respuesta") cumpleEstado = !data.respuesta_ayuntamiento;
     else cumpleEstado = data.estado === filtro;
 
     const cumpleProvincia = rol !== "admin" || filtroProvincia === "Todos" || (data.provincia || "") === filtroProvincia;
