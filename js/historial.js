@@ -1,4 +1,5 @@
 import app from "./firebase.js";
+import { debounce, escapeHtml } from "./constants.js";
 import {
   getFirestore,
   collection,
@@ -19,7 +20,7 @@ const auth = getAuth(app);
 const uid = localStorage.getItem("uid");
 const rol = localStorage.getItem("rol");
 
-const LIMITE = 20;
+const LIMITE = 15;
 let paginaActual = 1;
 // iniciosDePagina[i] = cursor para cargar la página (i+1); null = desde el principio
 const iniciosDePagina = [null];
@@ -33,14 +34,6 @@ function validarSesion() {
   return true;
 }
 
-function escapeHtml(str) {
-  if (!str) return "";
-  return String(str)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
 
 function convertirAFecha(ts) {
   if (!ts) return null;
@@ -189,10 +182,10 @@ window.addEventListener("DOMContentLoaded", () => {
   onAuthStateChanged(auth, (user) => {
     if (user && user.uid === uid) {
       cargarPagina();
-      document.getElementById("filtroEstado").addEventListener("change", () => {
+      document.getElementById("filtroEstado").addEventListener("change", debounce(() => {
         resetPaginacion();
         cargarPagina();
-      });
+      }, 300));
     } else {
       window.location.href = "index.html";
     }

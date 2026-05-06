@@ -1,5 +1,5 @@
 import app from "./firebase.js";
-
+import { ESTADOS, ESTADO_DEFAULT } from "./constants.js";
 import {
   getFirestore,
   collection,
@@ -11,7 +11,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const db = getFirestore(app);
-const JUNTA_ID = "junta_default_id"; // Reemplaza con el ID real de la junta cuando esté disponible
+const JUNTA_ID = localStorage.getItem("uid");
 
 let listaDenunciasEl;
 let filtroEstadoEl;
@@ -36,10 +36,10 @@ function crearElemento(tag, className, text) {
 
 function obtenerClaseEstado(estado) {
   switch (estado) {
-    case "Pendiente": return "estado-pendiente";
-    case "En proceso": return "estado-proceso";
-    case "Resuelta": return "estado-resuelta";
-    case "Rechazada": return "estado-rechazada";
+    case ESTADOS.PENDIENTE:  return "estado-pendiente";
+    case ESTADOS.EN_PROCESO: return "estado-proceso";
+    case ESTADOS.RESUELTA:   return "estado-resuelta";
+    case ESTADOS.RECHAZADA:  return "estado-rechazada";
     default: return "estado-pendiente";
   }
 }
@@ -156,7 +156,7 @@ function cargarDenuncias() {
         id: doc.id,
         titulo: data.titulo || "Sin título",
         descripcion: data.descripcion || "",
-        estado: data.estado || "Pendiente",
+        estado: data.estado || ESTADO_DEFAULT,
         sector: data.sector || "Sin sector",
         fecha: formatearFecha(data.fecha),
         fechaValor: data.fecha?.toDate ? data.fecha.toDate().getTime() : 0
@@ -189,7 +189,7 @@ async function enviarNuevaDenuncia(event) {
     await addDoc(collection(db, "denuncias"), {
       titulo,
       descripcion,
-      estado: "Pendiente",
+      estado: ESTADO_DEFAULT,
       sector,
       creadoPor: JUNTA_ID,
       fuente: "ciudadano",

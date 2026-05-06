@@ -1,4 +1,5 @@
 import app from "./firebase.js";
+import { ESTADOS, ESTADO_DEFAULT } from "./constants.js";
 import {
   getFirestore,
   collection,
@@ -14,7 +15,9 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import {
   getAuth,
-  onAuthStateChanged
+  onAuthStateChanged,
+  signOut,
+  updatePassword
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 const uid = localStorage.getItem("uid");
@@ -22,6 +25,7 @@ const rolLocal = localStorage.getItem("rol");
 const db = getFirestore(app);
 const auth = getAuth(app);
 let ultimoConteoSinLeer = 0;
+let _unsubscribeNotificaciones = null;
 
 function getIdiomaUI() {
   return (localStorage.getItem("idioma") || "es") === "en" ? "en" : "es";
@@ -95,7 +99,18 @@ window.ir = function (ruta) {
   window.location.href = ruta;
 };
 
-window.logout = function () {
+window.logout = async function () {
+  const ok = await window.gecomConfirm({
+    title: "Cerrar sesión",
+    message: "¿Estás seguro de que deseas cerrar la sesión actual?",
+    confirmText: "Cerrar sesión",
+    cancelText: "Cancelar",
+    type: "warning",
+  });
+  if (!ok) return;
+  try {
+    await signOut(auth);
+  } catch (_) { /* ignorar: limpiar sesión local de todas formas */ }
   localStorage.clear();
   window.location.href = "index.html";
 };
@@ -211,8 +226,14 @@ function renderizarNotificaciones(items) {
 function iniciarSuscripcionNotificaciones() {
   if (!uid || rolLocal !== "junta") return;
 
+  // Limpiar listener anterior para evitar duplicados y memory leaks
+  if (_unsubscribeNotificaciones) {
+    _unsubscribeNotificaciones();
+    _unsubscribeNotificaciones = null;
+  }
+
   const q = query(collection(db, "notificaciones"), where("receptorUid", "==", uid));
-  onSnapshot(q, (snap) => {
+  _unsubscribeNotificaciones = onSnapshot(q, (snap) => {
     const items = snap.docs
       .map((docSnap) => ({ id: docSnap.id, ...(docSnap.data() || {}) }))
       .sort((a, b) => {
@@ -281,9 +302,11 @@ function iniciarSuscripcionNotificaciones() {
     const rol = formatearRol(rolLocal);
 
     userLine.innerHTML = `
+      <h4>${saludo} <strong>${escapeHtmlDash(usuario)}</strong>
       <span class="dashboard-role-badge ${badgeClass}">
         <i class="bi ${icono}"></i>${rol}
-      </span>${saludo}, <strong>${escapeHtmlDash(usuario)}</strong>
+      </span></h4>
+
     `;
   }
 
@@ -295,10 +318,10 @@ function iniciarSuscripcionNotificaciones() {
 
   function actualizarKpiVisual(resumen) {
     const asignaciones = {
-      kpiPendiente: resumen.Pendiente || 0,
-      kpiProceso: resumen["En proceso"] || 0,
-      kpiResuelta: resumen.Resuelta || 0,
-      kpiRechazada: resumen.Rechazada || 0
+      kpiPendiente: resumen[ESTADOS.PENDIENTE] || 0,
+      kpiProceso: resumen[ESTADOS.EN_PROCESO] || 0,
+      kpiResuelta: resumen[ESTADOS.RESUELTA] || 0,
+      kpiRechazada: resumen[ESTADOS.RECHAZADA] || 0
     };
 
     Object.entries(asignaciones).forEach(([id, valor]) => {
@@ -307,16 +330,158 @@ function iniciarSuscripcionNotificaciones() {
     });
   }
 
+  function claseEstadoLateral(estado) {
+    if (estado === ESTADOS.PENDIENTE) return "estado-pendiente";
+    if (estado === ESTADOS.EN_PROCESO) return "estado-proceso";
+    if (estado === ESTADOS.RESUELTA) return "estado-resuelta";
+    if (estado === ESTADOS.RECHAZADA) return "estado-rechazada";
+    return "estado-pendiente";
+  }
+
+  function etiquetaEstadoLateral(estado) {
+    if (estado === ESTADOS.EN_PROCESO) return "En proceso";
+    if (estado === ESTADOS.RESUELTA) return "Resuelta";
+    if (estado === ESTADOS.RECHAZADA) return "Rechazada";
+    return "Pendiente";
+  }
+
+  function formatFechaRelativa(fecha) {
+    if (!fecha) return "Sin fecha";
+
+    const ahora = Date.now();
+    const diffMs = ahora - fecha.getTime();
+    const minutos = Math.floor(diffMs / 60000);
+
+    if (minutos < 1) return "Hace unos segundos";
+    if (minutos < 60) return `Hace ${minutos} min`;
+
+    const horas = Math.floor(minutos / 60);
+    if (horas < 24) return `Hace ${horas} h`;
+
+    const dias = Math.floor(horas / 24);
+    if (dias < 7) return `Hace ${dias} d`;
+
+    return fecha.toLocaleDateString(getIdiomaUI() === "en" ? "en-US" : "es-DO", {
+      day: "2-digit",
+      month: "short"
+    });
+  }
+
+  function renderActividadReciente(docs) {
+    const lista = document.getElementById("dashboardActividadList");
+    if (!lista) return;
+
+    const items = (docs || [])
+      .map((docSnap) => {
+        const data = docSnap.data() || {};
+        const fecha = convertirAFecha(data.updatedAt || data.createdAt || data.fecha || data.timestamp);
+        const estado = String(data.estado || ESTADO_DEFAULT).trim();
+        const titulo = String(data.titulo || data.asunto || "Denuncia").trim();
+
+        return {
+          id: docSnap.id,
+          titulo,
+          estado,
+          fecha
+        };
+      })
+      .sort((a, b) => (b.fecha?.getTime() || 0) - (a.fecha?.getTime() || 0))
+      .slice(0, 4);
+
+    if (!items.length) {
+      lista.innerHTML = '<li class="dashboard-activity-empty">Aun no hay actividad reciente para mostrar.</li>';
+      return;
+    }
+
+    lista.innerHTML = items.map((item) => {
+      const tituloSeguro = escapeHtmlDash(item.titulo || "Denuncia");
+      const claseEstado = claseEstadoLateral(item.estado);
+      const textoEstado = etiquetaEstadoLateral(item.estado);
+      const tiempo = formatFechaRelativa(item.fecha);
+
+      return `
+        <li class="dashboard-activity-item">
+          <a class="dashboard-activity-link" href="ver.html?denuncia=${encodeURIComponent(item.id)}">
+            <div class="dashboard-activity-top">
+              <p class="dashboard-activity-title">${tituloSeguro}</p>
+              <span class="dashboard-activity-state ${claseEstado}">${textoEstado}</span>
+            </div>
+            <p class="dashboard-activity-time">${tiempo}</p>
+          </a>
+        </li>
+      `;
+    }).join("");
+  }
+
+
+  function enlacesDatasetVisibleParaRol(enlace) {
+    const roles = String(enlace.dataset.roles || "")
+      .split(",")
+      .map((rol) => rol.trim())
+      .filter(Boolean);
+    return roles.length === 0 || roles.includes(rolLocal);
+  }
+
+  export default function aplicarEnlacesFooterPorRol() {
+    const root = document.getElementById("dashboardFooterLinks");
+    if (!root) return;
+
+    root.querySelectorAll(".dashboard-footer-li").forEach((li) => {
+      const enlaceRoles = li.querySelector("a[data-roles]");
+      if (!enlaceRoles) {
+        li.style.display = "";
+        return;
+      }
+      li.style.display = enlacesDatasetVisibleParaRol(enlaceRoles) ? "" : "none";
+    });
+
+    root.querySelectorAll(".dashboard-footer-nav").forEach((nav) => {
+      const visibleItems = [...nav.querySelectorAll(".dashboard-footer-li")].filter(
+        (li) => li.style.display !== "none"
+      );
+      nav.hidden = visibleItems.length === 0;
+    });
+  }
+
+
+  function renderAlertasOperativas(resumen) {
+    const lista = document.getElementById("dashboardAlertasList");
+    if (!lista) return;
+
+    const pendientes = Number(resumen?.[ESTADOS.PENDIENTE] || 0);
+    const enProceso = Number(resumen?.[ESTADOS.EN_PROCESO] || 0);
+    const acumuladas = pendientes + enProceso;
+
+    let clase = "dashboard-alert-item--info";
+    if (acumuladas >= 15) clase = "dashboard-alert-item--danger";
+    else if (acumuladas >= 8) clase = "dashboard-alert-item--warning";
+
+    const mensajePrincipal = acumuladas > 0
+      ? `${acumuladas} casos requieren atencion (${pendientes} pendientes y ${enProceso} en proceso).`
+      : "No hay casos activos pendientes de seguimiento.";
+
+    const mensajeSecundario = rolLocal === "admin"
+      ? "Vista global del sistema actualizada."
+      : (rolLocal === "ayuntamiento"
+        ? "Prioriza casos con impacto municipal esta semana."
+        : "Recuerda responder los reportes para evitar atrasos.");
+
+    lista.innerHTML = `
+      <li class="dashboard-alert-item ${clase}">${mensajePrincipal}</li>
+      <li class="dashboard-alert-item dashboard-alert-item--info">${mensajeSecundario}</li>
+    `;
+  }
+
   function contarEstadosDesdeDocs(docs) {
     const resumen = {
-      Pendiente: 0,
-      "En proceso": 0,
-      Resuelta: 0,
-      Rechazada: 0
+      [ESTADOS.PENDIENTE]: 0,
+      [ESTADOS.EN_PROCESO]: 0,
+      [ESTADOS.RESUELTA]: 0,
+      [ESTADOS.RECHAZADA]: 0
     };
 
     docs.forEach((docSnap) => {
-      const estado = String(docSnap.data()?.estado || "Pendiente").trim();
+      const estado = String(docSnap.data()?.estado || ESTADO_DEFAULT).trim();
       if (resumen[estado] !== undefined) resumen[estado] += 1;
     });
 
@@ -335,6 +500,8 @@ function iniciarSuscripcionNotificaciones() {
         const municipio = String(ayuntamientoData.municipio || "").trim();
         if (!municipio) {
           actualizarKpiVisual({});
+          renderActividadReciente([]);
+          renderAlertasOperativas({});
           return;
         }
         snap = await getDocs(query(collection(db, "denuncias"), where("municipio", "==", municipio)));
@@ -342,18 +509,130 @@ function iniciarSuscripcionNotificaciones() {
         snap = await getDocs(collection(db, "denuncias"));
       }
 
-      actualizarKpiVisual(contarEstadosDesdeDocs(snap.docs));
+      const resumen = contarEstadosDesdeDocs(snap.docs);
+      actualizarKpiVisual(resumen);
+      renderActividadReciente(snap.docs);
+      renderAlertasOperativas(resumen);
     } catch (error) {
       console.error("Error cargando resumen de KPIs:", error);
+      renderActividadReciente([]);
+      renderAlertasOperativas({});
     }
   }
+
+function inicializarModalPrimerLogin() {
+  const primerLogin = localStorage.getItem("primerLogin") === "true";
+  if (!primerLogin) return;
+
+  const modalEl = document.getElementById("modalCambioContrasena");
+  if (!modalEl) return;
+
+  const modal = new bootstrap.Modal(modalEl);
+  modal.show();
+
+  // Inicializar tooltips en los botones de ver/ocultar
+  modalEl.querySelectorAll("[data-bs-toggle='tooltip']").forEach(el => {
+    new bootstrap.Tooltip(el, { trigger: "hover" });
+  });
+
+  // Toggle ver/ocultar contraseña
+  function setupToggle(btnId, inputId, iconId) {
+    const btn = document.getElementById(btnId);
+    const input = document.getElementById(inputId);
+    const icon = document.getElementById(iconId);
+    if (!btn || !input || !icon) return;
+    btn.addEventListener("click", () => {
+      const showing = input.type === "text";
+      input.type = showing ? "password" : "text";
+      icon.className = showing ? "bi bi-eye" : "bi bi-eye-slash";
+      const tip = bootstrap.Tooltip.getInstance(btn);
+      if (tip) {
+        btn.setAttribute("data-bs-original-title", showing ? "Mostrar contraseña" : "Ocultar contraseña");
+        tip.hide();
+      }
+    });
+  }
+  setupToggle("ccToggleNew", "ccNewPassword", "ccToggleNewIcon");
+  setupToggle("ccToggleConfirm", "ccConfirmPassword", "ccToggleConfirmIcon");
+
+  const ccNew = document.getElementById("ccNewPassword");
+  if (ccNew) {
+    ccNew.addEventListener("input", () => {
+      const pwd = ccNew.value;
+      const reqs = [
+        [document.getElementById("ccReqLength"), pwd.length >= 6, "Al menos 6 caracteres"],
+        [document.getElementById("ccReqUpper"), /[A-Z]/.test(pwd), "Una letra may\u00fascula"],
+        [document.getElementById("ccReqLower"), /[a-z]/.test(pwd), "Una letra min\u00fascula"],
+        [document.getElementById("ccReqNumber"), /\d/.test(pwd), "Un n\u00famero"],
+      ];
+      reqs.forEach(([el, ok, label]) => {
+        if (!el) return;
+        el.textContent = (ok ? "\u2713 " : "\u2717 ") + label;
+        el.className = ok ? "text-success" : "text-danger";
+      });
+    });
+  }
+
+  document.getElementById("btnGuardarNuevaContrasena")?.addEventListener("click", async () => {
+    const btn = document.getElementById("btnGuardarNuevaContrasena");
+    const alertEl = document.getElementById("alertCambioContrasena");
+    const newPwd = document.getElementById("ccNewPassword").value;
+    const confirmPwd = document.getElementById("ccConfirmPassword").value;
+
+    function showCCError(msg) {
+      alertEl.innerHTML = `<div class="alert alert-danger py-2 small">${msg}</div>`;
+    }
+
+    if (!newPwd || !confirmPwd) return showCCError("Completa todos los campos.");
+    if (newPwd !== confirmPwd) return showCCError("Las contrase\u00f1as no coinciden.");
+    if (newPwd.length < 6) return showCCError("La contrase\u00f1a debe tener al menos 6 caracteres.");
+    if (!/[A-Z]/.test(newPwd)) return showCCError("La contrase\u00f1a debe tener al menos una may\u00fascula.");
+    if (!/[a-z]/.test(newPwd)) return showCCError("La contrase\u00f1a debe tener al menos una min\u00fascula.");
+    if (!/\d/.test(newPwd)) return showCCError("La contrase\u00f1a debe tener al menos un n\u00famero.");
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Guardando...';
+    alertEl.innerHTML = "";
+
+    try {
+      const user = auth.currentUser;
+      if (!user) throw new Error("Sesi\u00f3n no disponible.");
+
+      await updatePassword(user, newPwd);
+
+      const coleccionPorRol = { admin: "Administradores", ayuntamiento: "Ayuntamientos", junta: "JuntasDeVecinos" };
+      const coleccion = coleccionPorRol[rolLocal];
+      if (coleccion) {
+        await updateDoc(doc(db, coleccion, uid), { primerLogin: false });
+      }
+
+      localStorage.setItem("primerLogin", "false");
+      modal.hide();
+      if (typeof window.gecomToast === "function") {
+        window.gecomToast("Contrase\u00f1a actualizada correctamente.", "success");
+      }
+    } catch (error) {
+      let msg = "No se pudo cambiar la contrase\u00f1a.";
+      if (error.code === "auth/weak-password") {
+        msg = "La contrase\u00f1a es muy d\u00e9bil.";
+      } else if (error.code === "auth/requires-recent-login") {
+        msg = "La sesi\u00f3n expir\u00f3. Cierra sesi\u00f3n e inicia de nuevo para cambiar la contrase\u00f1a.";
+      }
+      showCCError(msg);
+      btn.disabled = false;
+      btn.innerHTML = '<i class="bi bi-check-circle me-1"></i> Guardar contrase\u00f1a';
+    }
+  });
+}
 
 if (!uid || !rolLocal) {
   window.location.href = "index.html";
 } else {
   inicializarSelectorTemaDashboard();
+    aplicarEnlacesFooterPorRol();
     pintarLineaUsuario();
     cargarResumenKpi();
+  inicializarModalPrimerLogin();
 
   renderizarFechaFooter();
 

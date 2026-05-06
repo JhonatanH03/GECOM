@@ -23,10 +23,60 @@ const modalTitle = document.getElementById("modalCrearJuntaLabel");
 const submitBtn = document.getElementById("submitBtn");
 const juntaIdInput = document.getElementById("juntaId");
 const passwordField = document.getElementById("passwordField");
+const usuarioInput = document.getElementById("usuario");
+const JUNTA_USUARIO_PREFIX = "jvl_";
 let provinciaAyuntamiento = null;
 let municipioAyuntamiento = null;
 const municipiosSelect = document.getElementById("municipio");
 const provinciaSelect = document.getElementById("provincia");
+
+function usuarioAEmailInterno(usuario) {
+  return String(usuario || "").trim().toLowerCase().replace(/[^a-z0-9_]/g, "") + "@gecom.internal";
+}
+
+function asegurarPrefijoUsuario(usuario, prefijo) {
+  const normalizado = String(usuario || "").trim().toLowerCase();
+  if (!normalizado) return prefijo;
+  return normalizado.startsWith(prefijo) ? normalizado : `${prefijo}${normalizado}`;
+}
+
+function inicializarUsuarioConPrefijo() {
+  if (!usuarioInput || juntaIdInput.value) return;
+  usuarioInput.value = asegurarPrefijoUsuario(usuarioInput.value, JUNTA_USUARIO_PREFIX);
+}
+
+function protegerPrefijoUsuario() {
+  if (!usuarioInput) return;
+
+  usuarioInput.addEventListener("input", () => {
+    if (juntaIdInput.value) return;
+    const valorActual = usuarioInput.value;
+    const valorConPrefijo = asegurarPrefijoUsuario(valorActual, JUNTA_USUARIO_PREFIX);
+    if (valorActual !== valorConPrefijo) {
+      const cursor = usuarioInput.selectionStart || valorConPrefijo.length;
+      usuarioInput.value = valorConPrefijo;
+      const nuevaPosicion = Math.max(JUNTA_USUARIO_PREFIX.length, cursor);
+      usuarioInput.setSelectionRange(nuevaPosicion, nuevaPosicion);
+    }
+  });
+
+  usuarioInput.addEventListener("keydown", (event) => {
+    if (juntaIdInput.value) return;
+    const cursor = usuarioInput.selectionStart || 0;
+    const seleccion = (usuarioInput.selectionEnd || 0) - cursor;
+    const quiereBorrarPrefijo =
+      (event.key === "Backspace" && cursor <= JUNTA_USUARIO_PREFIX.length && seleccion === 0) ||
+      (event.key === "Delete" && cursor < JUNTA_USUARIO_PREFIX.length);
+    if (quiereBorrarPrefijo) {
+      event.preventDefault();
+    }
+  });
+
+  usuarioInput.addEventListener("focus", () => {
+    if (juntaIdInput.value) return;
+    inicializarUsuarioConPrefijo();
+  });
+}
 
 function generarContrasenaTemporal(length = 12) {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%";
@@ -152,16 +202,20 @@ window.addEventListener("DOMContentLoaded", async () => {
     modalTitle.textContent = "Crear Junta de Vecinos";
     submitBtn.textContent = "Guardar";
     passwordField.style.display = "block";
+    inicializarUsuarioConPrefijo();
     clearModalAlert();
   });
 
   modalElement.addEventListener("show.bs.modal", async () => {
+    inicializarUsuarioConPrefijo();
     if (rolLocal === "ayuntamiento") {
       await bloquearUbicacionAyuntamiento();
       return;
     }
     await cargarMunicipiosDesdeFirestore(provinciaSelect ? provinciaSelect.value : "");
   });
+
+  protegerPrefijoUsuario();
 });
 
 form.addEventListener("submit", async (event) => {
@@ -170,8 +224,11 @@ form.addEventListener("submit", async (event) => {
   
   const juntaId = juntaIdInput.value;
   const nombre = document.getElementById("nombre").value.trim();
-  const usuario = document.getElementById("usuario").value.trim();
-  const correo = document.getElementById("correo").value.trim() || (usuario.toLowerCase().replace(/[^a-z0-9_]/g, '') + '@gecom.internal');
+  const usuarioIngresado = document.getElementById("usuario").value.trim();
+  const usuario = juntaId
+    ? usuarioIngresado
+    : asegurarPrefijoUsuario(usuarioIngresado, JUNTA_USUARIO_PREFIX);
+  const emailInterno = usuarioAEmailInterno(usuario);
   const telefono = document.getElementById("telefono").value.trim();
   const comunidad = document.getElementById("comunidad").value.trim();
   const provincia = document.getElementById("provincia").value;
@@ -201,7 +258,6 @@ form.addEventListener("submit", async (event) => {
       const juntaData = {
         nombre,
         usuario,
-        correo,
         telefono,
         comunidad,
         provincia: provinciaFinal,
@@ -211,42 +267,37 @@ form.addEventListener("submit", async (event) => {
       await db.collection("JuntasDeVecinos").doc(juntaId).set(juntaData, { merge: true });
       showAlert("Junta actualizada correctamente.", "success");
     } else {
-      const existingSnap = await db.collection("JuntasDeVecinos").get();
-      const usuarioDuplicado = existingSnap.docs.some((docSnap) => {
-        const data = docSnap.data() || {};
-        const rolDoc = (data.rol || "junta").toLowerCase();
-        const usuarioDoc = (data.usuario || "").toLowerCase();
-        return rolDoc === "junta" && usuarioDoc === usuarioNormalizado;
-      });
-      if (usuarioDuplicado) {
+      const duplicadoSnap = await db.collection("JuntasDeVecinos")
+        .where("usuario", "==", usuarioNormalizado)
+        .limit(1)
+        .get();
+      if (!duplicadoSnap.empty) {
         showModalAlert("Ya existe un usuario con ese nombre y ese rol.", "danger");
         return;
       }
 
-      // Crear nueva junta con usuario y contraseña temporal aleatoria.
-      const contrasenaTemporal = generarContrasenaTemporal();
-      
-      // Crear usuario en Firebase Auth
-      const credential = await auth.createUserWithEmailAndPassword(correo, contrasenaTemporal);
-      const nuevoUid = credential.user.uid;
-      
-      const juntaData = {
-        nombre,
-        usuario,
-        correo,
-        rol: "junta",
-        telefono,
-        comunidad,
-        provincia: provinciaFinal,
-        municipio: municipioFinal,
-        cedula,
-        estado: true,
-        fecha_creacion: firebase.firestore.FieldValue.serverTimestamp(),
-        creada_por: uid,
-        primerLogin: true // Indica que es el primer login
-      };
-      
-      await db.collection("JuntasDeVecinos").doc(nuevoUid).set(juntaData);
+      // Crear nueva junta via backend (Admin SDK, sin cambiar la sesión activa).
+      const token = await auth.currentUser.getIdToken();
+      const response = await fetch(window.gecomBuildBackendUrl("/api/juntas/crear"), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ nombre, usuario: usuarioNormalizado, telefono, comunidad, provincia: provinciaFinal, municipio: municipioFinal, cedula })
+      });
+
+      const responseData = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        if (responseData.error?.code === "already-exists") {
+          showModalAlert("Ya existe un usuario con ese nombre y ese rol.", "danger");
+          return;
+        }
+        throw new Error(responseData.error?.message || "Error al crear la junta.");
+      }
+
+      const { contrasenaTemporal } = responseData;
       showAlert(`Junta creada correctamente. Usuario: ${usuario}, Contraseña temporal: ${contrasenaTemporal}`, "success");
     }
     
@@ -256,9 +307,7 @@ form.addEventListener("submit", async (event) => {
     await cargarJuntas();
   } catch (error) {
     console.error("ERROR:", error);
-    if (error.code === "auth/email-already-in-use") {
-      showModalAlert("El correo ya está en uso.", "danger");
-    } else if (error.code === "auth/weak-password") {
+    if (error.code === "auth/weak-password") {
       showModalAlert("Error con la contraseña temporal. Contacta al administrador.", "danger");
     } else {
       showModalAlert(error.message || "Ocurrió un error.", "danger");
@@ -267,7 +316,7 @@ form.addEventListener("submit", async (event) => {
 });
 
 async function cargarJuntas() {
-  const _skRow8 = `<tr class="skeleton-row">
+  const _skRow7 = `<tr class="skeleton-row">
     <td><span class="skeleton-cell skeleton-wide"></span></td>
     <td><span class="skeleton-cell skeleton-medium"></span></td>
     <td><span class="skeleton-cell skeleton-wide"></span></td>
@@ -275,15 +324,15 @@ async function cargarJuntas() {
     <td><span class="skeleton-cell skeleton-medium"></span></td>
     <td><span class="skeleton-cell skeleton-medium"></span></td>
     <td><span class="skeleton-cell skeleton-pill"></span></td>
-    <td><span class="skeleton-cell skeleton-btn"></span></td>
   </tr>`;
-  juntasBody.innerHTML = _skRow8.repeat(5);
+  juntasBody.innerHTML = _skRow7.repeat(5);
   try {
-    const q = db.collection("JuntasDeVecinos").where("creada_por", "==", uid);
-    const snapshot = await q.get();
+    const snapshot = rolLocal === "admin"
+      ? await db.collection("JuntasDeVecinos").get()
+      : await db.collection("JuntasDeVecinos").where("creada_por", "==", uid).get();
     
     if (snapshot.empty) {
-      juntasBody.innerHTML = '<tr class="table-feedback-row"><td colspan="8"><div class="empty-state">No hay juntas registradas en tu alcance.</div></td></tr>';
+      juntasBody.innerHTML = '<tr class="table-feedback-row"><td colspan="7"><div class="empty-state">No hay juntas registradas en tu alcance.</div></td></tr>';
       return;
     }
     
@@ -298,7 +347,7 @@ async function cargarJuntas() {
     juntas.sort((a, b) => (a.nombre || "").toLowerCase().localeCompare((b.nombre || "").toLowerCase()));
 
     if (!juntas.length) {
-      juntasBody.innerHTML = '<tr class="table-feedback-row"><td colspan="8"><div class="empty-state">No hay juntas en tu territorio.</div></td></tr>';
+      juntasBody.innerHTML = '<tr class="table-feedback-row"><td colspan="7"><div class="empty-state">No hay juntas en tu territorio.</div></td></tr>';
       return;
     }
 
@@ -310,20 +359,40 @@ async function cargarJuntas() {
       juntasBody.innerHTML += `<tr>
         <td data-label="Nombre">${escapeHtml(data.nombre)}</td>
         <td data-label="Usuario">${escapeHtml(data.usuario || "")}</td>
-        <td data-label="Correo" style="display:none">${escapeHtml(data.correo)}</td>
         <td data-label="Teléfono">${escapeHtml(data.telefono || "")}</td>
         <td data-label="Ubicación">${escapeHtml((data.provincia || "") + " / " + (data.municipio || ""))}</td>
         <td data-label="Comunidad">${escapeHtml(data.comunidad || "")}</td>
         <td data-label="Estado"><span class="status-chip ${estadoClass}"><i class="bi ${chipIcon} chip-icon"></i>${escapeHtml(label)}</span></td>
         <td class="text-center" data-label="Acciones">
-          <button class="btn btn-sm btn-warning me-1 px-2" onclick="editarJunta('${data.id}')"><i class="bi bi-pencil"></i></button>
-          <button class="btn btn-sm btn-danger px-2" onclick="eliminarJunta('${data.id}', '${escapeHtml(data.nombre)}')"><i class="bi bi-trash"></i></button>
+          <div class="dropdown">
+            <button class="btn btn-sm gecom-action-menu-btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="bi bi-three-dots-vertical"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end gecom-action-menu">
+              <li>
+                <button class="dropdown-item" type="button" onclick="editarJunta('${data.id}')">
+                  <i class="bi bi-pencil-fill gecom-action-icon gecom-action-icon--edit"></i>Editar
+                </button>
+              </li>
+              <li>
+                <button class="dropdown-item" type="button" onclick="abrirModalResetContrasenaJunta('${data.id}', '${escapeHtml(data.nombre)}')">
+                  <i class="bi bi-key-fill gecom-action-icon gecom-action-icon--key"></i>Restablecer contraseña
+                </button>
+              </li>
+              <li><hr class="dropdown-divider"></li>
+              <li>
+                <button class="dropdown-item gecom-action-item--danger" type="button" onclick="eliminarJunta('${data.id}', '${escapeHtml(data.nombre)}')">
+                  <i class="bi bi-trash-fill gecom-action-icon"></i>Eliminar
+                </button>
+              </li>
+            </ul>
+          </div>
         </td>
       </tr>`;
     });
   } catch (error) {
     console.error("Error al cargar juntas:", error);
-    juntasBody.innerHTML = '<tr class="table-feedback-row"><td colspan="8"><div class="empty-state text-danger">Error al cargar juntas.</div></td></tr>';
+    juntasBody.innerHTML = '<tr class="table-feedback-row"><td colspan="7"><div class="empty-state text-danger">Error al cargar juntas.</div></td></tr>';
   }
 }
 
@@ -355,7 +424,6 @@ window.editarJunta = async function(id) {
     juntaIdInput.value = id;
     document.getElementById("nombre").value = data.nombre || "";
     document.getElementById("usuario").value = data.usuario || "";
-    document.getElementById("correo").value = data.correo || "";
     document.getElementById("telefono").value = data.telefono || "";
     document.getElementById("comunidad").value = data.comunidad || "";
     document.getElementById("cedula").value = data.cedula || "";
@@ -374,25 +442,94 @@ window.editarJunta = async function(id) {
   }
 };
 
-window.eliminarJunta = async function(id, nombre) {
-  if (confirm("¿Eliminar a " + nombre + "?")) {
-    try {
-      const docSnap = await db.collection("JuntasDeVecinos").doc(id).get();
-      if (!docSnap.exists) {
-        showAlert("Junta no encontrada.", "danger");
-        return;
-      }
-      if (!esMismaUbicacion(docSnap.data())) {
-        showAlert("No puedes eliminar juntas fuera de tu municipio.", "danger");
-        return;
-      }
-      await db.collection("JuntasDeVecinos").doc(id).delete();
-      showAlert("Junta eliminada.", "success");
-      await cargarJuntas();
-    } catch (error) {
-      console.error("Error:", error);
-      showAlert("Error al eliminar.", "danger");
+// ---- Reset contraseña junta ----
+const resetModalJunta = new bootstrap.Modal(document.getElementById('modalResetContrasenaJunta'));
+
+document.getElementById('modalResetContrasenaJunta').addEventListener('hidden.bs.modal', () => {
+  document.getElementById('resetCallerPassword').value = '';
+  document.getElementById('resetModalAlert').innerHTML = '';
+  document.getElementById('btnConfirmarReset').disabled = false;
+  document.getElementById('btnConfirmarReset').textContent = 'Restablecer';
+});
+
+window.abrirModalResetContrasenaJunta = function(id, nombre) {
+  document.getElementById('resetTargetUid').value = id;
+  document.getElementById('resetTargetNombre').textContent = nombre;
+  resetModalJunta.show();
+};
+
+window.confirmarResetContrasenaJunta = async function() {
+  const targetUid = document.getElementById('resetTargetUid').value;
+  const callerPassword = document.getElementById('resetCallerPassword').value;
+  const alertEl = document.getElementById('resetModalAlert');
+  const btn = document.getElementById('btnConfirmarReset');
+
+  function showResetError(msg) {
+    alertEl.innerHTML = `<div class="alert alert-danger py-2">${escapeHtml(msg)}</div>`;
+  }
+
+  if (!callerPassword) return showResetError('Debes ingresar tu contraseña actual.');
+
+  btn.disabled = true;
+  btn.textContent = 'Restableciendo...';
+  alertEl.innerHTML = '';
+
+  try {
+    const result = await window.gecomResetManagedUserPassword({
+      auth,
+      callerPassword,
+      targetUid,
+      targetRole: 'junta'
+    });
+
+    resetModalJunta.hide();
+    showAlert(`Contraseña restablecida correctamente. Contraseña temporal: ${result.temporaryPassword}`, 'success');
+  } catch (error) {
+    let msg = 'Error al restablecer la contraseña.';
+    if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+      msg = 'Tu contraseña actual es incorrecta.';
+    } else if (error.code === 'auth/too-many-requests') {
+      msg = 'Demasiados intentos fallidos. Intenta más tarde.';
+    } else if (error.name === 'TypeError' || error.code === 'request-failed') {
+      msg = 'No se pudo conectar con el backend de restablecimiento. Verifica que esté ejecutándose en la URL configurada.';
+    } else if (error.code === 'recent-login-required') {
+      msg = 'Debes confirmar tu contraseña nuevamente antes de continuar.';
+    } else if (error.code === 'permission-denied') {
+      msg = 'No tienes permiso para restablecer esta contraseña.';
+    } else if (error.message) {
+      msg = error.message;
     }
+    showResetError(msg);
+    btn.disabled = false;
+    btn.textContent = 'Restablecer';
+  }
+};
+
+window.eliminarJunta = async function(id, nombre) {
+  const ok = await window.gecomConfirm({
+    title: "Eliminar junta",
+    message: `¿Estás seguro de que deseas eliminar "${nombre}"? Esta acción no se puede deshacer.`,
+    confirmText: "Sí, eliminar",
+    cancelText: "Cancelar",
+    type: "danger",
+  });
+  if (!ok) return;
+  try {
+    const docSnap = await db.collection("JuntasDeVecinos").doc(id).get();
+    if (!docSnap.exists) {
+      showAlert("Junta no encontrada.", "danger");
+      return;
+    }
+    if (!esMismaUbicacion(docSnap.data())) {
+      showAlert("No puedes eliminar juntas fuera de tu municipio.", "danger");
+      return;
+    }
+    await db.collection("JuntasDeVecinos").doc(id).delete();
+    showAlert("Junta eliminada.", "success");
+    await cargarJuntas();
+  } catch (error) {
+    console.error("Error:", error);
+    showAlert("Error al eliminar.", "danger");
   }
 };
 

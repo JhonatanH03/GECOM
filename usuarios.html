@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>GECOM - Gestión de Usuarios</title>
-  <link rel="icon" href="assets/LOGO GECOM PNG.png" type="image/png">
+  <title>GECOM - Gestión de Juntas</title>
+  <link rel="icon" href="assets/LOGO SHIELD RD.png" type="image/png">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
   <link rel="stylesheet" href="css/animate.min.css">
@@ -16,7 +16,7 @@
 <div class="container mt-5">
   <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-      <h2>Gestión de Usuarios</h2>
+      <h2>Gestión de Juntas</h2>
       <p class="mb-0 text-muted">Los Administradores pueden crear, editar o eliminar todas las Juntas de Vecinos.</p>
     </div>
     <div>
@@ -36,7 +36,6 @@
             <tr>
               <th>Nombre de la Junta</th>
               <th>Usuario</th>
-              <th style="display:none">Correo</th>
               <th>Cédula</th>
               <th>Teléfono</th>
               <th>Provincia</th>
@@ -48,7 +47,7 @@
           </thead>
           <tbody id="usuariosBody">
             <tr>
-              <td colspan="10" class="text-center py-5">Cargando usuarios...</td>
+              <td colspan="9" class="text-center py-5">Cargando usuarios...</td>
             </tr>
           </tbody>
         </table>
@@ -77,10 +76,6 @@
             <div class="col-md-6">
               <label class="form-label">Usuario</label>
               <input type="text" class="form-control" id="usuario" name="usuario" required>
-            </div>
-            <div class="col-md-6" style="display:none">
-              <label class="form-label">Correo institucional</label>
-              <input type="email" class="form-control" id="correo" name="correo">
             </div>
             <div class="col-md-6">
               <label class="form-label">Teléfono encargado</label>
@@ -132,12 +127,20 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/gecom-confirm.js"></script>
 <script src="js/i18n.js"></script>
 <script src="js/perfil-menu.js"></script>
 <script src="js/tema.js"></script>
 <script>
   initThemeSelector();
 </script>
+<script src="js/password-toggle.js"></script>
 <script type="module" src="js/usuarios.js"></script>
+
+<!-- Footer -->
+<div id="footer-container"></div>
+
+<script type="module" src="./js/footer.js"></script>
+
 </body>
 </html>

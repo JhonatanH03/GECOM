@@ -1,3 +1,278 @@
 {
-  "provincia": []
+  "provincia": [
+    {
+      "nombre": "Santo Domingo",
+      "municipios": [
+        {
+          "nombre": "Santo Domingo Este",
+          "distritos": ["Santo Domingo Este"]
+        },
+        {
+          "nombre": "Santo Domingo Oeste",
+          "distritos": ["Santo Domingo Oeste"]
+        },
+        {
+          "nombre": "Santo Domingo Norte",
+          "distritos": ["Santo Domingo Norte"]
+        },
+        {
+          "nombre": "Boca Chica",
+          "distritos": ["Boca Chica"]
+        },
+        {
+          "nombre": "San Antonio de Guerra",
+          "distritos": ["San Antonio de Guerra"]
+        },
+        {
+          "nombre": "Los Alcarrizos",
+          "distritos": ["Los Alcarrizos"]
+        },
+        {
+          "nombre": "Pedro Brand",
+          "distritos": ["Pedro Brand"]
+        }
+      ]
+    },
+    {
+      "nombre": "Santiago",
+      "municipios": [
+        {
+          "nombre": "Santiago de los Caballeros",
+          "distritos": ["Santiago de los Caballeros"]
+        },
+        {
+          "nombre": "Tamboril",
+          "distritos": ["Tamboril"]
+        },
+        {
+          "nombre": "Villa González",
+          "distritos": ["Villa González"]
+        },
+        {
+          "nombre": "Jánico",
+          "distritos": ["Jánico"]
+        },
+        {
+          "nombre": "Sabana Iglesia",
+          "distritos": ["Sabana Iglesia"]
+        }
+      ]
+    },
+    {
+      "nombre": "La Vega",
+      "municipios": [
+        {
+          "nombre": "Concepción de La Vega",
+          "distritos": ["Concepción de La Vega"]
+        },
+        {
+          "nombre": "Constanza",
+          "distritos": ["Constanza"]
+        },
+        {
+          "nombre": "Jarabacoa",
+          "distritos": ["Jarabacoa"]
+        },
+        {
+          "nombre": "Jima Abajo",
+          "distritos": ["Jima Abajo"]
+        }
+      ]
+    },
+    {
+      "nombre": "Puerto Plata",
+      "municipios": [
+        {
+          "nombre": "San Felipe de Puerto Plata",
+          "distritos": ["San Felipe de Puerto Plata"]
+        },
+        {
+          "nombre": "Altamira",
+          "distritos": ["Altamira"]
+        },
+        {
+          "nombre": "Guananico",
+          "distritos": ["Guananico"]
+        },
+        {
+          "nombre": "Imbert",
+          "distritos": ["Imbert"]
+        },
+        {
+          "nombre": "Los Hidalgos",
+          "distritos": ["Los Hidalgos"]
+        },
+        {
+          "nombre": "Luperón",
+          "distritos": ["Luperón"]
+        },
+        {
+          "nombre": "Sosúa",
+          "distritos": ["Sosúa"]
+        },
+        {
+          "nombre": "Villa Isabela",
+          "distritos": ["Villa Isabela"]
+        },
+        {
+          "nombre": "Villa Montellano",
+          "distritos": ["Villa Montellano"]
+        }
+      ]
+    },
+    {
+      "nombre": "San Cristóbal",
+      "municipios": [
+        {
+          "nombre": "San Cristóbal",
+          "distritos": ["San Cristóbal"]
+        },
+        {
+          "nombre": "Bajos de Haina",
+          "distritos": ["Bajos de Haina"]
+        },
+        {
+          "nombre": "Cambita Garabitos",
+          "distritos": ["Cambita Garabitos"]
+        },
+        {
+          "nombre": "Sabana Grande de Palenque",
+          "distritos": ["Sabana Grande de Palenque"]
+        },
+        {
+          "nombre": "Yaguate",
+          "distritos": ["Yaguate"]
+        }
+      ]
+    },
+    {
+      "nombre": "San Pedro de Macorís",
+      "municipios": [
+        {
+          "nombre": "San Pedro de Macorís",
+          "distritos": ["San Pedro de Macorís"]
+        },
+        {
+          "nombre": "Consuelo",
+          "distritos": ["Consuelo"]
+        },
+        {
+          "nombre": "Guayacanes",
+          "distritos": ["Guayacanes"]
+        },
+        {
+          "nombre": "Quisqueya",
+          "distritos": ["Quisqueya"]
+        },
+        {
+          "nombre": "Ramón Santana",
+          "distritos": ["Ramón Santana"]
+        }
+      ]
+    },
+    {
+      "nombre": "La Romana",
+      "municipios": [
+        {
+          "nombre": "La Romana",
+          "distritos": ["La Romana"]
+        },
+        {
+          "nombre": "Guaymate",
+          "distritos": ["Guaymate"]
+        },
+        {
+          "nombre": "Villa Hermosa",
+          "distritos": ["Villa Hermosa"]
+        }
+      ]
+    },
+    {
+      "nombre": "Bonao",
+      "municipios": [
+        {
+          "nombre": "Bonao",
+          "distritos": ["Bonao"]
+        },
+        {
+          "nombre": "Maimón",
+          "distritos": ["Maimón"]
+        },
+        {
+          "nombre": "Piedra Blanca",
+          "distritos": ["Piedra Blanca"]
+        }
+      ]
+    },
+    {
+      "nombre": "Higüey",
+      "municipios": [
+        {
+          "nombre": "Higüey",
+          "distritos": ["Higüey"]
+        },
+        {
+          "nombre": "Miches",
+          "distritos": ["Miches"]
+        },
+        {
+          "nombre": "El Seibo",
+          "distritos": ["El Seibo"]
+        },
+        {
+          "nombre": "Hato Mayor",
+          "distritos": ["Hato Mayor"]
+        }
+      ]
+    },
+    {
+      "nombre": "Barahona",
+      "municipios": [
+        {
+          "nombre": "Santa Cruz de Barahona",
+          "distritos": ["Santa Cruz de Barahona"]
+        },
+        {
+          "nombre": "Cabral",
+          "distritos": ["Cabral"]
+        },
+        {
+          "nombre": "El Peñón",
+          "distritos": ["El Peñón"]
+        },
+        {
+          "nombre": "Enriquillo",
+          "distritos": ["Enriquillo"]
+        },
+        {
+          "nombre": "Fundación",
+          "distritos": ["Fundación"]
+        },
+        {
+          "nombre": "Jaquimeyes",
+          "distritos": ["Jaquimeyes"]
+        },
+        {
+          "nombre": "La Ciénaga",
+          "distritos": ["La Ciénaga"]
+        },
+        {
+          "nombre": "Las Salinas",
+          "distritos": ["Las Salinas"]
+        },
+        {
+          "nombre": "Paraíso",
+          "distritos": ["Paraíso"]
+        },
+        {
+          "nombre": "Polo",
+          "distritos": ["Polo"]
+        },
+        {
+          "nombre": "Vicente Noble",
+          "distritos": ["Vicente Noble"]
+        }
+      ]
+    }
+  ]
 }

@@ -129,18 +129,72 @@ async function subirEvidenciaACloudinary(archivo, uid) {
   formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
   formData.append("folder", `evidencias/${uid}`);
 
-  const response = await fetch(endpoint, {
-    method: "POST",
-    body: formData
+  mostrarProgresoSubida(0);
+
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", endpoint);
+
+    xhr.upload.addEventListener("progress", (e) => {
+      if (e.lengthComputable) {
+        mostrarProgresoSubida(Math.round((e.loaded / e.total) * 100));
+      }
+    });
+
+    xhr.addEventListener("load", () => {
+      ocultarProgresoSubida();
+      try {
+        const data = JSON.parse(xhr.responseText);
+        if (xhr.status < 200 || xhr.status >= 300 || !data.secure_url) {
+          const mensaje = data?.error?.message || "No se pudo subir la evidencia a Cloudinary.";
+          reject(new Error(mensaje));
+        } else {
+          resolve(data.secure_url);
+        }
+      } catch {
+        reject(new Error("Respuesta inesperada del servidor de imágenes."));
+      }
+    });
+
+    xhr.addEventListener("error", () => {
+      ocultarProgresoSubida();
+      reject(new Error("Error de red al subir la imagen."));
+    });
+
+    xhr.addEventListener("abort", () => {
+      ocultarProgresoSubida();
+      reject(new Error("Subida cancelada."));
+    });
+
+    xhr.send(formData);
   });
+}
 
-  const data = await response.json();
-  if (!response.ok || !data.secure_url) {
-    const mensaje = data?.error?.message || "No se pudo subir la evidencia a Cloudinary.";
-    throw new Error(mensaje);
+function mostrarProgresoSubida(porcentaje) {
+  let barra = document.getElementById("uploadProgressContainer");
+  if (!barra) {
+    barra = document.createElement("div");
+    barra.id = "uploadProgressContainer";
+    barra.className = "mt-2";
+    barra.innerHTML = `
+      <small class="text-muted" id="uploadProgressLabel">Subiendo imagen...</small>
+      <div class="progress" style="height:6px">
+        <div id="uploadProgressBar" class="progress-bar progress-bar-striped progress-bar-animated"
+             role="progressbar" style="width:0%"></div>
+      </div>`;
+    const evidenciaInput = document.getElementById("evidencia");
+    evidenciaInput?.parentNode?.insertBefore(barra, evidenciaInput.nextSibling);
   }
+  const bar = document.getElementById("uploadProgressBar");
+  const label = document.getElementById("uploadProgressLabel");
+  if (bar) bar.style.width = porcentaje + "%";
+  if (label) label.textContent = porcentaje < 100 ? `Subiendo imagen... ${porcentaje}%` : "Imagen subida correctamente.";
+  barra.style.display = "";
+}
 
-  return data.secure_url;
+function ocultarProgresoSubida() {
+  const barra = document.getElementById("uploadProgressContainer");
+  if (barra) barra.style.display = "none";
 }
 
 function mostrarMensajeFormulario(mensaje, tipo = "danger") {
@@ -215,10 +269,18 @@ function setSelectValue(selectId, value, placeholder) {
   const select = document.getElementById(selectId);
   if (!select) return;
 
-  select.innerHTML = `<option value="">${placeholder}</option>`;
+  select.textContent = "";
+  const defaultOpt = document.createElement("option");
+  defaultOpt.value = "";
+  defaultOpt.textContent = placeholder;
+  select.appendChild(defaultOpt);
 
   if (value) {
-    select.innerHTML = `<option value="${value}" selected>${value}</option>`;
+    const opt = document.createElement("option");
+    opt.value = value;
+    opt.textContent = value;
+    opt.selected = true;
+    select.appendChild(opt);
     select.disabled = true;
   }
 }
@@ -226,8 +288,6 @@ function setSelectValue(selectId, value, placeholder) {
 async function cargarUbicacionDesdePerfil() {
   const uid = localStorage.getItem("uid");
   const rolLocal = localStorage.getItem("rol");
-
-  console.log("[GECOM] uid:", uid, "| rol:", rolLocal);
 
   if (!uid) {
     habilitarEnvioFormulario(false);
@@ -238,8 +298,6 @@ async function cargarUbicacionDesdePerfil() {
   try {
     perfilUsuario = await obtenerPerfilUsuario(uid);
 
-    console.log("[GECOM] perfilUsuario:", perfilUsuario);
-
     if (!perfilUsuario) {
       habilitarEnvioFormulario(false);
       mostrarMensajeFormulario("No se encontró tu perfil en la base de datos. Contacta al administrador.");
@@ -249,8 +307,6 @@ async function cargarUbicacionDesdePerfil() {
     const provinciaPerfil = (perfilUsuario.provincia || "").trim();
     const municipioPerfil = (perfilUsuario.municipio || "").trim();
     const comunidadPerfil = (perfilUsuario.comunidad || "").trim();
-
-    console.log("[GECOM] provincia:", provinciaPerfil, "| municipio:", municipioPerfil, "| comunidad:", comunidadPerfil);
 
     setSelectValue("provincia", provinciaPerfil, "Seleccionar provincia");
     setSelectValue("municipio", municipioPerfil, "Seleccionar municipio");
@@ -344,6 +400,13 @@ window.addEventListener("DOMContentLoaded", () => {
 
 // CREAR DENUNCIA
 window.crearDenuncia = async function () {
+  const submitBtn = document.querySelector("#formDenuncia button[type='submit']");
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn._textoOriginal = submitBtn.textContent;
+    submitBtn.textContent = "Enviando...";
+  }
+
   try {
     const titulo = document.getElementById("titulo").value.trim();
     const tipoSelect = document.getElementById("tipo").value;
@@ -413,11 +476,15 @@ window.crearDenuncia = async function () {
         evidenciaURL = await subirEvidenciaACloudinary(evidenciaProcesada, uid);
       } catch (uploadError) {
         console.error("Error en carga de archivo:", uploadError);
-        const continuarSinEvidencia = window.confirm(
-          "No se pudo subir la imagen a Cloudinary. ¿Deseas guardar la denuncia sin evidencia?"
-        );
+        const continuarSinEvidencia = await window.gecomConfirm({
+          title: "Error al subir imagen",
+          message: "No se pudo subir la imagen. ¿Deseas guardar la denuncia sin evidencia?",
+          confirmText: "Guardar sin imagen",
+          cancelText: "Cancelar",
+          type: "warning",
+        });
         if (!continuarSinEvidencia) {
-          alert("Error al cargar la evidencia: " + uploadError.message);
+          mostrarMensajeFormulario("Error al cargar la evidencia: " + uploadError.message, "danger");
           return;
         }
       }
@@ -444,6 +511,7 @@ window.crearDenuncia = async function () {
     alert("Denuncia creada correctamente");
     document.getElementById("formDenuncia").reset();
     limpiarPreviewEvidencia();
+    ocultarProgresoSubida();
     const campoTipoOtro = document.getElementById("tipo_otro");
     if (campoTipoOtro) {
       campoTipoOtro.classList.add("d-none");
@@ -453,6 +521,11 @@ window.crearDenuncia = async function () {
   } catch (error) {
     console.error("ERROR:", error.message);
     alert("Error al crear denuncia: " + error.message);
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = submitBtn._textoOriginal || "Enviar denuncia";
+    }
   }
 };
 

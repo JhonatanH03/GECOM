@@ -31,13 +31,33 @@ service cloud.firestore {
     }
 
     match /Administradores/{adminId} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn();
+      // Cada usuario solo puede leer su propio documento (para el flujo de login)
+      allow get: if isAdmin() || request.auth.uid == adminId;
+      allow list: if isAdmin();
+      // create: permite que el propio usuario recién creado escriba su documento inicial
+      allow create: if isSignedIn() && request.auth.uid == adminId;
+      // admin puede actualizar todo; cualquier admin puede cambiar su propio primerLogin
+      allow update: if isAdmin() ||
+        (request.auth.uid == adminId &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['primerLogin']));
+      allow delete: if isAdmin();
     }
 
     match /Ayuntamientos/{ayuntamientoId} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn();
+      // Lectura individual permitida a usuarios autenticados (necesario para lookup de perfil)
+      allow get: if isSignedIn();
+      allow list: if isAdmin();
+      // create: permite que el propio usuario recién creado escriba su documento inicial
+      // y restringe el campo rol al valor correcto para evitar escalada de privilegios
+      allow create: if isSignedIn() &&
+        request.auth.uid == ayuntamientoId &&
+        (!request.resource.data.keys().hasAny(["rol"]) ||
+          request.resource.data.rol == "ayuntamiento");
+      // admin puede todo; ayuntamiento puede cambiar su propio primerLogin
+      allow update: if isAdmin() ||
+        (request.auth.uid == ayuntamientoId &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['primerLogin']));
+      allow delete: if isAdmin();
     }
 
     match /provincias/{provinciaId} {
@@ -46,8 +66,19 @@ service cloud.firestore {
     }
 
     match /JuntasDeVecinos/{juntaId} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn();
+      allow get: if isSignedIn();
+      allow list: if isAdmin() || isAyuntamiento();
+      // create: permite que el propio usuario recién creado escriba su documento inicial
+      // y restringe el campo rol al valor correcto para evitar escalada de privilegios
+      allow create: if isSignedIn() &&
+        request.auth.uid == juntaId &&
+        (!request.resource.data.keys().hasAny(["rol"]) ||
+          request.resource.data.rol == "junta");
+      // update: admin puede todo; junta solo puede cambiar primerLogin en su propio doc
+      allow update: if isAdmin() ||
+        (request.auth.uid == juntaId &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['primerLogin']));
+      allow delete: if isAdmin();
 
       match /historial/{entryId} {
         allow read: if isAdmin() ||
@@ -71,6 +102,7 @@ service cloud.firestore {
     }
 
     match /loginIndex/{identifier} {
+      // get público: necesario para resolver email antes de autenticar
       allow get: if true;
       allow list: if false;
       allow create, update: if isSignedIn() &&
@@ -82,8 +114,12 @@ service cloud.firestore {
         ]) &&
         request.resource.data.uid is string &&
         request.resource.data.email is string &&
-        request.resource.data.rol is string;
-      allow delete: if isSignedIn();
+        request.resource.data.rol is string &&
+        // El índice solo puede apuntar al propio UID del usuario autenticado
+        request.resource.data.uid == request.auth.uid;
+      // Solo el propietario del índice o un admin puede eliminarlo
+      allow delete: if isAdmin() ||
+        (isSignedIn() && resource.data.uid == request.auth.uid);
     }
 
     match /denuncias/{denunciaId} {

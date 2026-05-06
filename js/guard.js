@@ -60,6 +60,8 @@
   
   // Si hay autenticación válida, mostrar la página
   if (rol && uid) {
+    const esDashboard = window.location.pathname.toLowerCase().includes("dashboard.html");
+    const fadeMs = esDashboard ? 90 : 160;
     document.documentElement.style.display = 'block';
     if (showSessionBanner) {
       if (document.readyState === "loading") {
@@ -70,6 +72,30 @@
 
       window.addEventListener("gecom:language-changed", actualizarBannerSesion);
     }
+
+    // ── Transiciones de página ──────────────────────────────────────
+    // Fade-in al cargar
+    document.documentElement.style.opacity = '0';
+    document.documentElement.style.transition = `opacity ${fadeMs}ms ease`;
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => {
+        requestAnimationFrame(() => { document.documentElement.style.opacity = '1'; });
+      });
+    } else {
+      requestAnimationFrame(() => { document.documentElement.style.opacity = '1'; });
+    }
+
+    // Fade-out al navegar (links internos y window.location)
+    document.addEventListener('click', (e) => {
+      const a = e.target.closest('a[href]');
+      if (!a) return;
+      const href = a.getAttribute('href');
+      if (!href || href.startsWith('#') || href.startsWith('http') || href.startsWith('mailto') || a.target === '_blank') return;
+      e.preventDefault();
+      document.documentElement.style.opacity = '0';
+      setTimeout(() => { window.location.href = href; }, fadeMs);
+    });
+
   } else {
     // Si no hay autenticación, redirigir a login
     window.location.replace("index.html");

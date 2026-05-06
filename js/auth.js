@@ -33,6 +33,18 @@ const app = firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth(app);
 const db = firebase.firestore(app);
 
+function normalizarUsuario(usuario) {
+  return String(usuario || "").trim().toLowerCase();
+}
+
+function usuarioAEmailInterno(usuario) {
+  return normalizarUsuario(usuario).replace(/[^a-z0-9_]/g, '') + '@gecom.internal';
+}
+
+function usuarioInternoValido(usuario) {
+  return normalizarUsuario(usuario).replace(/[^a-z0-9_]/g, '').length > 0;
+}
+
 async function obtenerPerfilPorUid(uid) {
   const colecciones = [
     { nombre: "Administradores", rol: "admin" },
@@ -47,7 +59,7 @@ async function obtenerPerfilPorUid(uid) {
       return {
         uid,
         rol: data.rol || col.rol,
-        usuario: data.usuario || ((data.email || data.correo || "").split("@")[0] || ""),
+        usuario: data.usuario || "",
         userDoc: data,
         collectionMatched: col.nombre
       };
@@ -56,21 +68,6 @@ async function obtenerPerfilPorUid(uid) {
 
   return null;
 }
-
-// Limpieza de colecciones antiguas (solo admin)
-window.limpiarFirebase = async function () {
-  if (!confirm("¿Seguro que deseas borrar todas las colecciones antiguas? Esta acción no se puede deshacer.")) return;
-  const colecciones = ["provincias", "municipios", "sectores", "ayuntamientos", "juntas"];
-  let total = 0;
-  for (const col of colecciones) {
-    const snapshot = await db.collection(col).get();
-    for (const docu of snapshot.docs) {
-      await docu.ref.delete();
-      total++;
-    }
-  }
-  mostrarExito(`Limpieza completada. Documentos eliminados: ${total}`);
-};
 
 // Permitir login con ENTER desde el campo de contraseña
 document.addEventListener("DOMContentLoaded", function () {
@@ -91,11 +88,11 @@ document.addEventListener("DOMContentLoaded", function () {
 window.registrarDesdeAdmin = async function () {
   try {
     const usuario = document.getElementById("reg_usuario").value.trim();
-    const email = usuario.toLowerCase().replace(/[^a-z0-9_]/g, '') + '@gecom.internal';
+    const emailInterno = usuarioAEmailInterno(usuario);
     const password = document.getElementById("reg_password").value;
     const rol = document.getElementById("reg_rol").value;
 
-    let userData = { usuario, email, rol };
+    let userData = { usuario, rol };
     let collectionName = "";
     let camposFaltantes = [];
 
@@ -147,6 +144,10 @@ window.registrarDesdeAdmin = async function () {
       mostrarError("Usuario, contraseña y rol son obligatorios.");
       return;
     }
+    if (!usuarioInternoValido(usuario)) {
+      mostrarError("El usuario solo puede contener letras, números y guion bajo (_).");
+      return;
+    }
     if (camposFaltantes.length > 0) {
       mostrarError("Faltan campos obligatorios: " + camposFaltantes.join(", "));
 
@@ -154,26 +155,29 @@ window.registrarDesdeAdmin = async function () {
     }
 
     const usuarioNormalizado = usuario.toLowerCase();
-    const existentes = await db.collection(collectionName).get();
-    const usuarioDuplicado = existentes.docs.some((docSnap) => {
-      const data = docSnap.data() || {};
-      const rolDoc = (data.rol || rol).toLowerCase();
-      const usuarioDoc = (data.usuario || "").toLowerCase();
-      return rolDoc === rol.toLowerCase() && usuarioDoc === usuarioNormalizado;
-    });
-    if (usuarioDuplicado) {
+    const duplicadoSnap = await db.collection(collectionName)
+      .where("usuario", "==", usuarioNormalizado)
+      .limit(1)
+      .get();
+    if (!duplicadoSnap.empty) {
       mostrarError("Ya existe un usuario con ese nombre y ese rol.");
       return;
     }
 
     const userCredential = await auth.createUserWithEmailAndPassword(
-      email,
+      emailInterno,
       password
     );
 
     const uid = userCredential.user.uid;
     if (collectionName) {
       await db.collection(collectionName).doc(uid).set(userData);
+      await db.collection("loginIndex").doc(usuarioNormalizado).set({
+        uid,
+        email: emailInterno,
+        rol,
+        updatedAt: new Date()
+      });
     } else {
       throw new Error("Rol no válido");
     }
@@ -182,7 +186,7 @@ window.registrarDesdeAdmin = async function () {
 
     // limpiar campos
     [
-      "reg_usuario","reg_email","reg_password",
+      "reg_usuario","reg_password",
       "reg_nombreJunta","reg_comunidad","reg_telefonoJunta",
       "reg_nombreAyuntamiento","reg_telefonoAyuntamiento","reg_direccionAyuntamiento","reg_municipioAyuntamiento","reg_provinciaAyuntamiento",
       "reg_nombreAdmin","reg_telefonoAdmin"
@@ -199,11 +203,11 @@ window.registrarDesdeAdmin = async function () {
     console.error("ERROR:", error.message);
     let mensajeError = "Error en el registro";
     if (error.code === "auth/email-already-in-use") {
-      mensajeError = "Este correo ya está registrado";
+      mensajeError = "El usuario ya existe en el sistema";
     } else if (error.code === "auth/weak-password") {
       mensajeError = "La contraseña es muy débil";
     } else if (error.code === "auth/invalid-email") {
-      mensajeError = "Correo inválido";
+      mensajeError = "Usuario inválido";
     }
     mostrarError(mensajeError);
   }
@@ -213,18 +217,67 @@ window.registrarDesdeAdmin = async function () {
 window.login = async function () {
   try {
     const usuario = document.getElementById("usuario").value.trim();
-    const usuarioNormalizado = usuario.toLowerCase();
+    const usuarioNormalizado = normalizarUsuario(usuario);
     const password = document.getElementById("password").value;
 
     if (!usuario || !password) {
       mostrarError("Debes ingresar usuario y contraseña.");
       return;
     }
+    if (!usuarioInternoValido(usuario)) {
+      mostrarError("Usuario no válido.");
+      return;
+    }
 
-    // Autenticarse derivando el email del nombre de usuario
+    // Buscar y probar emails candidatos en orden de probabilidad.
+    // Esto evita fallos cuando loginIndex no existe o cuando el usuario escribe su correo directamente.
     try {
-      const emailDerivado = usuarioNormalizado.replace(/[^a-z0-9_]/g, '') + '@gecom.internal';
-      const userCredential = await auth.signInWithEmailAndPassword(emailDerivado, password);
+      const emailsCandidatos = [];
+      const agregarEmail = (email) => {
+        const normalizado = (email || "").trim().toLowerCase();
+        if (!normalizado) return;
+        if (!emailsCandidatos.includes(normalizado)) {
+          emailsCandidatos.push(normalizado);
+        }
+      };
+
+      // Si el usuario escribió un correo, usarlo como primera opción
+      if (usuarioNormalizado.includes("@")) {
+        agregarEmail(usuarioNormalizado);
+      }
+
+      // Si hay índice de login, priorizar ese correo
+      const loginDoc = await db.collection("loginIndex").doc(usuarioNormalizado).get();
+      if (loginDoc.exists) {
+        agregarEmail(loginDoc.data().email || null);
+      }
+
+      // Fallback para usuarios legacy por nombre de usuario
+      if (!usuarioNormalizado.includes("@")) {
+        agregarEmail(usuarioNormalizado.replace(/[^a-z0-9_]/g, '') + '@gecom.internal');
+      }
+
+      let userCredential = null;
+      let ultimoError = null;
+
+      for (const email of emailsCandidatos) {
+        try {
+          userCredential = await auth.signInWithEmailAndPassword(email, password);
+          break;
+        } catch (err) {
+          // Probar siguiente email solo cuando el error indica credenciales inválidas
+          if (err?.code === "auth/invalid-credential" || err?.code === "auth/user-not-found" || err?.code === "auth/wrong-password") {
+            ultimoError = err;
+            continue;
+          }
+          throw err;
+        }
+      }
+
+      if (!userCredential) {
+        throw (ultimoError || new Error("No fue posible autenticar con los emails candidatos."));
+      }
+
       const perfil = await obtenerPerfilPorUid(userCredential.user.uid);
 
       if (!perfil) {
@@ -246,30 +299,25 @@ window.login = async function () {
       document.getElementById("password").value = "";
 
       mostrarExito("Inicio de sesión exitoso. Redirigiendo...");
-      
-      // Si es primer login, redirigir a cambiar contraseña
-      if (userDoc.primerLogin) {
-        setTimeout(() => {
-          window.location.href = "cambiar-contrasena.html?v=3";
-        }, 800);
-      } else {
-        setTimeout(() => {
-          window.location.href = "dashboard.html?v=3";
-        }, 800);
-      }
+
+      setTimeout(() => {
+        document.documentElement.style.transition = 'opacity 0.16s ease';
+        document.documentElement.style.opacity = '0';
+        setTimeout(() => { window.location.href = "dashboard.html?v=3"; }, 150);
+      }, 800);
     } catch (authError) {
       console.error("Error de autenticación:", authError.code);
       let mensaje = "Contraseña incorrecta";
       if (authError.code === "auth/wrong-password") {
         mensaje = "Contraseña incorrecta";
+      } else if (authError.code === "auth/user-not-found" || authError.code === "auth/invalid-email") {
+        mensaje = "Usuario no encontrado.";
       } else if (authError.code === "auth/user-disabled") {
         mensaje = "Usuario deshabilitado";
       } else if (authError.code === "auth/too-many-requests") {
         mensaje = "Demasiados intentos. Intenta más tarde.";
-      } else if (authError.code === "permission-denied" || authError.code === "failed-precondition") {
-        mensaje = "El inicio de sesión por usuario está restringido. Usa tu correo electrónico.";
-      } else if (authError.code === "not-found") {
-        mensaje = "Usuario o correo no encontrado.";
+      } else if (authError.code === "auth/internal-error" || authError.code === "auth/invalid-credential") {
+        mensaje = "Usuario o contraseña incorrectos.";
       }
       mostrarError(mensaje);
     }

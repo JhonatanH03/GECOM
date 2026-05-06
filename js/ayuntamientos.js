@@ -23,6 +23,67 @@ const modalTitle = document.getElementById("modalCrearAyuntamientoLabel");
 const submitBtn = document.getElementById("submitBtn");
 const ayuntamientoIdInput = document.getElementById("ayuntamientoId");
 const passwordField = document.getElementById("passwordField");
+const usuarioInput = document.getElementById("usuario");
+const AYUNTAMIENTO_USUARIO_PREFIX = "ayto_";
+const actionModalElement = document.getElementById("modalAccionesAyuntamiento");
+const actionModal = actionModalElement ? new bootstrap.Modal(actionModalElement) : null;
+const actionAyuntamientoIdInput = document.getElementById("actionAyuntamientoId");
+const actionAyuntamientoNombre = document.getElementById("actionAyuntamientoNombre");
+
+function openActionModal(id, nombre) {
+  if (!actionModal || !actionAyuntamientoIdInput || !actionAyuntamientoNombre) return;
+  actionAyuntamientoIdInput.value = id || "";
+  actionAyuntamientoNombre.textContent = nombre || "-";
+  actionModal.show();
+}
+
+function usuarioAEmailInterno(usuario) {
+  return String(usuario || "").trim().toLowerCase().replace(/[^a-z0-9_]/g, "") + "@gecom.internal";
+}
+
+function asegurarPrefijoUsuario(usuario, prefijo) {
+  const normalizado = String(usuario || "").trim().toLowerCase();
+  if (!normalizado) return prefijo;
+  return normalizado.startsWith(prefijo) ? normalizado : `${prefijo}${normalizado}`;
+}
+
+function inicializarUsuarioConPrefijo() {
+  if (!usuarioInput || ayuntamientoIdInput.value) return;
+  usuarioInput.value = asegurarPrefijoUsuario(usuarioInput.value, AYUNTAMIENTO_USUARIO_PREFIX);
+}
+
+function protegerPrefijoUsuario() {
+  if (!usuarioInput) return;
+
+  usuarioInput.addEventListener("input", () => {
+    if (ayuntamientoIdInput.value) return;
+    const valorActual = usuarioInput.value;
+    const valorConPrefijo = asegurarPrefijoUsuario(valorActual, AYUNTAMIENTO_USUARIO_PREFIX);
+    if (valorActual !== valorConPrefijo) {
+      const cursor = usuarioInput.selectionStart || valorConPrefijo.length;
+      usuarioInput.value = valorConPrefijo;
+      const nuevaPosicion = Math.max(AYUNTAMIENTO_USUARIO_PREFIX.length, cursor);
+      usuarioInput.setSelectionRange(nuevaPosicion, nuevaPosicion);
+    }
+  });
+
+  usuarioInput.addEventListener("keydown", (event) => {
+    if (ayuntamientoIdInput.value) return;
+    const cursor = usuarioInput.selectionStart || 0;
+    const seleccion = (usuarioInput.selectionEnd || 0) - cursor;
+    const quiereBorrarPrefijo =
+      (event.key === "Backspace" && cursor <= AYUNTAMIENTO_USUARIO_PREFIX.length && seleccion === 0) ||
+      (event.key === "Delete" && cursor < AYUNTAMIENTO_USUARIO_PREFIX.length);
+    if (quiereBorrarPrefijo) {
+      event.preventDefault();
+    }
+  });
+
+  usuarioInput.addEventListener("focus", () => {
+    if (ayuntamientoIdInput.value) return;
+    inicializarUsuarioConPrefijo();
+  });
+}
 
 function generarContrasenaTemporal(length = 12) {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%";
@@ -57,7 +118,22 @@ window.addEventListener("DOMContentLoaded", async () => {
     modalTitle.textContent = "Crear Ayuntamiento";
     submitBtn.textContent = "Guardar";
     passwordField.style.display = "block";
+    inicializarUsuarioConPrefijo();
     clearModalAlert();
+  });
+
+  modalElement.addEventListener("show.bs.modal", () => {
+    inicializarUsuarioConPrefijo();
+  });
+
+  protegerPrefijoUsuario();
+
+  ayuntamientosBody.addEventListener("click", (event) => {
+    const btn = event.target.closest(".gecom-open-actions-btn");
+    if (!btn) return;
+    const id = btn.dataset.id || "";
+    const nombre = decodeURIComponent(btn.dataset.nombre || "");
+    openActionModal(id, nombre);
   });
 });
 
@@ -67,8 +143,11 @@ form.addEventListener("submit", async (event) => {
   
   const ayuntamientoId = ayuntamientoIdInput.value;
   const nombre = document.getElementById("nombre").value.trim();
-  const usuario = document.getElementById("usuario").value.trim();
-  const correo = document.getElementById("correo").value.trim() || (usuario.toLowerCase().replace(/[^a-z0-9_]/g, '') + '@gecom.internal');
+  const usuarioIngresado = document.getElementById("usuario").value.trim();
+  const usuario = ayuntamientoId
+    ? usuarioIngresado
+    : asegurarPrefijoUsuario(usuarioIngresado, AYUNTAMIENTO_USUARIO_PREFIX);
+  const emailInterno = usuarioAEmailInterno(usuario);
   const telefono = document.getElementById("telefono").value.trim();
   const direccion = document.getElementById("direccion").value.trim();
   const provincia = document.getElementById("provincia").value;
@@ -95,7 +174,6 @@ form.addEventListener("submit", async (event) => {
       const ayuntamientoData = {
         nombre,
         usuario,
-        correo,
         telefono,
         direccion,
         provincia,
@@ -104,27 +182,23 @@ form.addEventListener("submit", async (event) => {
       await db.collection("Ayuntamientos").doc(ayuntamientoId).set(ayuntamientoData, { merge: true });
       showAlert("Ayuntamiento actualizado correctamente.", "success");
     } else {
-      const existingSnap = await db.collection("Ayuntamientos").get();
-      const usuarioDuplicado = existingSnap.docs.some((docSnap) => {
-        const data = docSnap.data() || {};
-        const rolDoc = (data.rol || "ayuntamiento").toLowerCase();
-        const usuarioDoc = (data.usuario || "").toLowerCase();
-        return rolDoc === "ayuntamiento" && usuarioDoc === usuarioNormalizado;
-      });
-      if (usuarioDuplicado) {
+      const duplicadoSnap = await db.collection("Ayuntamientos")
+        .where("usuario", "==", usuarioNormalizado)
+        .limit(1)
+        .get();
+      if (!duplicadoSnap.empty) {
         showModalAlert("Ya existe un usuario con ese nombre y ese rol.", "danger");
         return;
       }
 
       // Crear nuevo ayuntamiento con contraseña temporal aleatoria de primer uso.
       const contrasenaTemporal = generarContrasenaTemporal();
-      const credential = await auth.createUserWithEmailAndPassword(correo, contrasenaTemporal);
+      const credential = await auth.createUserWithEmailAndPassword(emailInterno, contrasenaTemporal);
       const nuevoUid = credential.user.uid;
       
       const ayuntamientoData = {
         nombre,
         usuario,
-        correo,
         rol: "ayuntamiento",
         telefono,
         direccion,
@@ -137,6 +211,12 @@ form.addEventListener("submit", async (event) => {
       };
       
       await db.collection("Ayuntamientos").doc(nuevoUid).set(ayuntamientoData);
+      await db.collection("loginIndex").doc(usuarioNormalizado).set({
+        uid: nuevoUid,
+        email: emailInterno,
+        rol: "ayuntamiento",
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
       showAlert(`Ayuntamiento creado correctamente. Usuario: ${usuario}, Contraseña temporal: ${contrasenaTemporal}`, "success");
     }
     
@@ -147,7 +227,7 @@ form.addEventListener("submit", async (event) => {
   } catch (error) {
     console.error("ERROR:", error);
     if (error.code === "auth/email-already-in-use") {
-      showModalAlert("El correo ya está en uso.", "danger");
+      showModalAlert("No se puede crear: el usuario ya existe.", "danger");
     } else {
       showModalAlert(error.message || "Ocurrió un error.", "danger");
     }
@@ -155,7 +235,7 @@ form.addEventListener("submit", async (event) => {
 });
 
 async function cargarAyuntamientos() {
-  const _skRow9 = `<tr class="skeleton-row">
+  const _skRow8 = `<tr class="skeleton-row">
     <td><span class="skeleton-cell skeleton-wide"></span></td>
     <td><span class="skeleton-cell skeleton-medium"></span></td>
     <td><span class="skeleton-cell skeleton-wide"></span></td>
@@ -164,14 +244,13 @@ async function cargarAyuntamientos() {
     <td><span class="skeleton-cell skeleton-medium"></span></td>
     <td><span class="skeleton-cell skeleton-medium"></span></td>
     <td><span class="skeleton-cell skeleton-pill"></span></td>
-    <td><span class="skeleton-cell skeleton-btn"></span></td>
   </tr>`;
-  ayuntamientosBody.innerHTML = _skRow9.repeat(5);
+  ayuntamientosBody.innerHTML = _skRow8.repeat(5);
   try {
     const snapshot = await db.collection("Ayuntamientos").get();
     
     if (snapshot.empty) {
-      ayuntamientosBody.innerHTML = '<tr class="table-feedback-row"><td colspan="9"><div class="empty-state">No hay ayuntamientos registrados.</div></td></tr>';
+      ayuntamientosBody.innerHTML = '<tr class="table-feedback-row"><td colspan="8"><div class="empty-state">No hay ayuntamientos registrados.</div></td></tr>';
       return;
     }
     
@@ -192,22 +271,25 @@ async function cargarAyuntamientos() {
       ayuntamientosBody.innerHTML += `<tr>
         <td data-label="Nombre">${escapeHtml(data.nombre)}</td>
         <td data-label="Usuario">${escapeHtml(data.usuario || "")}</td>
-        <td data-label="Correo" style="display:none">${escapeHtml(data.correo)}</td>
         <td data-label="Teléfono">${escapeHtml(data.telefono || "")}</td>
         <td data-label="Dirección">${escapeHtml(data.direccion || "")}</td>
         <td data-label="Provincia">${escapeHtml(data.provincia || "")}</td>
         <td data-label="Municipio">${escapeHtml(data.municipio || "")}</td>
         <td data-label="Estado"><span class="status-chip ${estadoClass}"><i class="bi ${chipIcon} chip-icon"></i>${escapeHtml(label)}</span></td>
         <td class="text-center" data-label="Acciones">
-          <button class="btn btn-sm btn-warning me-1 px-2" onclick="editarAyuntamiento('${data.id}')"><i class="bi bi-pencil"></i></button>
-          <button class="btn btn-sm btn-info me-1 px-2" onclick="reestablecerContrasenaAyuntamiento('${data.id}', '${escapeHtml(data.nombre)}')" title="Restablecer contraseña"><i class="bi bi-key"></i></button>
-          <button class="btn btn-sm btn-danger px-2" onclick="eliminarAyuntamiento('${data.id}', '${escapeHtml(data.nombre)}')"><i class="bi bi-trash"></i></button>
+            <button
+              class="btn btn-sm gecom-action-menu-btn gecom-open-actions-btn"
+              type="button"
+              data-id="${escapeHtml(data.id)}"
+              data-nombre="${encodeURIComponent(data.nombre || "")}">
+              <i class="bi bi-three-dots-vertical"></i>
+            </button>
         </td>
       </tr>`;
     });
   } catch (error) {
     console.error("Error al cargar ayuntamientos:", error);
-    ayuntamientosBody.innerHTML = '<tr class="table-feedback-row"><td colspan="9"><div class="empty-state text-danger">Error al cargar ayuntamientos.</div></td></tr>';
+    ayuntamientosBody.innerHTML = '<tr class="table-feedback-row"><td colspan="8"><div class="empty-state text-danger">Error al cargar ayuntamientos.</div></td></tr>';
   }
 }
 
@@ -235,7 +317,6 @@ window.editarAyuntamiento = async function(id) {
     ayuntamientoIdInput.value = id;
     document.getElementById("nombre").value = data.nombre || "";
     document.getElementById("usuario").value = data.usuario || "";
-    document.getElementById("correo").value = data.correo || "";
     document.getElementById("telefono").value = data.telefono || "";
     document.getElementById("direccion").value = data.direccion || "";
     document.getElementById("provincia").value = data.provincia || "";
@@ -256,44 +337,112 @@ window.editarAyuntamiento = async function(id) {
 };
 
 window.eliminarAyuntamiento = async function(id, nombre) {
-  if (confirm("¿Eliminar a " + nombre + "?")) {
-    try {
-      const docSnap = await db.collection("Ayuntamientos").doc(id).get();
-      const data = docSnap.exists ? (docSnap.data() || {}) : {};
-      await db.collection("Ayuntamientos").doc(id).delete();
-      showAlert("Ayuntamiento eliminado.", "success");
-      await cargarAyuntamientos();
-    } catch (error) {
-      console.error("Error:", error);
-      showAlert("Error al eliminar.", "danger");
-    }
+  const ok = await window.gecomConfirm({
+    title: "Eliminar ayuntamiento",
+    message: `¿Estás seguro de que deseas eliminar "${nombre}"? Esta acción no se puede deshacer.`,
+    confirmText: "Sí, eliminar",
+    cancelText: "Cancelar",
+    type: "danger",
+  });
+  if (!ok) return;
+  try {
+    await db.collection("Ayuntamientos").doc(id).delete();
+    showAlert("Ayuntamiento eliminado.", "success");
+    await cargarAyuntamientos();
+  } catch (error) {
+    console.error("Error:", error);
+    showAlert("Error al eliminar.", "danger");
   }
 };
 
 window.reestablecerContrasenaAyuntamiento = async function(id, nombre) {
-  if (!confirm(`¿Enviar correo de restablecimiento de contraseña a ${nombre}?`)) {
-    return;
+  // Legacy — reemplazado por abrirModalResetContrasenaAyuntamiento
+  abrirModalResetContrasenaAyuntamiento(id, nombre);
+};
+
+window.accionEditarAyuntamiento = function() {
+  const id = actionAyuntamientoIdInput ? actionAyuntamientoIdInput.value : "";
+  if (!id) return;
+  if (actionModal) actionModal.hide();
+  editarAyuntamiento(id);
+};
+
+window.accionRestablecerAyuntamiento = function() {
+  const id = actionAyuntamientoIdInput ? actionAyuntamientoIdInput.value : "";
+  const nombre = actionAyuntamientoNombre ? actionAyuntamientoNombre.textContent : "";
+  if (!id) return;
+  if (actionModal) actionModal.hide();
+  abrirModalResetContrasenaAyuntamiento(id, nombre || "");
+};
+
+window.accionEliminarAyuntamiento = function() {
+  const id = actionAyuntamientoIdInput ? actionAyuntamientoIdInput.value : "";
+  const nombre = actionAyuntamientoNombre ? actionAyuntamientoNombre.textContent : "";
+  if (!id) return;
+  if (actionModal) actionModal.hide();
+  eliminarAyuntamiento(id, nombre || "");
+};
+
+// ---- Reset contraseña ayuntamiento (modal) ----
+const resetModalAyunt = new bootstrap.Modal(document.getElementById('modalResetContrasenaAyuntamiento'));
+
+document.getElementById('modalResetContrasenaAyuntamiento').addEventListener('hidden.bs.modal', () => {
+  document.getElementById('resetAyuntCallerPassword').value = '';
+  document.getElementById('resetAyuntModalAlert').innerHTML = '';
+  document.getElementById('btnConfirmarResetAyunt').disabled = false;
+  document.getElementById('btnConfirmarResetAyunt').textContent = 'Restablecer';
+});
+
+window.abrirModalResetContrasenaAyuntamiento = function(id, nombre) {
+  document.getElementById('resetAyuntTargetUid').value = id;
+  document.getElementById('resetAyuntTargetNombre').textContent = nombre;
+  resetModalAyunt.show();
+};
+
+window.confirmarResetContrasenaAyuntamiento = async function() {
+  const targetUid = document.getElementById('resetAyuntTargetUid').value;
+  const callerPassword = document.getElementById('resetAyuntCallerPassword').value;
+  const alertEl = document.getElementById('resetAyuntModalAlert');
+  const btn = document.getElementById('btnConfirmarResetAyunt');
+
+  function showResetError(msg) {
+    alertEl.innerHTML = `<div class="alert alert-danger py-2">${escapeHtml(msg)}</div>`;
   }
 
+  if (!callerPassword) return showResetError('Debes ingresar tu contraseña actual.');
+
+  btn.disabled = true;
+  btn.textContent = 'Restableciendo...';
+  alertEl.innerHTML = '';
+
   try {
-    const doc = await db.collection("Ayuntamientos").doc(id).get();
-    if (!doc.exists) {
-      showAlert("Ayuntamiento no encontrado.", "danger");
-      return;
-    }
-    const correo = doc.data().correo;
-    if (!correo) {
-      showAlert("El ayuntamiento no tiene un correo registrado.", "danger");
-      return;
-    }
+    const result = await window.gecomResetManagedUserPassword({
+      auth,
+      callerPassword,
+      targetUid,
+      targetRole: 'ayuntamiento'
+    });
 
-    await auth.sendPasswordResetEmail(correo);
-    await db.collection("Ayuntamientos").doc(id).update({ primerLogin: true });
-
-    showAlert(`Se ha enviado un correo de restablecimiento a ${correo}. El usuario deberá cambiar su contraseña al iniciar sesión.`, "success");
+    resetModalAyunt.hide();
+    showAlert(`Contraseña restablecida correctamente. Contraseña temporal: ${result.temporaryPassword}`, 'success');
   } catch (error) {
-    console.error("Error restableciendo contraseña:", error);
-    showAlert("No se pudo enviar el correo de restablecimiento: " + error.message, "danger");
+    let msg = 'Error al restablecer la contraseña.';
+    if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+      msg = 'Tu contraseña actual es incorrecta.';
+    } else if (error.code === 'auth/too-many-requests') {
+      msg = 'Demasiados intentos fallidos. Intenta más tarde.';
+    } else if (error.name === 'TypeError' || error.code === 'request-failed') {
+      msg = 'No se pudo conectar con el backend de restablecimiento. Verifica que esté ejecutándose en la URL configurada.';
+    } else if (error.code === 'recent-login-required') {
+      msg = 'Debes confirmar tu contraseña nuevamente antes de continuar.';
+    } else if (error.code === 'permission-denied') {
+      msg = 'No tienes permiso para restablecer esta contraseña.';
+    } else if (error.message) {
+      msg = error.message;
+    }
+    showResetError(msg);
+    btn.disabled = false;
+    btn.textContent = 'Restablecer';
   }
 };
 
