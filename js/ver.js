@@ -23,6 +23,7 @@ const rol = localStorage.getItem("rol");
 const uid = localStorage.getItem("uid");
 let ayuntamientoMunicipio = null;
 let currentDenunciaId = null;
+let estadosFiltroUrl = null;
 const detalleModal = new bootstrap.Modal(document.getElementById("detalleModal"));
 
 const ITEMS_POR_PAGINA = 15;
@@ -258,20 +259,48 @@ function mostrarDetalleDenuncia(data, id) {
   const evidenciaContainer = document.getElementById("detalleEvidencia");
   evidenciaContainer.innerHTML = "";
 
-  if (data.evidencia) {
+  const evidencias = Array.isArray(data.evidencias) && data.evidencias.length
+    ? data.evidencias.filter(Boolean)
+    : (data.evidencia ? [data.evidencia] : []);
+
+  if (evidencias.length === 1) {
+    const url = escapeHtml(evidencias[0]);
     evidenciaContainer.innerHTML = `
       <img
-        src="${escapeHtml(data.evidencia)}"
+        src="${url}"
         alt="Evidencia de la denuncia"
         class="img-fluid rounded shadow-sm mb-2"
         style="max-height:320px; object-fit:contain; cursor:pointer;"
-        onclick="window.open('${escapeHtml(data.evidencia)}', '_blank')"
+        onclick="window.open('${url}', '_blank')"
         title="Clic para ver en tamaño completo"
       />
       <div>
-        <a href="${escapeHtml(data.evidencia)}" target="_blank" class="btn btn-sm btn-outline-primary mt-1">
+        <a href="${url}" target="_blank" class="btn btn-sm btn-outline-primary mt-1">
           Ver imagen completa
         </a>
+      </div>
+    `;
+  } else if (evidencias.length > 1) {
+    const galeria = evidencias.map((url, index) => {
+      const safeUrl = escapeHtml(url);
+      return `
+        <div class="text-center" style="width: 180px;">
+          <img
+            src="${safeUrl}"
+            alt="Evidencia ${index + 1}"
+            class="img-fluid rounded shadow-sm mb-2"
+            style="height:130px; width:180px; object-fit:cover; cursor:pointer;"
+            onclick="window.open('${safeUrl}', '_blank')"
+            title="Clic para ver en tamaño completo"
+          />
+          <a href="${safeUrl}" target="_blank" class="btn btn-sm btn-outline-primary w-100">Abrir</a>
+        </div>
+      `;
+    }).join("");
+
+    evidenciaContainer.innerHTML = `
+      <div class="d-flex flex-wrap gap-2 justify-content-start">
+        ${galeria}
       </div>
     `;
   } else {
@@ -416,8 +445,13 @@ function obtenerDenunciasFiltradas() {
 
   return todasLasDenuncias.filter(({ data }) => {
     let cumpleEstado;
-    if (filtro === "Todos") cumpleEstado = true;
-    else cumpleEstado = data.estado === filtro;
+    if (estadosFiltroUrl && estadosFiltroUrl.size > 0) {
+      cumpleEstado = estadosFiltroUrl.has(data.estado || ESTADO_DEFAULT);
+    } else if (filtro === "Todos") {
+      cumpleEstado = true;
+    } else {
+      cumpleEstado = data.estado === filtro;
+    }
 
     const cumpleProvincia = rol !== "admin" || filtroProvincia === "Todos" || (data.provincia || "") === filtroProvincia;
     const cumpleMunicipio = rol !== "admin" || filtroMunicipio === "Todos" || (data.municipio || "") === filtroMunicipio;
@@ -670,12 +704,52 @@ function validarSesion() {
   return true;
 }
 
+function aplicarFiltroEstadoDesdeUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const estadosParam = String(params.get("estados") || "").trim();
+  const estadoParam = String(params.get("estado") || "").trim();
+
+  const filtroEstado = document.getElementById("filtroEstado");
+  if (!filtroEstado) return;
+
+  const opcionesValidas = new Set(["Todos", "Pendiente", "En proceso", "Resuelta", "Rechazada"]);
+
+  if (estadosParam) {
+    const estados = estadosParam
+      .split(",")
+      .map((item) => item.trim())
+      .filter((item) => opcionesValidas.has(item) && item !== "Todos");
+
+    if (estados.length > 1) {
+      estadosFiltroUrl = new Set(estados);
+      filtroEstado.value = "Todos";
+      return;
+    }
+
+    if (estados.length === 1) {
+      estadosFiltroUrl = null;
+      filtroEstado.value = estados[0];
+      return;
+    }
+  }
+
+  if (!estadoParam) return;
+  if (!opcionesValidas.has(estadoParam)) return;
+
+  estadosFiltroUrl = null;
+  filtroEstado.value = estadoParam;
+}
+
 async function init() {
   if (!validarSesion()) return;
   await cargarCatalogoProvincias();
   await obtenerMunicipioAyuntamiento();
   await cargarDenuncias();
+  aplicarFiltroEstadoDesdeUrl();
+  paginaActual = 1;
+  renderizarPagina();
   document.getElementById("filtroEstado").addEventListener("change", debounce(() => {
+    estadosFiltroUrl = null;
     paginaActual = 1;
     renderizarPagina();
   }, 300));

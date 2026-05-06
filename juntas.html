@@ -135,6 +135,33 @@
   </div>
 </div>
 
+<!-- Modal Acciones Junta -->
+<div class="modal fade" id="modalAccionesJunta" tabindex="-1" aria-labelledby="modalAccionesJuntaLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalAccionesJuntaLabel">Acciones de la junta</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="actionJuntaId">
+        <p class="text-muted mb-3">Selecciona una acción para: <strong id="actionJuntaNombre">-</strong></p>
+        <div class="d-grid gap-2">
+          <button type="button" class="btn btn-outline-warning text-start" onclick="accionEditarJunta()">
+            <i class="bi bi-pencil-fill me-2"></i>Editar
+          </button>
+          <button type="button" class="btn btn-outline-info text-start" onclick="accionRestablecerJunta()">
+            <i class="bi bi-key-fill me-2"></i>Restablecer contraseña
+          </button>
+          <button type="button" class="btn btn-outline-danger text-start" onclick="accionEliminarJunta()">
+            <i class="bi bi-trash-fill me-2"></i>Eliminar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Modal Restablecer Contraseña Junta -->
 <div class="modal fade" id="modalResetContrasenaJunta" tabindex="-1" aria-labelledby="modalResetContrasenaJuntaLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
