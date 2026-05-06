@@ -316,6 +316,27 @@ function iniciarSuscripcionNotificaciones() {
       .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
   }
 
+  function inicializarNavegacionKpis() {
+    const cards = document.querySelectorAll(".dashboard-kpi-link[data-estado]");
+    if (!cards.length) return;
+
+    const navegar = (estado) => {
+      const estadoParam = String(estado || "").trim();
+      if (!estadoParam) return;
+      window.location.href = `ver.html?estado=${encodeURIComponent(estadoParam)}`;
+    };
+
+    cards.forEach((card) => {
+      const estado = card.dataset.estado || "";
+      card.addEventListener("click", () => navegar(estado));
+      card.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
+        navegar(estado);
+      });
+    });
+  }
+
   function actualizarKpiVisual(resumen) {
     const asignaciones = {
       kpiPendiente: resumen[ESTADOS.PENDIENTE] || 0,
@@ -444,21 +465,71 @@ function iniciarSuscripcionNotificaciones() {
   }
 
 
-  function renderAlertasOperativas(resumen) {
+  function obtenerDiasEnProcesoDashboard(data) {
+    if (String(data?.estado || ESTADO_DEFAULT).trim() !== ESTADOS.EN_PROCESO) return null;
+
+    const fechaInicio = convertirAFecha(
+      data?.fecha_en_proceso || data?.fecha_respuesta || data?.fecha || data?.updatedAt
+    );
+    if (!fechaInicio) return null;
+
+    const inicioDia = new Date(fechaInicio.getFullYear(), fechaInicio.getMonth(), fechaInicio.getDate());
+    const hoy = new Date();
+    const inicioHoy = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+    const diferenciaMs = inicioHoy.getTime() - inicioDia.getTime();
+
+    if (diferenciaMs < 0) return 0;
+    return Math.floor(diferenciaMs / 86400000);
+  }
+
+  function analizarAtencionPorDias(docs) {
+    const metricas = {
+      enProceso3a6dias: 0,
+      enProceso7diasOMas: 0
+    };
+
+    docs.forEach((docSnap) => {
+      const data = docSnap.data() || {};
+      const dias = obtenerDiasEnProcesoDashboard(data);
+      if (dias === null) return;
+
+      if (dias >= 7) metricas.enProceso7diasOMas += 1;
+      else if (dias >= 3) metricas.enProceso3a6dias += 1;
+    });
+
+    return metricas;
+  }
+
+  function renderAlertasOperativas(resumen, metricasDias = null) {
     const lista = document.getElementById("dashboardAlertasList");
     if (!lista) return;
 
     const pendientes = Number(resumen?.[ESTADOS.PENDIENTE] || 0);
     const enProceso = Number(resumen?.[ESTADOS.EN_PROCESO] || 0);
     const acumuladas = pendientes + enProceso;
+    const enProceso3a6dias = Number(metricasDias?.enProceso3a6dias || 0);
+    const enProceso7diasOMas = Number(metricasDias?.enProceso7diasOMas || 0);
 
     let clase = "dashboard-alert-item--info";
     if (acumuladas >= 15) clase = "dashboard-alert-item--danger";
     else if (acumuladas >= 8) clase = "dashboard-alert-item--warning";
 
-    const mensajePrincipal = acumuladas > 0
+    if (enProceso7diasOMas > 0) clase = "dashboard-alert-item--danger";
+    else if (enProceso3a6dias > 0 && clase !== "dashboard-alert-item--danger") clase = "dashboard-alert-item--warning";
+
+    const mensajeBase = acumuladas > 0
       ? `${acumuladas} casos requieren atencion (${pendientes} pendientes y ${enProceso} en proceso).`
       : "No hay casos activos pendientes de seguimiento.";
+
+    const mensajeTiempo = enProceso7diasOMas > 0
+      ? `${enProceso7diasOMas} caso(s) en proceso tienen 7 o mas dias desde que se marcaron como En proceso.`
+      : (enProceso3a6dias > 0
+        ? `${enProceso3a6dias} caso(s) en proceso tienen 3 o mas dias desde que se marcaron como En proceso.`
+        : "");
+
+    const mensajePrincipal = mensajeTiempo
+      ? `${mensajeBase} ${mensajeTiempo}`
+      : mensajeBase;
 
     const mensajeSecundario = rolLocal === "admin"
       ? "Vista global del sistema actualizada."
@@ -466,10 +537,43 @@ function iniciarSuscripcionNotificaciones() {
         ? "Prioriza casos con impacto municipal esta semana."
         : "Recuerda responder los reportes para evitar atrasos.");
 
+    const urlPrincipal = acumuladas > 0
+      ? "ver.html?estados=Pendiente,En%20proceso"
+      : "ver.html";
+
+    const urlSecundaria = rolLocal === "ayuntamiento"
+      ? "ver.html?estado=En%20proceso"
+      : "ver.html";
+
     lista.innerHTML = `
-      <li class="dashboard-alert-item ${clase}">${mensajePrincipal}</li>
-      <li class="dashboard-alert-item dashboard-alert-item--info">${mensajeSecundario}</li>
+      <li class="dashboard-alert-item ${clase} dashboard-alert-link" role="button" tabindex="0" data-target-url="${urlPrincipal}">${mensajePrincipal}</li>
+      <li class="dashboard-alert-item dashboard-alert-item--info dashboard-alert-link" role="button" tabindex="0" data-target-url="${urlSecundaria}">${mensajeSecundario}</li>
     `;
+  }
+
+  function inicializarNavegacionAlertas() {
+    const lista = document.getElementById("dashboardAlertasList");
+    if (!lista) return;
+
+    const resolverTarget = (event) => event.target.closest(".dashboard-alert-link[data-target-url]");
+    const navegar = (item) => {
+      if (!item) return;
+      const targetUrl = item.dataset.targetUrl;
+      if (!targetUrl) return;
+      window.location.href = targetUrl;
+    };
+
+    lista.addEventListener("click", (event) => {
+      navegar(resolverTarget(event));
+    });
+
+    lista.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      const item = resolverTarget(event);
+      if (!item) return;
+      event.preventDefault();
+      navegar(item);
+    });
   }
 
   function contarEstadosDesdeDocs(docs) {
@@ -510,13 +614,14 @@ function iniciarSuscripcionNotificaciones() {
       }
 
       const resumen = contarEstadosDesdeDocs(snap.docs);
+      const metricasDias = analizarAtencionPorDias(snap.docs);
       actualizarKpiVisual(resumen);
       renderActividadReciente(snap.docs);
-      renderAlertasOperativas(resumen);
+      renderAlertasOperativas(resumen, metricasDias);
     } catch (error) {
       console.error("Error cargando resumen de KPIs:", error);
       renderActividadReciente([]);
-      renderAlertasOperativas({});
+      renderAlertasOperativas({}, {});
     }
   }
 
@@ -632,6 +737,8 @@ if (!uid || !rolLocal) {
     aplicarEnlacesFooterPorRol();
     pintarLineaUsuario();
     cargarResumenKpi();
+  inicializarNavegacionKpis();
+  inicializarNavegacionAlertas();
   inicializarModalPrimerLogin();
 
   renderizarFechaFooter();

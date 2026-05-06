@@ -22,7 +22,8 @@ const auth = getAuth(app);
 const rol = localStorage.getItem("rol");
 const provinciasMap = {};
 let perfilUsuario = null;
-let evidenciaPreviewUrl = null;
+let evidenciasSeleccionadas = [];
+let evidenciaSecuencia = 0;
 
 const MAX_EVIDENCIA_BYTES = 8 * 1024 * 1024;
 const UMBRAL_COMPRESION_BYTES = 1.5 * 1024 * 1024;
@@ -116,7 +117,7 @@ async function comprimirImagenSiAplica(archivo) {
   });
 }
 
-async function subirEvidenciaACloudinary(archivo, uid) {
+async function subirEvidenciaACloudinary(archivo, uid, textoProgreso = "Subiendo imagen...") {
   if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_UPLOAD_PRESET) {
     throw new Error(
       "Cloudinary no esta configurado. Define CLOUDINARY_CLOUD_NAME y CLOUDINARY_UPLOAD_PRESET en js/cloudinary.js"
@@ -129,7 +130,7 @@ async function subirEvidenciaACloudinary(archivo, uid) {
   formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
   formData.append("folder", `evidencias/${uid}`);
 
-  mostrarProgresoSubida(0);
+  mostrarProgresoSubida(0, textoProgreso);
 
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
@@ -137,7 +138,7 @@ async function subirEvidenciaACloudinary(archivo, uid) {
 
     xhr.upload.addEventListener("progress", (e) => {
       if (e.lengthComputable) {
-        mostrarProgresoSubida(Math.round((e.loaded / e.total) * 100));
+        mostrarProgresoSubida(Math.round((e.loaded / e.total) * 100), textoProgreso);
       }
     });
 
@@ -170,14 +171,14 @@ async function subirEvidenciaACloudinary(archivo, uid) {
   });
 }
 
-function mostrarProgresoSubida(porcentaje) {
+function mostrarProgresoSubida(porcentaje, textoBase = "Subiendo imagen...") {
   let barra = document.getElementById("uploadProgressContainer");
   if (!barra) {
     barra = document.createElement("div");
     barra.id = "uploadProgressContainer";
     barra.className = "mt-2";
     barra.innerHTML = `
-      <small class="text-muted" id="uploadProgressLabel">Subiendo imagen...</small>
+      <small class="text-muted" id="uploadProgressLabel">${textoBase}</small>
       <div class="progress" style="height:6px">
         <div id="uploadProgressBar" class="progress-bar progress-bar-striped progress-bar-animated"
              role="progressbar" style="width:0%"></div>
@@ -188,7 +189,7 @@ function mostrarProgresoSubida(porcentaje) {
   const bar = document.getElementById("uploadProgressBar");
   const label = document.getElementById("uploadProgressLabel");
   if (bar) bar.style.width = porcentaje + "%";
-  if (label) label.textContent = porcentaje < 100 ? `Subiendo imagen... ${porcentaje}%` : "Imagen subida correctamente.";
+  if (label) label.textContent = porcentaje < 100 ? `${textoBase} ${porcentaje}%` : "Imagen subida correctamente.";
   barra.style.display = "";
 }
 
@@ -219,31 +220,103 @@ function habilitarEnvioFormulario(estaHabilitado) {
   submitBtn.disabled = !estaHabilitado;
 }
 
+function claveArchivo(archivo) {
+  return `${archivo.name}__${archivo.size}__${archivo.lastModified}`;
+}
+
+function renderizarPreviewEvidencia() {
+  const previewWrap = document.getElementById("evidenciaPreviewWrap");
+  const previewList = document.getElementById("evidenciaPreviewList");
+  if (!previewWrap || !previewList) return;
+
+  previewList.innerHTML = "";
+
+  if (!evidenciasSeleccionadas.length) {
+    previewWrap.classList.add("d-none");
+    return;
+  }
+
+  evidenciasSeleccionadas.forEach((item, index) => {
+    const card = document.createElement("div");
+    card.style.width = "180px";
+    card.style.border = "1px solid var(--gecom-stroke)";
+    card.style.borderRadius = "8px";
+    card.style.padding = "0.4rem";
+    card.style.background = "var(--gecom-surface)";
+    card.innerHTML = `
+      <img
+        src="${item.previewUrl}"
+        alt="Vista previa de evidencia ${index + 1}"
+        class="img-fluid"
+        style="height:120px; width:100%; border-radius:6px; object-fit:cover;"
+      >
+      <button
+        type="button"
+        class="btn btn-sm btn-outline-danger w-100 mt-2 btn-quitar-evidencia-item"
+        data-evidencia-id="${item.id}">
+        <i class="bi bi-trash"></i> Quitar
+      </button>
+    `;
+    previewList.appendChild(card);
+  });
+
+  previewWrap.classList.remove("d-none");
+}
+
 function limpiarPreviewEvidencia() {
-  if (evidenciaPreviewUrl) {
-    URL.revokeObjectURL(evidenciaPreviewUrl);
-    evidenciaPreviewUrl = null;
+  if (evidenciasSeleccionadas.length) {
+    evidenciasSeleccionadas.forEach((item) => {
+      if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
+    });
+    evidenciasSeleccionadas = [];
   }
 
   const previewWrap = document.getElementById("evidenciaPreviewWrap");
-  const previewImg = document.getElementById("evidenciaPreviewImg");
-  if (!previewWrap || !previewImg) return;
+  const previewList = document.getElementById("evidenciaPreviewList");
+  if (!previewWrap || !previewList) return;
 
-  previewImg.src = "";
+  previewList.innerHTML = "";
   previewWrap.classList.add("d-none");
 }
 
-function actualizarPreviewEvidencia(archivo) {
-  const previewWrap = document.getElementById("evidenciaPreviewWrap");
-  const previewImg = document.getElementById("evidenciaPreviewImg");
-  if (!previewWrap || !previewImg) return;
+function agregarEvidencias(archivos) {
+  if (!archivos || !archivos.length) return { agregadas: 0, duplicadas: 0 };
 
-  limpiarPreviewEvidencia();
-  if (!archivo) return;
+  let agregadas = 0;
+  let duplicadas = 0;
+  const clavesExistentes = new Set(evidenciasSeleccionadas.map((item) => item.clave));
 
-  evidenciaPreviewUrl = URL.createObjectURL(archivo);
-  previewImg.src = evidenciaPreviewUrl;
-  previewWrap.classList.remove("d-none");
+  archivos.forEach((archivo) => {
+    validarArchivoEvidencia(archivo);
+    const clave = claveArchivo(archivo);
+    if (clavesExistentes.has(clave)) {
+      duplicadas += 1;
+      return;
+    }
+
+    const previewUrl = URL.createObjectURL(archivo);
+    evidenciasSeleccionadas.push({
+      id: ++evidenciaSecuencia,
+      clave,
+      archivo,
+      previewUrl
+    });
+    clavesExistentes.add(clave);
+    agregadas += 1;
+  });
+
+  renderizarPreviewEvidencia();
+  return { agregadas, duplicadas };
+}
+
+function quitarEvidenciaPorId(id) {
+  const indice = evidenciasSeleccionadas.findIndex((item) => String(item.id) === String(id));
+  if (indice === -1) return false;
+
+  const [eliminada] = evidenciasSeleccionadas.splice(indice, 1);
+  if (eliminada?.previewUrl) URL.revokeObjectURL(eliminada.previewUrl);
+  renderizarPreviewEvidencia();
+  return true;
 }
 
 async function obtenerPerfilUsuario(uid) {
@@ -358,20 +431,35 @@ window.addEventListener("DOMContentLoaded", () => {
   const evidenciaInput = document.getElementById("evidencia");
   if (evidenciaInput) {
     evidenciaInput.addEventListener("change", () => {
-      const archivo = evidenciaInput.files?.[0];
-      if (!archivo) {
-        limpiarPreviewEvidencia();
+      const archivos = Array.from(evidenciaInput.files || []);
+      if (!archivos.length) {
         return;
       }
 
       try {
-        validarArchivoEvidencia(archivo);
-        actualizarPreviewEvidencia(archivo);
+        const { agregadas, duplicadas } = agregarEvidencias(archivos);
         limpiarMensajeFormulario();
+        if (duplicadas > 0) {
+          mostrarMensajeFormulario(`Se omitieron ${duplicadas} imagen(es) duplicada(s).`, "warning");
+        } else if (agregadas > 0) {
+          mostrarMensajeFormulario(`Se agregaron ${agregadas} imagen(es).`, "info");
+        }
       } catch (error) {
-        evidenciaInput.value = "";
-        limpiarPreviewEvidencia();
         mostrarMensajeFormulario(error.message, "danger");
+      } finally {
+        evidenciaInput.value = "";
+      }
+    });
+  }
+
+  const evidenciaPreviewList = document.getElementById("evidenciaPreviewList");
+  if (evidenciaPreviewList) {
+    evidenciaPreviewList.addEventListener("click", (event) => {
+      const btn = event.target.closest(".btn-quitar-evidencia-item");
+      if (!btn) return;
+      const ok = quitarEvidenciaPorId(btn.dataset.evidenciaId);
+      if (ok) {
+        mostrarMensajeFormulario("Imagen eliminada del formulario.", "info");
       }
     });
   }
@@ -384,7 +472,7 @@ window.addEventListener("DOMContentLoaded", () => {
         input.value = "";
       }
       limpiarPreviewEvidencia();
-      mostrarMensajeFormulario("Imagen eliminada del formulario.", "info");
+      mostrarMensajeFormulario("Imagenes eliminadas del formulario.", "info");
     });
   }
 
@@ -417,7 +505,7 @@ window.crearDenuncia = async function () {
     const municipio = document.getElementById("municipio").value;
     const sector = document.getElementById("sector").value.trim();
     const fecha_incidente = document.getElementById("fecha_incidente").value;
-    const evidenciaFile = document.getElementById("evidencia").files[0];
+    const evidenciaFiles = evidenciasSeleccionadas.map((item) => item.archivo);
 
     // Validar campos obligatorios
     if (!titulo || !tipo || !descripcion || !provincia || !municipio || !sector) {
@@ -468,18 +556,25 @@ window.crearDenuncia = async function () {
 
     const comunidad = perfilUsuario?.comunidad || perfilUsuario?.sector || perfilUsuario?.institucion || perfilUsuario?.nombreJunta || sector || "Sin comunidad";
 
-    let evidenciaURL = "";
-    if (evidenciaFile) {
+    const evidenciasURL = [];
+    if (evidenciaFiles.length) {
       try {
-        validarArchivoEvidencia(evidenciaFile);
-        const evidenciaProcesada = await comprimirImagenSiAplica(evidenciaFile);
-        evidenciaURL = await subirEvidenciaACloudinary(evidenciaProcesada, uid);
+        for (let i = 0; i < evidenciaFiles.length; i += 1) {
+          const evidenciaFile = evidenciaFiles[i];
+          validarArchivoEvidencia(evidenciaFile);
+          const evidenciaProcesada = await comprimirImagenSiAplica(evidenciaFile);
+          const textoProgreso = evidenciaFiles.length > 1
+            ? `Subiendo imagen ${i + 1} de ${evidenciaFiles.length}...`
+            : "Subiendo imagen...";
+          const evidenciaURL = await subirEvidenciaACloudinary(evidenciaProcesada, uid, textoProgreso);
+          evidenciasURL.push(evidenciaURL);
+        }
       } catch (uploadError) {
         console.error("Error en carga de archivo:", uploadError);
         const continuarSinEvidencia = await window.gecomConfirm({
-          title: "Error al subir imagen",
-          message: "No se pudo subir la imagen. ¿Deseas guardar la denuncia sin evidencia?",
-          confirmText: "Guardar sin imagen",
+          title: "Error al subir imagenes",
+          message: "No se pudieron subir todas las imagenes. ¿Deseas guardar la denuncia sin evidencia?",
+          confirmText: "Guardar sin imagenes",
           cancelText: "Cancelar",
           type: "warning",
         });
@@ -487,8 +582,11 @@ window.crearDenuncia = async function () {
           mostrarMensajeFormulario("Error al cargar la evidencia: " + uploadError.message, "danger");
           return;
         }
+        evidenciasURL.length = 0;
       }
     }
+
+    const evidenciaURL = evidenciasURL[0] || "";
 
     // GUARDAR EN FIRESTORE
     await addDoc(collection(db, "denuncias"), {
@@ -500,6 +598,7 @@ window.crearDenuncia = async function () {
       sector,
       fecha_incidente: fecha_incidente ? new Date(fecha_incidente) : null,
       evidencia: evidenciaURL,
+      evidencias: evidenciasURL,
       estado: "Pendiente",
       fecha: new Date(),
       uid,

@@ -25,10 +25,21 @@ const juntaIdInput = document.getElementById("juntaId");
 const passwordField = document.getElementById("passwordField");
 const usuarioInput = document.getElementById("usuario");
 const JUNTA_USUARIO_PREFIX = "jvl_";
+const actionModalElement = document.getElementById("modalAccionesJunta");
+const actionModal = actionModalElement ? new bootstrap.Modal(actionModalElement) : null;
+const actionJuntaIdInput = document.getElementById("actionJuntaId");
+const actionJuntaNombre = document.getElementById("actionJuntaNombre");
 let provinciaAyuntamiento = null;
 let municipioAyuntamiento = null;
 const municipiosSelect = document.getElementById("municipio");
 const provinciaSelect = document.getElementById("provincia");
+
+function openActionModal(id, nombre) {
+  if (!actionModal || !actionJuntaIdInput || !actionJuntaNombre) return;
+  actionJuntaIdInput.value = id || "";
+  actionJuntaNombre.textContent = nombre || "-";
+  actionModal.show();
+}
 
 function usuarioAEmailInterno(usuario) {
   return String(usuario || "").trim().toLowerCase().replace(/[^a-z0-9_]/g, "") + "@gecom.internal";
@@ -216,6 +227,14 @@ window.addEventListener("DOMContentLoaded", async () => {
   });
 
   protegerPrefijoUsuario();
+
+  juntasBody.addEventListener("click", (event) => {
+    const btn = event.target.closest(".gecom-open-actions-btn");
+    if (!btn || rolLocal !== "ayuntamiento") return;
+    const id = btn.dataset.id || "";
+    const nombre = decodeURIComponent(btn.dataset.nombre || "");
+    openActionModal(id, nombre);
+  });
 });
 
 form.addEventListener("submit", async (event) => {
@@ -356,15 +375,15 @@ async function cargarJuntas() {
       const label = data.estado ? "Activa" : "Inactiva";
       const estadoClass = data.estado ? "status-resuelta" : "status-pendiente";
       const chipIcon = data.estado ? "bi-check-circle-fill" : "bi-x-circle-fill";
-      juntasBody.innerHTML += `<tr>
-        <td data-label="Nombre">${escapeHtml(data.nombre)}</td>
-        <td data-label="Usuario">${escapeHtml(data.usuario || "")}</td>
-        <td data-label="Teléfono">${escapeHtml(data.telefono || "")}</td>
-        <td data-label="Ubicación">${escapeHtml((data.provincia || "") + " / " + (data.municipio || ""))}</td>
-        <td data-label="Comunidad">${escapeHtml(data.comunidad || "")}</td>
-        <td data-label="Estado"><span class="status-chip ${estadoClass}"><i class="bi ${chipIcon} chip-icon"></i>${escapeHtml(label)}</span></td>
-        <td class="text-center" data-label="Acciones">
-          <div class="dropdown">
+      const accionesHtml = rolLocal === "ayuntamiento"
+        ? `<button
+              class="btn btn-sm gecom-action-menu-btn gecom-open-actions-btn"
+              type="button"
+              data-id="${escapeHtml(data.id)}"
+              data-nombre="${encodeURIComponent(data.nombre || "")}">
+              <i class="bi bi-three-dots-vertical"></i>
+            </button>`
+        : `<div class="dropdown">
             <button class="btn btn-sm gecom-action-menu-btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
               <i class="bi bi-three-dots-vertical"></i>
             </button>
@@ -386,7 +405,17 @@ async function cargarJuntas() {
                 </button>
               </li>
             </ul>
-          </div>
+          </div>`;
+
+      juntasBody.innerHTML += `<tr>
+        <td data-label="Nombre">${escapeHtml(data.nombre)}</td>
+        <td data-label="Usuario">${escapeHtml(data.usuario || "")}</td>
+        <td data-label="Teléfono">${escapeHtml(data.telefono || "")}</td>
+        <td data-label="Ubicación">${escapeHtml((data.provincia || "") + " / " + (data.municipio || ""))}</td>
+        <td data-label="Comunidad">${escapeHtml(data.comunidad || "")}</td>
+        <td data-label="Estado"><span class="status-chip ${estadoClass}"><i class="bi ${chipIcon} chip-icon"></i>${escapeHtml(label)}</span></td>
+        <td class="text-center" data-label="Acciones">
+          ${accionesHtml}
         </td>
       </tr>`;
     });
@@ -438,7 +467,11 @@ window.editarJunta = async function(id) {
     modal.show();
   } catch (error) {
     console.error("Error:", error);
-    showAlert("Error al cargar junta.", "danger");
+    if (error && error.code === "permission-denied") {
+      showAlert("No tienes permisos para editar esta junta.", "danger");
+    } else {
+      showAlert("Error al cargar junta.", "danger");
+    }
   }
 };
 
@@ -456,6 +489,29 @@ window.abrirModalResetContrasenaJunta = function(id, nombre) {
   document.getElementById('resetTargetUid').value = id;
   document.getElementById('resetTargetNombre').textContent = nombre;
   resetModalJunta.show();
+};
+
+window.accionEditarJunta = function() {
+  const id = actionJuntaIdInput ? actionJuntaIdInput.value : "";
+  if (!id) return;
+  if (actionModal) actionModal.hide();
+  editarJunta(id);
+};
+
+window.accionRestablecerJunta = function() {
+  const id = actionJuntaIdInput ? actionJuntaIdInput.value : "";
+  const nombre = actionJuntaNombre ? actionJuntaNombre.textContent : "";
+  if (!id) return;
+  if (actionModal) actionModal.hide();
+  abrirModalResetContrasenaJunta(id, nombre || "");
+};
+
+window.accionEliminarJunta = function() {
+  const id = actionJuntaIdInput ? actionJuntaIdInput.value : "";
+  const nombre = actionJuntaNombre ? actionJuntaNombre.textContent : "";
+  if (!id) return;
+  if (actionModal) actionModal.hide();
+  eliminarJunta(id, nombre || "");
 };
 
 window.confirmarResetContrasenaJunta = async function() {
@@ -529,7 +585,11 @@ window.eliminarJunta = async function(id, nombre) {
     await cargarJuntas();
   } catch (error) {
     console.error("Error:", error);
-    showAlert("Error al eliminar.", "danger");
+    if (error && error.code === "permission-denied") {
+      showAlert("No tienes permisos para eliminar esta junta.", "danger");
+    } else {
+      showAlert("Error al eliminar.", "danger");
+    }
   }
 };
 
