@@ -1,0 +1,196 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/Administradores/$(request.auth.uid));
+    }
+
+    function isAyuntamiento() {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/Ayuntamientos/$(request.auth.uid));
+    }
+
+    function isJunta() {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/JuntasDeVecinos/$(request.auth.uid));
+    }
+
+    function ayuntamientoData() {
+      return get(/databases/$(database)/documents/Ayuntamientos/$(request.auth.uid)).data;
+    }
+
+    function isSameMunicipioAsAyuntamiento(data) {
+      return isAyuntamiento() &&
+        data.municipio == ayuntamientoData().municipio;
+    }
+
+    match /Administradores/{adminId} {
+      // Cada usuario solo puede leer su propio documento (para el flujo de login)
+      allow get: if isAdmin() || request.auth.uid == adminId;
+      allow list: if isAdmin();
+      // create: permite que el propio usuario recién creado escriba su documento inicial
+      allow create: if isSignedIn() && request.auth.uid == adminId;
+      // admin puede actualizar todo; cualquier admin puede cambiar su propio primerLogin
+      allow update: if isAdmin() ||
+        (request.auth.uid == adminId &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['primerLogin']));
+      allow delete: if isAdmin();
+    }
+
+    match /Ayuntamientos/{ayuntamientoId} {
+      // Lectura individual permitida a usuarios autenticados (necesario para lookup de perfil)
+      allow get: if isSignedIn();
+      allow list: if isAdmin();
+      // create: permite que el propio usuario recién creado escriba su documento inicial
+      // y restringe el campo rol al valor correcto para evitar escalada de privilegios
+      allow create: if isSignedIn() &&
+        request.auth.uid == ayuntamientoId &&
+        (!request.resource.data.keys().hasAny(["rol"]) ||
+          request.resource.data.rol == "ayuntamiento");
+      // admin puede todo; ayuntamiento puede cambiar su propio primerLogin
+      allow update: if isAdmin() ||
+        (request.auth.uid == ayuntamientoId &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['primerLogin']));
+      allow delete: if isAdmin();
+    }
+
+    match /provincias/{provinciaId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /JuntasDeVecinos/{juntaId} {
+      allow get: if isSignedIn();
+      allow list: if isAdmin() || isAyuntamiento();
+      // create: permite que el propio usuario recién creado escriba su documento inicial
+      // y restringe el campo rol al valor correcto para evitar escalada de privilegios
+      allow create: if isSignedIn() &&
+        request.auth.uid == juntaId &&
+        (!request.resource.data.keys().hasAny(["rol"]) ||
+          request.resource.data.rol == "junta");
+      // update: admin puede todo; junta solo puede cambiar primerLogin en su propio doc
+      allow update: if isAdmin() ||
+        (request.auth.uid == juntaId &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['primerLogin']));
+      allow delete: if isAdmin();
+
+      match /historial/{entryId} {
+        allow read: if isAdmin() ||
+          (isJunta() && request.auth.uid == juntaId);
+        allow create: if isAyuntamiento() &&
+          request.resource.data.keys().hasOnly([
+            "denunciaId",
+            "tituloDenuncia",
+            "tipo",
+            "estado",
+            "plazo_estimado",
+            "presupuesto_estimado",
+            "respuesta",
+            "ayuntamientoId",
+            "createdAt"
+          ]) &&
+          request.resource.data.ayuntamientoId == request.auth.uid;
+        allow delete: if isAdmin() ||
+          (isJunta() && request.auth.uid == juntaId);
+      }
+    }
+
+    match /loginIndex/{identifier} {
+      // get público: necesario para resolver email antes de autenticar
+      allow get: if true;
+      allow list: if false;
+      allow create, update: if isSignedIn() &&
+        request.resource.data.keys().hasOnly([
+          "uid",
+          "email",
+          "rol",
+          "updatedAt"
+        ]) &&
+        request.resource.data.uid is string &&
+        request.resource.data.email is string &&
+        request.resource.data.rol is string &&
+        // El índice solo puede apuntar al propio UID del usuario autenticado
+        request.resource.data.uid == request.auth.uid;
+      // Solo el propietario del índice o un admin puede eliminarlo
+      allow delete: if isAdmin() ||
+        (isSignedIn() && resource.data.uid == request.auth.uid);
+    }
+
+    match /denuncias/{denunciaId} {
+      allow read: if isAdmin() ||
+        (isJunta() && resource.data.uid == request.auth.uid) ||
+        isSameMunicipioAsAyuntamiento(resource.data);
+
+      allow create: if isAdmin() ||
+        (
+          isJunta() &&
+          request.resource.data.uid == request.auth.uid
+        );
+
+      allow update: if isAdmin() ||
+        (
+          isJunta() &&
+          resource.data.uid == request.auth.uid
+        ) ||
+        (
+          isAyuntamiento() &&
+          isSameMunicipioAsAyuntamiento(resource.data) &&
+          request.resource.data.diff(resource.data).changedKeys().hasOnly([
+            "estado",
+            "plazo_estimado",
+            "presupuesto_estimado",
+            "respuesta_ayuntamiento",
+            "fecha_respuesta",
+            "ayuntamiento_id"
+          ]) &&
+          request.resource.data.ayuntamiento_id == request.auth.uid
+        );
+
+      allow delete: if isAdmin();
+    }
+
+    match /notificaciones/{notificacionId} {
+      allow get: if isAdmin() ||
+        (isJunta() && resource.data.receptorUid == request.auth.uid);
+      allow list: if isAdmin() || isJunta();
+
+      allow create: if isAyuntamiento() &&
+        request.resource.data.keys().hasOnly([
+          "denunciaId",
+          "receptorUid",
+          "tipo",
+          "mensaje",
+          "leida",
+          "createdAt",
+          "createdBy"
+        ]) &&
+        request.resource.data.denunciaId is string &&
+        request.resource.data.receptorUid is string &&
+        request.resource.data.tipo is string &&
+        request.resource.data.mensaje is string &&
+        request.resource.data.leida is bool &&
+        request.resource.data.createdBy == request.auth.uid;
+
+      allow update: if (isAdmin() ||
+        (isJunta() && resource.data.receptorUid == request.auth.uid)) &&
+        request.resource.data.diff(resource.data).changedKeys().hasOnly([
+          "leida",
+          "leidaAt"
+        ]);
+
+      allow delete: if isAdmin() ||
+        (isJunta() && resource.data.receptorUid == request.auth.uid);
+    }
+
+    // Cualquier otra coleccion queda bloqueada por defecto.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

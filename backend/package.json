@@ -1,0 +1,22 @@
+{
+  "name": "gecom-reset-backend",
+  "version": "1.0.0",
+  "private": true,
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "migrar:usuarios:dry": "node migrar-usuarios-username-only.mjs",
+    "migrar:usuarios:apply": "node migrar-usuarios-username-only.mjs --apply",
+    "migrar:usuarios:fix:dry": "node migrar-usuarios-username-only.mjs --auto-fix-invalid",
+    "migrar:usuarios:fix:apply": "node migrar-usuarios-username-only.mjs --auto-fix-invalid --apply",
+    "seed:simulacion": "node seed-definitivo.mjs",
+    "seed:aplicar": "node seed-definitivo.mjs --aplicar"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2",
+    "firebase-admin": "^12.7.0"
+  }
+}

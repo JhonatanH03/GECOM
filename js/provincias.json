@@ -1,0 +1,109 @@
+[
+  {
+    "nombre": "Santo Domingo",
+    "municipios": [
+      "Distrito Nacional",
+      "Santo Domingo Este",
+      "Santo Domingo Norte",
+      "Santo Domingo Oeste",
+      "Boca Chica",
+      "San Antonio de Guerra",
+      "Los Alcarrizos",
+      "Santiago"
+    ]
+  },
+  {
+    "nombre": "Santiago",
+    "municipios": [
+      "Santiago de los Caballeros",
+      "Tamboril",
+      "Villa González",
+      "Jánico",
+      "Sabana Iglesia"
+    ]
+  },
+  {
+    "nombre": "La Vega",
+    "municipios": [
+      "Concepción de La Vega",
+      "Constanza",
+      "Jarabacoa",
+      "Jima Abajo"
+    ]
+  },
+  {
+    "nombre": "Puerto Plata",
+    "municipios": [
+      "San Felipe de Puerto Plata",
+      "Altamira",
+      "Guananico",
+      "Imbert",
+      "Los Hidalgos",
+      "Luperón",
+      "Sosúa",
+      "Villa Isabela",
+      "Villa Montellano"
+    ]
+  },
+  {
+    "nombre": "San Cristóbal",
+    "municipios": [
+      "San Cristóbal",
+      "Bajos de Haina",
+      "Cambita Garabitos",
+      "Sabana Grande de Palenque",
+      "Yaguate"
+    ]
+  },
+  {
+    "nombre": "San Pedro de Macorís",
+    "municipios": [
+      "San Pedro de Macorís",
+      "Consuelo",
+      "Guayacanes",
+      "Quisqueya",
+      "Ramón Santana"
+    ]
+  },
+  {
+    "nombre": "La Romana",
+    "municipios": [
+      "La Romana",
+      "Guaymate",
+      "Villa Hermosa"
+    ]
+  },
+  {
+    "nombre": "Bonao",
+    "municipios": [
+      "Bonao",
+      "Maimón",
+      "Piedra Blanca"
+    ]
+  },
+  {
+    "nombre": "Higüey",
+    "municipios": [
+      "Higüey",
+      "Miches",
+      "El Seibo",
+      "Hato Mayor"
+    ]
+  },
+  {
+    "nombre": "Barahona",
+    "municipios": [
+      "Santa Cruz de Barahona",
+      "Cabral",
+      "El Peñón",
+      "Enriquillo",
+      "Fundación",
+      "Jaquimeyes",
+      "La Ciénaga",
+      "Las Salinas",
+      "Paraíso",
+      "Polo",
+      "Vicente Noble"
+    ]
+  }
+]

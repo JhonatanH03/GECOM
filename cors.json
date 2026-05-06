@@ -1,0 +1,8 @@
+[
+  {
+    "origin": ["http://localhost:3000", "http://localhost:5000", "https://gecom-a721e.web.app", "https://gecom-a721e.firebaseapp.com"],
+    "method": ["GET", "POST", "PUT", "DELETE", "HEAD"],
+    "responseHeader": ["Content-Type", "Authorization", "Content-Length", "User-Agent"],
+    "maxAgeSeconds": 3600
+  }
+]
