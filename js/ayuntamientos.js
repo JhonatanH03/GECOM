@@ -23,9 +23,66 @@ const modalTitle = document.getElementById("modalCrearAyuntamientoLabel");
 const submitBtn = document.getElementById("submitBtn");
 const ayuntamientoIdInput = document.getElementById("ayuntamientoId");
 const passwordField = document.getElementById("passwordField");
+const usuarioInput = document.getElementById("usuario");
+const AYUNTAMIENTO_USUARIO_PREFIX = "ayto_";
+const actionModalElement = document.getElementById("modalAccionesAyuntamiento");
+const actionModal = actionModalElement ? new bootstrap.Modal(actionModalElement) : null;
+const actionAyuntamientoIdInput = document.getElementById("actionAyuntamientoId");
+const actionAyuntamientoNombre = document.getElementById("actionAyuntamientoNombre");
+
+function openActionModal(id, nombre) {
+  if (!actionModal || !actionAyuntamientoIdInput || !actionAyuntamientoNombre) return;
+  actionAyuntamientoIdInput.value = id || "";
+  actionAyuntamientoNombre.textContent = nombre || "-";
+  actionModal.show();
+}
 
 function usuarioAEmailInterno(usuario) {
   return String(usuario || "").trim().toLowerCase().replace(/[^a-z0-9_]/g, "") + "@gecom.internal";
+}
+
+function asegurarPrefijoUsuario(usuario, prefijo) {
+  const normalizado = String(usuario || "").trim().toLowerCase();
+  if (!normalizado) return prefijo;
+  return normalizado.startsWith(prefijo) ? normalizado : `${prefijo}${normalizado}`;
+}
+
+function inicializarUsuarioConPrefijo() {
+  if (!usuarioInput || ayuntamientoIdInput.value) return;
+  usuarioInput.value = asegurarPrefijoUsuario(usuarioInput.value, AYUNTAMIENTO_USUARIO_PREFIX);
+}
+
+function protegerPrefijoUsuario() {
+  if (!usuarioInput) return;
+
+  usuarioInput.addEventListener("input", () => {
+    if (ayuntamientoIdInput.value) return;
+    const valorActual = usuarioInput.value;
+    const valorConPrefijo = asegurarPrefijoUsuario(valorActual, AYUNTAMIENTO_USUARIO_PREFIX);
+    if (valorActual !== valorConPrefijo) {
+      const cursor = usuarioInput.selectionStart || valorConPrefijo.length;
+      usuarioInput.value = valorConPrefijo;
+      const nuevaPosicion = Math.max(AYUNTAMIENTO_USUARIO_PREFIX.length, cursor);
+      usuarioInput.setSelectionRange(nuevaPosicion, nuevaPosicion);
+    }
+  });
+
+  usuarioInput.addEventListener("keydown", (event) => {
+    if (ayuntamientoIdInput.value) return;
+    const cursor = usuarioInput.selectionStart || 0;
+    const seleccion = (usuarioInput.selectionEnd || 0) - cursor;
+    const quiereBorrarPrefijo =
+      (event.key === "Backspace" && cursor <= AYUNTAMIENTO_USUARIO_PREFIX.length && seleccion === 0) ||
+      (event.key === "Delete" && cursor < AYUNTAMIENTO_USUARIO_PREFIX.length);
+    if (quiereBorrarPrefijo) {
+      event.preventDefault();
+    }
+  });
+
+  usuarioInput.addEventListener("focus", () => {
+    if (ayuntamientoIdInput.value) return;
+    inicializarUsuarioConPrefijo();
+  });
 }
 
 function generarContrasenaTemporal(length = 12) {
@@ -61,7 +118,22 @@ window.addEventListener("DOMContentLoaded", async () => {
     modalTitle.textContent = "Crear Ayuntamiento";
     submitBtn.textContent = "Guardar";
     passwordField.style.display = "block";
+    inicializarUsuarioConPrefijo();
     clearModalAlert();
+  });
+
+  modalElement.addEventListener("show.bs.modal", () => {
+    inicializarUsuarioConPrefijo();
+  });
+
+  protegerPrefijoUsuario();
+
+  ayuntamientosBody.addEventListener("click", (event) => {
+    const btn = event.target.closest(".gecom-open-actions-btn");
+    if (!btn) return;
+    const id = btn.dataset.id || "";
+    const nombre = decodeURIComponent(btn.dataset.nombre || "");
+    openActionModal(id, nombre);
   });
 });
 
@@ -71,7 +143,10 @@ form.addEventListener("submit", async (event) => {
   
   const ayuntamientoId = ayuntamientoIdInput.value;
   const nombre = document.getElementById("nombre").value.trim();
-  const usuario = document.getElementById("usuario").value.trim();
+  const usuarioIngresado = document.getElementById("usuario").value.trim();
+  const usuario = ayuntamientoId
+    ? usuarioIngresado
+    : asegurarPrefijoUsuario(usuarioIngresado, AYUNTAMIENTO_USUARIO_PREFIX);
   const emailInterno = usuarioAEmailInterno(usuario);
   const telefono = document.getElementById("telefono").value.trim();
   const direccion = document.getElementById("direccion").value.trim();
@@ -202,29 +277,13 @@ async function cargarAyuntamientos() {
         <td data-label="Municipio">${escapeHtml(data.municipio || "")}</td>
         <td data-label="Estado"><span class="status-chip ${estadoClass}"><i class="bi ${chipIcon} chip-icon"></i>${escapeHtml(label)}</span></td>
         <td class="text-center" data-label="Acciones">
-          <div class="dropdown">
-            <button class="btn btn-sm gecom-action-menu-btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <button
+              class="btn btn-sm gecom-action-menu-btn gecom-open-actions-btn"
+              type="button"
+              data-id="${escapeHtml(data.id)}"
+              data-nombre="${encodeURIComponent(data.nombre || "")}">
               <i class="bi bi-three-dots-vertical"></i>
             </button>
-            <ul class="dropdown-menu dropdown-menu-end gecom-action-menu">
-              <li>
-                <button class="dropdown-item" type="button" onclick="editarAyuntamiento('${data.id}')">
-                  <i class="bi bi-pencil-fill gecom-action-icon gecom-action-icon--edit"></i>Editar
-                </button>
-              </li>
-              <li>
-                <button class="dropdown-item" type="button" onclick="abrirModalResetContrasenaAyuntamiento('${data.id}', '${escapeHtml(data.nombre)}')">
-                  <i class="bi bi-key-fill gecom-action-icon gecom-action-icon--key"></i>Restablecer contraseña
-                </button>
-              </li>
-              <li><hr class="dropdown-divider"></li>
-              <li>
-                <button class="dropdown-item gecom-action-item--danger" type="button" onclick="eliminarAyuntamiento('${data.id}', '${escapeHtml(data.nombre)}')">
-                  <i class="bi bi-trash-fill gecom-action-icon"></i>Eliminar
-                </button>
-              </li>
-            </ul>
-          </div>
         </td>
       </tr>`;
     });
@@ -299,6 +358,29 @@ window.eliminarAyuntamiento = async function(id, nombre) {
 window.reestablecerContrasenaAyuntamiento = async function(id, nombre) {
   // Legacy — reemplazado por abrirModalResetContrasenaAyuntamiento
   abrirModalResetContrasenaAyuntamiento(id, nombre);
+};
+
+window.accionEditarAyuntamiento = function() {
+  const id = actionAyuntamientoIdInput ? actionAyuntamientoIdInput.value : "";
+  if (!id) return;
+  if (actionModal) actionModal.hide();
+  editarAyuntamiento(id);
+};
+
+window.accionRestablecerAyuntamiento = function() {
+  const id = actionAyuntamientoIdInput ? actionAyuntamientoIdInput.value : "";
+  const nombre = actionAyuntamientoNombre ? actionAyuntamientoNombre.textContent : "";
+  if (!id) return;
+  if (actionModal) actionModal.hide();
+  abrirModalResetContrasenaAyuntamiento(id, nombre || "");
+};
+
+window.accionEliminarAyuntamiento = function() {
+  const id = actionAyuntamientoIdInput ? actionAyuntamientoIdInput.value : "";
+  const nombre = actionAyuntamientoNombre ? actionAyuntamientoNombre.textContent : "";
+  if (!id) return;
+  if (actionModal) actionModal.hide();
+  eliminarAyuntamiento(id, nombre || "");
 };
 
 // ---- Reset contraseña ayuntamiento (modal) ----

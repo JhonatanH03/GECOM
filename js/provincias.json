@@ -2,14 +2,13 @@
   {
     "nombre": "Santo Domingo",
     "municipios": [
-      "Distrito Nacional",
       "Santo Domingo Este",
-      "Santo Domingo Norte",
       "Santo Domingo Oeste",
+      "Santo Domingo Norte",
       "Boca Chica",
       "San Antonio de Guerra",
       "Los Alcarrizos",
-      "Santiago"
+      "Pedro Brand"
     ]
   },
   {

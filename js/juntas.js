@@ -23,6 +23,8 @@ const modalTitle = document.getElementById("modalCrearJuntaLabel");
 const submitBtn = document.getElementById("submitBtn");
 const juntaIdInput = document.getElementById("juntaId");
 const passwordField = document.getElementById("passwordField");
+const usuarioInput = document.getElementById("usuario");
+const JUNTA_USUARIO_PREFIX = "jvl_";
 let provinciaAyuntamiento = null;
 let municipioAyuntamiento = null;
 const municipiosSelect = document.getElementById("municipio");
@@ -30,6 +32,50 @@ const provinciaSelect = document.getElementById("provincia");
 
 function usuarioAEmailInterno(usuario) {
   return String(usuario || "").trim().toLowerCase().replace(/[^a-z0-9_]/g, "") + "@gecom.internal";
+}
+
+function asegurarPrefijoUsuario(usuario, prefijo) {
+  const normalizado = String(usuario || "").trim().toLowerCase();
+  if (!normalizado) return prefijo;
+  return normalizado.startsWith(prefijo) ? normalizado : `${prefijo}${normalizado}`;
+}
+
+function inicializarUsuarioConPrefijo() {
+  if (!usuarioInput || juntaIdInput.value) return;
+  usuarioInput.value = asegurarPrefijoUsuario(usuarioInput.value, JUNTA_USUARIO_PREFIX);
+}
+
+function protegerPrefijoUsuario() {
+  if (!usuarioInput) return;
+
+  usuarioInput.addEventListener("input", () => {
+    if (juntaIdInput.value) return;
+    const valorActual = usuarioInput.value;
+    const valorConPrefijo = asegurarPrefijoUsuario(valorActual, JUNTA_USUARIO_PREFIX);
+    if (valorActual !== valorConPrefijo) {
+      const cursor = usuarioInput.selectionStart || valorConPrefijo.length;
+      usuarioInput.value = valorConPrefijo;
+      const nuevaPosicion = Math.max(JUNTA_USUARIO_PREFIX.length, cursor);
+      usuarioInput.setSelectionRange(nuevaPosicion, nuevaPosicion);
+    }
+  });
+
+  usuarioInput.addEventListener("keydown", (event) => {
+    if (juntaIdInput.value) return;
+    const cursor = usuarioInput.selectionStart || 0;
+    const seleccion = (usuarioInput.selectionEnd || 0) - cursor;
+    const quiereBorrarPrefijo =
+      (event.key === "Backspace" && cursor <= JUNTA_USUARIO_PREFIX.length && seleccion === 0) ||
+      (event.key === "Delete" && cursor < JUNTA_USUARIO_PREFIX.length);
+    if (quiereBorrarPrefijo) {
+      event.preventDefault();
+    }
+  });
+
+  usuarioInput.addEventListener("focus", () => {
+    if (juntaIdInput.value) return;
+    inicializarUsuarioConPrefijo();
+  });
 }
 
 function generarContrasenaTemporal(length = 12) {
@@ -156,16 +202,20 @@ window.addEventListener("DOMContentLoaded", async () => {
     modalTitle.textContent = "Crear Junta de Vecinos";
     submitBtn.textContent = "Guardar";
     passwordField.style.display = "block";
+    inicializarUsuarioConPrefijo();
     clearModalAlert();
   });
 
   modalElement.addEventListener("show.bs.modal", async () => {
+    inicializarUsuarioConPrefijo();
     if (rolLocal === "ayuntamiento") {
       await bloquearUbicacionAyuntamiento();
       return;
     }
     await cargarMunicipiosDesdeFirestore(provinciaSelect ? provinciaSelect.value : "");
   });
+
+  protegerPrefijoUsuario();
 });
 
 form.addEventListener("submit", async (event) => {
@@ -174,7 +224,10 @@ form.addEventListener("submit", async (event) => {
   
   const juntaId = juntaIdInput.value;
   const nombre = document.getElementById("nombre").value.trim();
-  const usuario = document.getElementById("usuario").value.trim();
+  const usuarioIngresado = document.getElementById("usuario").value.trim();
+  const usuario = juntaId
+    ? usuarioIngresado
+    : asegurarPrefijoUsuario(usuarioIngresado, JUNTA_USUARIO_PREFIX);
   const emailInterno = usuarioAEmailInterno(usuario);
   const telefono = document.getElementById("telefono").value.trim();
   const comunidad = document.getElementById("comunidad").value.trim();

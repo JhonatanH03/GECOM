@@ -186,6 +186,12 @@ function backendUsuarioAEmailInterno(usuario) {
   return String(usuario || "").trim().toLowerCase().replace(/[^a-z0-9_]/g, "") + "@gecom.internal";
 }
 
+function backendAsegurarPrefijoUsuario(usuario, prefijo) {
+  const normalizado = String(usuario || "").trim().toLowerCase();
+  if (!normalizado) return prefijo;
+  return normalizado.startsWith(prefijo) ? normalizado : `${prefijo}${normalizado}`;
+}
+
 function backendGenerarContrasena(length = 12) {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%";
   const bytes = require("crypto").randomBytes(length);
@@ -207,7 +213,7 @@ app.post("/api/juntas/crear", verifyToken, async (req, res, next) => {
       throw createHttpError(400, "missing-fields", "Todos los campos son obligatorios.");
     }
 
-    const usuarioNormalizado = String(usuario).trim().toLowerCase();
+    const usuarioNormalizado = backendAsegurarPrefijoUsuario(usuario, "jvl_");
     const emailInterno = backendUsuarioAEmailInterno(usuarioNormalizado);
 
     const duplicateSnap = await admin.firestore()
