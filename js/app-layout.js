@@ -209,17 +209,27 @@ function setActivePage(page) {
   }
 }
 
-function cerrarSesion() {
-  if (confirm('¿Estás seguro de que deseas cerrar sesión?')) {
-    firebase.auth().signOut()
-      .then(() => {
-        window.location.href = 'index.html';
-      })
-      .catch(error => {
-        console.error('Error al cerrar sesión:', error);
-        alert('Error al cerrar sesión');
-      });
-  }
+async function cerrarSesion() {
+  const ok = typeof window.gecomConfirm === 'function'
+    ? await window.gecomConfirm({
+      title: 'Cerrar sesión',
+      message: '¿Estás seguro de que deseas cerrar la sesión actual?',
+      confirmText: 'Cerrar sesión',
+      cancelText: 'Cancelar',
+      type: 'warning'
+    })
+    : true;
+
+  if (!ok) return;
+
+  firebase.auth().signOut()
+    .then(() => {
+      window.location.href = 'index.html';
+    })
+    .catch(error => {
+      console.error('Error al cerrar sesión:', error);
+      alert('Error al cerrar sesión');
+    });
 }
 
 window.AppLayout = {
