@@ -25,17 +25,6 @@ const ayuntamientoIdInput = document.getElementById("ayuntamientoId");
 const passwordField = document.getElementById("passwordField");
 const usuarioInput = document.getElementById("usuario");
 const AYUNTAMIENTO_USUARIO_PREFIX = "ayto_";
-const actionModalElement = document.getElementById("modalAccionesAyuntamiento");
-const actionModal = actionModalElement ? new bootstrap.Modal(actionModalElement) : null;
-const actionAyuntamientoIdInput = document.getElementById("actionAyuntamientoId");
-const actionAyuntamientoNombre = document.getElementById("actionAyuntamientoNombre");
-
-function openActionModal(id, nombre) {
-  if (!actionModal || !actionAyuntamientoIdInput || !actionAyuntamientoNombre) return;
-  actionAyuntamientoIdInput.value = id || "";
-  actionAyuntamientoNombre.textContent = nombre || "-";
-  actionModal.show();
-}
 
 function usuarioAEmailInterno(usuario) {
   return String(usuario || "").trim().toLowerCase().replace(/[^a-z0-9_]/g, "") + "@gecom.internal";
@@ -127,14 +116,6 @@ window.addEventListener("DOMContentLoaded", async () => {
   });
 
   protegerPrefijoUsuario();
-
-  ayuntamientosBody.addEventListener("click", (event) => {
-    const btn = event.target.closest(".gecom-open-actions-btn");
-    if (!btn) return;
-    const id = btn.dataset.id || "";
-    const nombre = decodeURIComponent(btn.dataset.nombre || "");
-    openActionModal(id, nombre);
-  });
 });
 
 form.addEventListener("submit", async (event) => {
@@ -268,6 +249,30 @@ async function cargarAyuntamientos() {
       const label = data.estado ? "Activo" : "Inactivo";
       const estadoClass = data.estado ? "status-resuelta" : "status-pendiente";
       const chipIcon = data.estado ? "bi-check-circle-fill" : "bi-x-circle-fill";
+      const accionesHtml = `<div class="dropdown">
+            <button class="btn btn-sm gecom-action-menu-btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="bi bi-three-dots-vertical"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end gecom-action-menu">
+              <li>
+                <button class="dropdown-item" type="button" onclick="editarAyuntamiento('${data.id}')">
+                  <i class="bi bi-pencil-fill gecom-action-icon gecom-action-icon--edit"></i>Editar
+                </button>
+              </li>
+              <li>
+                <button class="dropdown-item" type="button" onclick="abrirModalResetContrasenaAyuntamiento('${data.id}', '${escapeHtml(data.nombre)}')">
+                  <i class="bi bi-key-fill gecom-action-icon gecom-action-icon--key"></i>Restablecer contraseña
+                </button>
+              </li>
+              <li><hr class="dropdown-divider"></li>
+              <li>
+                <button class="dropdown-item gecom-action-item--danger" type="button" onclick="eliminarAyuntamiento('${data.id}', '${escapeHtml(data.nombre)}')">
+                  <i class="bi bi-trash-fill gecom-action-icon"></i>Eliminar
+                </button>
+              </li>
+            </ul>
+          </div>`;
+
       ayuntamientosBody.innerHTML += `<tr>
         <td data-label="Nombre">${escapeHtml(data.nombre)}</td>
         <td data-label="Usuario">${escapeHtml(data.usuario || "")}</td>
@@ -277,13 +282,7 @@ async function cargarAyuntamientos() {
         <td data-label="Municipio">${escapeHtml(data.municipio || "")}</td>
         <td data-label="Estado"><span class="status-chip ${estadoClass}"><i class="bi ${chipIcon} chip-icon"></i>${escapeHtml(label)}</span></td>
         <td class="text-center" data-label="Acciones">
-            <button
-              class="btn btn-sm gecom-action-menu-btn gecom-open-actions-btn"
-              type="button"
-              data-id="${escapeHtml(data.id)}"
-              data-nombre="${encodeURIComponent(data.nombre || "")}">
-              <i class="bi bi-three-dots-vertical"></i>
-            </button>
+          ${accionesHtml}
         </td>
       </tr>`;
     });
@@ -358,29 +357,6 @@ window.eliminarAyuntamiento = async function(id, nombre) {
 window.reestablecerContrasenaAyuntamiento = async function(id, nombre) {
   // Legacy — reemplazado por abrirModalResetContrasenaAyuntamiento
   abrirModalResetContrasenaAyuntamiento(id, nombre);
-};
-
-window.accionEditarAyuntamiento = function() {
-  const id = actionAyuntamientoIdInput ? actionAyuntamientoIdInput.value : "";
-  if (!id) return;
-  if (actionModal) actionModal.hide();
-  editarAyuntamiento(id);
-};
-
-window.accionRestablecerAyuntamiento = function() {
-  const id = actionAyuntamientoIdInput ? actionAyuntamientoIdInput.value : "";
-  const nombre = actionAyuntamientoNombre ? actionAyuntamientoNombre.textContent : "";
-  if (!id) return;
-  if (actionModal) actionModal.hide();
-  abrirModalResetContrasenaAyuntamiento(id, nombre || "");
-};
-
-window.accionEliminarAyuntamiento = function() {
-  const id = actionAyuntamientoIdInput ? actionAyuntamientoIdInput.value : "";
-  const nombre = actionAyuntamientoNombre ? actionAyuntamientoNombre.textContent : "";
-  if (!id) return;
-  if (actionModal) actionModal.hide();
-  eliminarAyuntamiento(id, nombre || "");
 };
 
 // ---- Reset contraseña ayuntamiento (modal) ----
