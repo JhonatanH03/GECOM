@@ -1,4 +1,8 @@
 import app from "./firebase.js";
+import {
+  CLOUDINARY_CLOUD_NAME,
+  CLOUDINARY_UPLOAD_PRESET
+} from "./cloudinary.js";
 import { ESTADOS, ESTADO_DEFAULT, debounce, escapeHtml } from "./constants.js";
 import {
   getFirestore,
@@ -24,13 +28,226 @@ const uid = localStorage.getItem("uid");
 let ayuntamientoMunicipio = null;
 let currentDenunciaId = null;
 let estadosFiltroUrl = null;
+let archivosRespuestaSeleccionados = [];
 const detalleModal = new bootstrap.Modal(document.getElementById("detalleModal"));
 
 const ITEMS_POR_PAGINA = 15;
+const MAX_PDF_SIZE_BYTES = 10 * 1024 * 1024;
 let todasLasDenuncias = [];
 let paginaActual = 1;
 let catalogoProvincias = [];
 const municipiosPorProvincia = new Map();
+
+function formatearTamanoArchivo(bytes) {
+  const valor = Number(bytes) || 0;
+  if (valor < 1024) return `${valor} B`;
+  const kb = valor / 1024;
+  if (kb < 1024) return `${kb.toFixed(1)} KB`;
+  return `${(kb / 1024).toFixed(2)} MB`;
+}
+
+function normalizarNombreArchivo(nombre = "") {
+  return String(nombre)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9._-]/g, "_");
+}
+
+function limpiarSeleccionAdjuntos() {
+  archivosRespuestaSeleccionados = [];
+  const input = document.getElementById("respuestaAdjuntosPdf");
+  if (input) input.value = "";
+  renderAdjuntosSeleccionados();
+}
+
+function normalizarAdjuntosRespuesta(data) {
+  const raw = data?.anexos_respuesta_pdf;
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((item) => {
+      if (!item) return null;
+      if (typeof item === "string") {
+        return {
+          nombre: "Adjunto PDF",
+          url: item,
+          ruta_storage: "",
+          tamano: 0,
+          creado_en: null
+        };
+      }
+      return {
+        nombre: item.nombre || "Adjunto PDF",
+        url: item.url || "",
+        ruta_storage: item.ruta_storage || "",
+        tamano: Number(item.tamano) || 0,
+        creado_en: item.creado_en || null
+      };
+    })
+    .filter((item) => item && item.url);
+}
+
+function renderAdjuntosRespuestaExistentes(data) {
+  const container = document.getElementById("detalleAdjuntosRespuesta");
+  if (!container) return;
+
+  const anexos = normalizarAdjuntosRespuesta(data);
+  if (!anexos.length) {
+    container.innerHTML = '<p class="text-muted mb-0">Sin anexos PDF.</p>';
+    return;
+  }
+
+  container.innerHTML = anexos
+    .map((anexo, index) => {
+      const nombre = escapeHtml(anexo.nombre || `Adjunto ${index + 1}`);
+      const url = escapeHtml(anexo.url);
+      const tamano = anexo.tamano ? ` <span class="text-muted">(${escapeHtml(formatearTamanoArchivo(anexo.tamano))})</span>` : "";
+      return `
+        <div class="py-2 border-bottom" style="border-color: var(--gecom-stroke) !important;">
+          <div class="small text-break mb-2" style="line-height: 1.3;">
+            <i class="bi bi-file-earmark-pdf-fill text-danger me-1"></i>${nombre}${tamano}
+          </div>
+          <div class="d-flex gap-1 flex-wrap">
+            <a class="btn btn-sm btn-outline-primary" href="${url}" target="_blank" rel="noopener">Abrir</a>
+            <button type="button" class="btn btn-sm btn-outline-danger" data-pdf-download-url="${url}" data-pdf-download-name="${nombre}">
+              Descargar
+            </button>
+          </div>
+        </div>
+      `;
+    })
+    .join("");
+}
+
+async function descargarAdjuntoPdf(url, nombreArchivo = "adjunto.pdf") {
+  try {
+    const response = await fetch(url, { mode: "cors" });
+    if (!response.ok) {
+      throw new Error("No se pudo descargar el archivo.");
+    }
+
+    const blob = await response.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    const enlace = document.createElement("a");
+    enlace.href = objectUrl;
+    enlace.download = nombreArchivo || "adjunto.pdf";
+    document.body.appendChild(enlace);
+    enlace.click();
+    document.body.removeChild(enlace);
+    URL.revokeObjectURL(objectUrl);
+  } catch (error) {
+    console.warn("Fallo descarga directa, se abrira el PDF en una nueva pestana:", error);
+    window.open(url, "_blank", "noopener");
+  }
+}
+
+function renderAdjuntosSeleccionados() {
+  const container = document.getElementById("respuestaAdjuntosPreview");
+  if (!container) return;
+
+  if (!archivosRespuestaSeleccionados.length) {
+    container.innerHTML = '<p class="text-muted mb-0">No has seleccionado PDFs.</p>';
+    return;
+  }
+
+  container.innerHTML = archivosRespuestaSeleccionados
+    .map((item) => {
+      const nombre = escapeHtml(item.archivo.name || "archivo.pdf");
+      const tamano = escapeHtml(formatearTamanoArchivo(item.archivo.size));
+      return `
+        <div class="d-flex justify-content-between align-items-center gap-2 py-1 border-bottom" style="border-color: var(--gecom-stroke) !important;">
+          <span class="text-truncate"><i class="bi bi-file-earmark-pdf-fill text-danger me-1"></i>${nombre} <span class="text-muted">(${tamano})</span></span>
+          <button type="button" class="btn btn-sm btn-outline-danger" data-remove-pdf-id="${item.id}">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+      `;
+    })
+    .join("");
+}
+
+function agregarArchivosPdfAdjuntos(fileList) {
+  const archivos = Array.from(fileList || []);
+  if (!archivos.length) return;
+
+  const errores = [];
+  const existentes = new Set(
+    archivosRespuestaSeleccionados.map((item) => `${item.archivo.name}__${item.archivo.size}__${item.archivo.lastModified}`)
+  );
+
+  archivos.forEach((archivo) => {
+    const esPdfMime = String(archivo.type || "").toLowerCase() === "application/pdf";
+    const esPdfExt = String(archivo.name || "").toLowerCase().endsWith(".pdf");
+    if (!esPdfMime && !esPdfExt) {
+      errores.push(`${archivo.name}: formato no permitido.`);
+      return;
+    }
+    if ((archivo.size || 0) > MAX_PDF_SIZE_BYTES) {
+      errores.push(`${archivo.name}: supera 10 MB.`);
+      return;
+    }
+    const clave = `${archivo.name}__${archivo.size}__${archivo.lastModified}`;
+    if (existentes.has(clave)) return;
+    existentes.add(clave);
+    archivosRespuestaSeleccionados.push({
+      id: `${Date.now()}_${Math.random().toString(16).slice(2)}`,
+      archivo
+    });
+  });
+
+  renderAdjuntosSeleccionados();
+  if (errores.length) {
+    mostrarModalFeedback(errores.join(" "), "warning");
+  }
+}
+
+async function subirPdfRespuesta(archivo, denunciaId) {
+  if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_UPLOAD_PRESET) {
+    throw new Error("Cloudinary no esta configurado.");
+  }
+
+  const timestamp = Date.now();
+  const nombreSeguro = normalizarNombreArchivo(archivo.name || `adjunto_${timestamp}.pdf`);
+  const endpoint = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`;
+
+  const formData = new FormData();
+  formData.append("file", archivo);
+  formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
+  formData.append("folder", `denuncias/${denunciaId}/respuestas`);
+  formData.append("public_id", `${timestamp}_${nombreSeguro}`);
+
+  const url = await new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", endpoint);
+    xhr.timeout = 45000;
+
+    xhr.addEventListener("load", () => {
+      try {
+        const data = JSON.parse(xhr.responseText || "{}");
+        if (xhr.status < 200 || xhr.status >= 300 || !data.secure_url) {
+          reject(new Error(data?.error?.message || "No se pudo subir el PDF."));
+          return;
+        }
+        resolve(data.secure_url);
+      } catch {
+        reject(new Error("Respuesta inesperada al subir PDF."));
+      }
+    });
+
+    xhr.addEventListener("error", () => reject(new Error("Error de red al subir PDF.")));
+    xhr.addEventListener("timeout", () => reject(new Error("Tiempo de espera agotado al subir PDF.")));
+    xhr.addEventListener("abort", () => reject(new Error("Subida de PDF cancelada.")));
+
+    xhr.send(formData);
+  });
+
+  return {
+    nombre: archivo.name || "Adjunto PDF",
+    url,
+    ruta_storage: "",
+    tamano: archivo.size || 0,
+    creado_en: new Date().toISOString()
+  };
+}
 
 function ordenarEs(lista) {
   return lista.sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }));
@@ -223,6 +440,7 @@ async function crearEntradaHistorial(denunciaId, denunciaData, actualizacion) {
     plazo_estimado: actualizacion.plazo_estimado || "",
     presupuesto_estimado: actualizacion.presupuesto_estimado || "",
     respuesta: actualizacion.respuesta_ayuntamiento || "",
+    anexos_respuesta_pdf: normalizarAdjuntosRespuesta(actualizacion),
     ayuntamientoId: uid,
     createdAt: serverTimestamp()
   });
@@ -230,11 +448,16 @@ async function crearEntradaHistorial(denunciaId, denunciaData, actualizacion) {
 
 function hubosCambiosEnRespuesta(denunciaActual, actualizacion) {
   if (!denunciaActual) return true;
+
+  const anexosActuales = normalizarAdjuntosRespuesta(denunciaActual);
+  const anexosNuevos = normalizarAdjuntosRespuesta(actualizacion);
+
   return (
     (denunciaActual.estado || ESTADO_DEFAULT) !== actualizacion.estado ||
     (denunciaActual.respuesta_ayuntamiento || "") !== actualizacion.respuesta_ayuntamiento ||
     (denunciaActual.plazo_estimado || "") !== actualizacion.plazo_estimado ||
-    (denunciaActual.presupuesto_estimado || "") !== actualizacion.presupuesto_estimado
+    (denunciaActual.presupuesto_estimado || "") !== actualizacion.presupuesto_estimado ||
+    anexosActuales.length !== anexosNuevos.length
   );
 }
 
@@ -255,6 +478,7 @@ function mostrarDetalleDenuncia(data, id) {
   document.getElementById("detallePlazo").textContent = data.plazo_estimado || "No asignado";
   document.getElementById("detallePresupuesto").textContent = data.presupuesto_estimado || "No asignado";
   document.getElementById("detalleRespuesta").textContent = data.respuesta_ayuntamiento || "Sin respuesta oficial aún";
+  renderAdjuntosRespuestaExistentes(data);
 
   const evidenciaContainer = document.getElementById("detalleEvidencia");
   evidenciaContainer.innerHTML = "";
@@ -314,6 +538,7 @@ function mostrarDetalleDenuncia(data, id) {
     document.getElementById("respuestaPlazo").value = data.plazo_estimado || "";
     document.getElementById("respuestaPresupuesto").value = data.presupuesto_estimado || "";
     document.getElementById("respuestaTexto").value = data.respuesta_ayuntamiento || "";
+    limpiarSeleccionAdjuntos();
   } else {
     responseSection.classList.add("d-none");
   }
@@ -635,6 +860,7 @@ async function responderDenuncia(event) {
   const plazo = document.getElementById("respuestaPlazo").value.trim();
   const presupuesto = document.getElementById("respuestaPresupuesto").value.trim();
   const respuesta = document.getElementById("respuestaTexto").value.trim();
+  const submitBtn = document.querySelector("#detalleForm button[type='submit']");
 
   if (estado === "Rechazada") {
     if (!respuesta) {
@@ -648,11 +874,27 @@ async function responderDenuncia(event) {
 
   try {
     const denunciaActual = todasLasDenuncias.find((item) => item.id === currentDenunciaId)?.data;
+    const anexosExistentes = normalizarAdjuntosRespuesta(denunciaActual);
+    let anexosNuevos = [];
+
+    if (archivosRespuestaSeleccionados.length) {
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Subiendo PDFs...';
+      }
+      for (const item of archivosRespuestaSeleccionados) {
+        const anexo = await subirPdfRespuesta(item.archivo, currentDenunciaId);
+        anexosNuevos.push(anexo);
+      }
+    }
+
+    const anexosRespuesta = [...anexosExistentes, ...anexosNuevos];
     const actualizacion = {
       estado,
       plazo_estimado: plazo,
       presupuesto_estimado: presupuesto,
       respuesta_ayuntamiento: respuesta,
+      anexos_respuesta_pdf: anexosRespuesta,
       fecha_respuesta: new Date(),
       ayuntamiento_id: uid
     };
@@ -680,6 +922,7 @@ async function responderDenuncia(event) {
       }
     }
     mostrarModalFeedback("Respuesta guardada correctamente.", "success");
+    limpiarSeleccionAdjuntos();
     detalleModal.hide();
     await cargarDenuncias();
     const paginaFeedback = document.getElementById("paginaFeedback");
@@ -693,6 +936,11 @@ async function responderDenuncia(event) {
   } catch (error) {
     console.error("Error guardando respuesta:", error);
     mostrarModalFeedback("No se pudo guardar la respuesta. Intenta nuevamente.", "danger");
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = '<i class="bi bi-check-circle"></i> Guardar respuesta';
+    }
   }
 }
 
@@ -770,6 +1018,26 @@ async function init() {
     }, 300));
   }
   document.getElementById("detalleForm").addEventListener("submit", responderDenuncia);
+  document.getElementById("respuestaAdjuntosPdf")?.addEventListener("change", (event) => {
+    agregarArchivosPdfAdjuntos(event.target.files);
+    event.target.value = "";
+  });
+  document.getElementById("respuestaAdjuntosPreview")?.addEventListener("click", (event) => {
+    const btn = event.target.closest("[data-remove-pdf-id]");
+    if (!btn) return;
+    const id = String(btn.getAttribute("data-remove-pdf-id") || "");
+    archivosRespuestaSeleccionados = archivosRespuestaSeleccionados.filter((item) => String(item.id) !== id);
+    renderAdjuntosSeleccionados();
+  });
+  document.getElementById("detalleAdjuntosRespuesta")?.addEventListener("click", (event) => {
+    const btn = event.target.closest("[data-pdf-download-url]");
+    if (!btn) return;
+    const url = String(btn.getAttribute("data-pdf-download-url") || "").trim();
+    const nombre = String(btn.getAttribute("data-pdf-download-name") || "adjunto.pdf").trim();
+    if (!url) return;
+    descargarAdjuntoPdf(url, nombre);
+  });
+  renderAdjuntosSeleccionados();
   document.getElementById("btnDescargarDetalle")?.addEventListener("click", descargarDenunciaSeleccionada);
 
   const params = new URLSearchParams(window.location.search);
