@@ -238,21 +238,36 @@
                   </div>
                   <div class="mb-3" id="wrapPlazo">
                     <label class="form-label">Tiempo estimado</label>
-                    <input type="text" id="respuestaPlazo" class="form-control" placeholder="Ej. 7 días">
+                    <div class="input-group">
+                      <input type="text" id="respuestaPlazo" class="form-control" inputmode="numeric" autocomplete="off" placeholder="Ej. 7">
+                      <select id="respuestaPlazoUnidad" class="form-select" style="max-width: 130px;" aria-label="Unidad de tiempo estimado">
+                        <option value="horas">Horas</option>
+                        <option value="dias" selected>Dias</option>
+                        <option value="semanas">Semanas</option>
+                        <option value="meses">Meses</option>
+                        <option value="anos">Años</option>
+                      </select>
+                    </div>
                   </div>
                   <div class="mb-3" id="wrapPresupuesto">
                     <label class="form-label">Presupuesto estimado</label>
-                    <input type="text" id="respuestaPresupuesto" class="form-control" placeholder="Ej. RD$ 12,000">
-                  </div>
-                  <div class="mb-3">
-                    <label class="form-label">Respuesta oficial</label>
-                    <textarea id="respuestaTexto" class="form-control" rows="4" placeholder="Describe cómo se atenderá la denuncia" required></textarea>
+                    <div class="input-group">
+                      <select id="respuestaMoneda" class="form-select" style="max-width: 110px;" aria-label="Moneda presupuesto">
+                        <option value="RD$" selected>RD$</option>
+                        <option value="US$">US$</option>
+                      </select>
+                      <input type="text" id="respuestaPresupuesto" class="form-control" inputmode="numeric" autocomplete="off" placeholder="Ej. 12,000">
+                    </div>
                   </div>
                   <div class="mb-3">
                     <label class="form-label">Anexar PDFs</label>
                     <input type="file" id="respuestaAdjuntosPdf" class="form-control" accept="application/pdf,.pdf" multiple>
                     <div class="form-text">Puedes adjuntar uno o varios archivos PDF (max. 10 MB por archivo).</div>
                     <div id="respuestaAdjuntosPreview" class="mt-2"></div>
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label">Respuesta oficial</label>
+                    <textarea id="respuestaTexto" class="form-control" rows="4" placeholder="Describe cómo se atenderá la denuncia" required></textarea>
                   </div>
                   <button type="submit" class="btn btn-primary w-100">
                     <i class="bi bi-check-circle"></i> Guardar respuesta
@@ -289,7 +304,9 @@
       const wrapPlazo = document.getElementById("wrapPlazo");
       const wrapPresupuesto = document.getElementById("wrapPresupuesto");
       const plazo = document.getElementById("respuestaPlazo");
+      const plazoUnidad = document.getElementById("respuestaPlazoUnidad");
       const presupuesto = document.getElementById("respuestaPresupuesto");
+      const moneda = document.getElementById("respuestaMoneda");
       const respuestaTexto = document.getElementById("respuestaTexto");
       if (!estado) return;
       const esRechazo = estado.value === "Rechazada";
@@ -299,7 +316,9 @@
       presupuesto.required = !esRechazo;
       if (esRechazo) {
         plazo.value = "";
+        if (plazoUnidad) plazoUnidad.value = "dias";
         presupuesto.value = "";
+        if (moneda) moneda.value = "RD$";
         respuestaTexto.placeholder = "Explica el motivo del rechazo";
       } else {
         respuestaTexto.placeholder = "Describe cómo se atenderá la denuncia";

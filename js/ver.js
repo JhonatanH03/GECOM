@@ -46,6 +46,133 @@ function formatearTamanoArchivo(bytes) {
   return `${(kb / 1024).toFixed(2)} MB`;
 }
 
+function formatearMontoMiles(valor) {
+  const soloDigitos = String(valor || "").replace(/\D/g, "");
+  if (!soloDigitos) return "";
+  return soloDigitos.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+const UNIDADES_PLAZO = {
+  horas: { singular: "hora", plural: "horas" },
+  dias: { singular: "dia", plural: "dias" },
+  semanas: { singular: "semana", plural: "semanas" },
+  meses: { singular: "mes", plural: "meses" },
+  anos: { singular: "año", plural: "años" }
+};
+
+function detectarUnidadPlazo(texto) {
+  const base = String(texto || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+
+  if (base.includes("hora")) return "horas";
+  if (base.includes("semana")) return "semanas";
+  if (base.includes("mes")) return "meses";
+  if (base.includes("ano") || base.includes("anos")) return "anos";
+  return "dias";
+}
+
+function parsearPlazoGuardado(valor) {
+  const texto = String(valor || "").trim();
+  if (!texto) {
+    return { unidad: "dias", monto: "", montoFormateado: "" };
+  }
+
+  const unidad = detectarUnidadPlazo(texto);
+  const monto = texto.replace(/\D/g, "");
+  return {
+    unidad,
+    monto,
+    montoFormateado: formatearMontoMiles(monto)
+  };
+}
+
+function obtenerPlazoFormateadoParaGuardar() {
+  const inputMonto = document.getElementById("respuestaPlazo");
+  const selectUnidad = document.getElementById("respuestaPlazoUnidad");
+
+  const monto = String(inputMonto?.value || "").replace(/\D/g, "");
+  if (!monto) {
+    if (inputMonto) inputMonto.value = "";
+    return "";
+  }
+
+  const montoFormateado = formatearMontoMiles(monto);
+  if (inputMonto) inputMonto.value = montoFormateado;
+
+  const unidadKey = UNIDADES_PLAZO[selectUnidad?.value] ? selectUnidad.value : "dias";
+  const unidadTexto = Number(monto) === 1
+    ? UNIDADES_PLAZO[unidadKey].singular
+    : UNIDADES_PLAZO[unidadKey].plural;
+
+  return `${montoFormateado} ${unidadTexto}`;
+}
+
+function inicializarCampoPlazo() {
+  const inputMonto = document.getElementById("respuestaPlazo");
+  const selectUnidad = document.getElementById("respuestaPlazoUnidad");
+  if (!inputMonto || !selectUnidad) return;
+
+  const formatearEnCampo = () => {
+    inputMonto.value = formatearMontoMiles(inputMonto.value);
+  };
+
+  inputMonto.addEventListener("input", formatearEnCampo);
+  inputMonto.addEventListener("blur", formatearEnCampo);
+  inputMonto.addEventListener("paste", () => {
+    setTimeout(formatearEnCampo, 0);
+  });
+}
+
+function parsearPresupuestoGuardado(valor) {
+  const texto = String(valor || "").trim();
+  if (!texto) {
+    return { moneda: "RD$", monto: "", montoFormateado: "" };
+  }
+
+  const moneda = /\bUS\$|\bUSD|\bUS\b/i.test(texto) ? "US$" : "RD$";
+  const monto = texto.replace(/\D/g, "");
+  return {
+    moneda,
+    monto,
+    montoFormateado: formatearMontoMiles(monto)
+  };
+}
+
+function obtenerPresupuestoFormateadoParaGuardar() {
+  const inputMonto = document.getElementById("respuestaPresupuesto");
+  const selectMoneda = document.getElementById("respuestaMoneda");
+
+  const monto = String(inputMonto?.value || "").replace(/\D/g, "");
+  if (!monto) {
+    if (inputMonto) inputMonto.value = "";
+    return "";
+  }
+
+  const montoFormateado = formatearMontoMiles(monto);
+  if (inputMonto) inputMonto.value = montoFormateado;
+
+  const moneda = selectMoneda?.value === "US$" ? "US$" : "RD$";
+  return `${moneda} ${montoFormateado}`;
+}
+
+function inicializarCampoPresupuesto() {
+  const inputMonto = document.getElementById("respuestaPresupuesto");
+  const selectMoneda = document.getElementById("respuestaMoneda");
+  if (!inputMonto || !selectMoneda) return;
+
+  const formatearEnCampo = () => {
+    inputMonto.value = formatearMontoMiles(inputMonto.value);
+  };
+
+  inputMonto.addEventListener("input", formatearEnCampo);
+  inputMonto.addEventListener("blur", formatearEnCampo);
+  inputMonto.addEventListener("paste", () => {
+    setTimeout(formatearEnCampo, 0);
+  });
+}
+
 function normalizarNombreArchivo(nombre = "") {
   return String(nombre)
     .normalize("NFD")
@@ -532,8 +659,16 @@ function mostrarDetalleDenuncia(data, id) {
   if (rol === "ayuntamiento") {
     responseSection.classList.remove("d-none");
     document.getElementById("respuestaEstado").value = data.estado || "Pendiente";
-    document.getElementById("respuestaPlazo").value = data.plazo_estimado || "";
-    document.getElementById("respuestaPresupuesto").value = data.presupuesto_estimado || "";
+    const plazo = parsearPlazoGuardado(data.plazo_estimado || "");
+    const selectPlazoUnidad = document.getElementById("respuestaPlazoUnidad");
+    const inputPlazo = document.getElementById("respuestaPlazo");
+    if (selectPlazoUnidad) selectPlazoUnidad.value = plazo.unidad;
+    if (inputPlazo) inputPlazo.value = plazo.montoFormateado;
+    const presupuesto = parsearPresupuestoGuardado(data.presupuesto_estimado || "");
+    const selectMoneda = document.getElementById("respuestaMoneda");
+    const inputMonto = document.getElementById("respuestaPresupuesto");
+    if (selectMoneda) selectMoneda.value = presupuesto.moneda;
+    if (inputMonto) inputMonto.value = presupuesto.montoFormateado;
     document.getElementById("respuestaTexto").value = data.respuesta_ayuntamiento || "";
     limpiarSeleccionAdjuntos();
   } else {
@@ -708,7 +843,46 @@ async function descargarDenunciaSeleccionada() {
   const { jsPDF } = window.jspdf;
   const docPdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   const pageW = docPdf.internal.pageSize.getWidth();
+  const pageH = docPdf.internal.pageSize.getHeight();
+  const margenX = 14;
+  const margenInferior = 12;
   const fechaHoy = new Date().toLocaleDateString("es-DO", { year: "numeric", month: "long", day: "numeric" });
+
+  const agregarPieEnTodasLasPaginas = () => {
+    const totalPaginas = docPdf.getNumberOfPages();
+    for (let i = 1; i <= totalPaginas; i += 1) {
+      docPdf.setPage(i);
+      docPdf.setFont("helvetica", "normal");
+      docPdf.setFontSize(8);
+      docPdf.setTextColor(160, 160, 160);
+      docPdf.text("GECOM - Gestion Comunitaria", margenX, pageH - 8);
+      docPdf.text(fechaHoy, pageW - margenX, pageH - 8, { align: "right" });
+    }
+  };
+
+  const cargarImagenParaPdf = async (url) => {
+    try {
+      const response = await fetch(url, { mode: "cors" });
+      if (!response.ok) return null;
+      const blob = await response.blob();
+
+      const dataUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error("No se pudo leer la imagen."));
+        reader.readAsDataURL(blob);
+      });
+
+      const mime = String(blob.type || "").toLowerCase();
+      let formato = "JPEG";
+      if (mime.includes("png")) formato = "PNG";
+      else if (mime.includes("webp")) formato = "WEBP";
+
+      return { dataUrl, formato };
+    } catch {
+      return null;
+    }
+  };
 
   // ── Cabecera ──
   docPdf.setFillColor(18, 48, 74);
@@ -758,15 +932,81 @@ async function descargarDenunciaSeleccionada() {
   docPdf.text("Descripción", 14, afterTable);
   docPdf.setFont("helvetica", "normal");
   docPdf.setFontSize(9.5);
-  const desc = docPdf.splitTextToSize(data.descripcion || "Sin descripción.", pageW - 28);
+  const desc = docPdf.splitTextToSize(data.descripcion || "Sin descripcion.", pageW - 28);
   docPdf.text(desc, 14, afterTable + 6);
 
+  let cursorY = afterTable + 6 + (desc.length * 4.2) + 6;
+
+  const evidencias = Array.isArray(data.evidencias) && data.evidencias.length
+    ? data.evidencias.filter(Boolean)
+    : (data.evidencia ? [data.evidencia] : []);
+
+  if (evidencias.length) {
+    if (cursorY > pageH - 70) {
+      docPdf.addPage();
+      cursorY = 20;
+    }
+
+    docPdf.setFont("helvetica", "bold");
+    docPdf.setFontSize(10);
+    docPdf.setTextColor(30, 30, 30);
+    docPdf.text("Evidencias fotograficas", margenX, cursorY);
+    cursorY += 6;
+
+    for (let i = 0; i < evidencias.length; i += 1) {
+      const url = String(evidencias[i] || "").trim();
+      if (!url) continue;
+
+      const imagen = await cargarImagenParaPdf(url);
+      if (!imagen) {
+        docPdf.setFont("helvetica", "normal");
+        docPdf.setFontSize(9);
+        docPdf.setTextColor(120, 120, 120);
+        docPdf.text(`Evidencia ${i + 1}: no se pudo incrustar la imagen.`, margenX, cursorY);
+        cursorY += 6;
+        continue;
+      }
+
+      if (cursorY > pageH - 95) {
+        docPdf.addPage();
+        cursorY = 20;
+      }
+
+      docPdf.setFont("helvetica", "normal");
+      docPdf.setFontSize(9);
+      docPdf.setTextColor(80, 80, 80);
+      docPdf.text(`Evidencia ${i + 1}`, margenX, cursorY);
+      cursorY += 3;
+
+      const maxW = pageW - (margenX * 2);
+      const maxH = 78;
+
+      try {
+        const props = docPdf.getImageProperties(imagen.dataUrl);
+        const escala = Math.min(maxW / props.width, maxH / props.height);
+        const drawW = props.width * escala;
+        const drawH = props.height * escala;
+        const x = (pageW - drawW) / 2;
+
+        docPdf.addImage(imagen.dataUrl, imagen.formato, x, cursorY, drawW, drawH);
+        cursorY += drawH + 8;
+      } catch {
+        docPdf.setFont("helvetica", "normal");
+        docPdf.setFontSize(9);
+        docPdf.setTextColor(120, 120, 120);
+        docPdf.text(`Evidencia ${i + 1}: formato no compatible para PDF.`, margenX, cursorY + 4);
+        cursorY += 10;
+      }
+
+      if (cursorY > pageH - margenInferior) {
+        docPdf.addPage();
+        cursorY = 20;
+      }
+    }
+  }
+
   // ── Pie de página ──
-  docPdf.setFont("helvetica", "normal");
-  docPdf.setFontSize(8);
-  docPdf.setTextColor(160, 160, 160);
-  docPdf.text("GECOM — Gestión Comunitaria", 14, docPdf.internal.pageSize.getHeight() - 8);
-  docPdf.text(fechaHoy, pageW - 14, docPdf.internal.pageSize.getHeight() - 8, { align: "right" });
+  agregarPieEnTodasLasPaginas();
 
   // Abrir PDF en nueva pestaña (evita problema de modales apilados con Bootstrap)
   const blobUrl = docPdf.output("bloburl");
@@ -854,8 +1094,8 @@ async function responderDenuncia(event) {
   }
 
   const estado = document.getElementById("respuestaEstado").value;
-  const plazo = document.getElementById("respuestaPlazo").value.trim();
-  const presupuesto = document.getElementById("respuestaPresupuesto").value.trim();
+  const plazo = obtenerPlazoFormateadoParaGuardar();
+  const presupuesto = obtenerPresupuestoFormateadoParaGuardar();
   const respuesta = document.getElementById("respuestaTexto").value.trim();
   const submitBtn = document.querySelector("#detalleForm button[type='submit']");
 
@@ -1036,6 +1276,8 @@ async function init() {
   });
   renderAdjuntosSeleccionados();
   document.getElementById("btnDescargarDetalle")?.addEventListener("click", descargarDenunciaSeleccionada);
+  inicializarCampoPlazo();
+  inicializarCampoPresupuesto();
 
   const params = new URLSearchParams(window.location.search);
   const denunciaIdParam = params.get("denuncia");

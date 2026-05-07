@@ -763,7 +763,6 @@ if (!uid || !rolLocal) {
 
   if (rolLocal === "ayuntamiento") {
     document.getElementById("cardAyunt").style.display = "block";
-    document.getElementById("cardCrearDenunciaAyunt").style.display = "block";
   }
 
   // Esperar a que Firebase Auth restaure la sesión antes de iniciar el listener
