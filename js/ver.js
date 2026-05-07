@@ -107,10 +107,7 @@ function renderAdjuntosRespuestaExistentes(data) {
             <i class="bi bi-file-earmark-pdf-fill text-danger me-1"></i>${nombre}${tamano}
           </div>
           <div class="d-flex gap-1 flex-wrap">
-            <a class="btn btn-sm btn-outline-primary" href="${url}" target="_blank" rel="noopener">Abrir</a>
-            <button type="button" class="btn btn-sm btn-outline-danger" data-pdf-download-url="${url}" data-pdf-download-name="${nombre}">
-              Descargar
-            </button>
+            <a class="btn btn-sm btn-outline-primary" href="${url}" target="_blank" rel="noopener">Descargar</a>
           </div>
         </div>
       `;
