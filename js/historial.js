@@ -44,6 +44,35 @@ function convertirAFecha(ts) {
   return null;
 }
 
+function normalizarAdjuntosRespuesta(raw) {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((item) => {
+      if (!item) return null;
+      if (typeof item === "string") {
+        return { nombre: "Adjunto PDF", url: item };
+      }
+      return {
+        nombre: item.nombre || "Adjunto PDF",
+        url: item.url || ""
+      };
+    })
+    .filter((item) => item && item.url);
+}
+
+function renderizarAdjuntosHtml(raw) {
+  const anexos = normalizarAdjuntosRespuesta(raw);
+  if (!anexos.length) return "";
+
+  const enlaces = anexos.map((anexo, idx) => {
+    const nombre = escapeHtml(anexo.nombre || `PDF ${idx + 1}`);
+    const url = escapeHtml(anexo.url);
+    return `<a href="${url}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary mt-1 me-1"><i class="bi bi-file-earmark-pdf-fill me-1"></i>${nombre}</a>`;
+  }).join("");
+
+  return `<div class="mt-2">${enlaces}</div>`;
+}
+
 function resetPaginacion() {
   paginaActual = 1;
   iniciosDePagina.length = 1;
@@ -218,6 +247,7 @@ function renderizarTabla(entries) {
     }[data.estado] || "bi-hourglass-split";
 
     const fila = document.createElement("tr");
+    const anexosHtml = renderizarAdjuntosHtml(data.anexos_respuesta_pdf);
     fila.innerHTML = `
       <td class="small text-nowrap" data-label="Fecha">${escapeHtml(fechaTexto)}</td>
       <td data-label="Denuncia">
@@ -230,7 +260,7 @@ function renderizarTabla(entries) {
       <td data-label="Estado"><span class="status-chip ${estadoClass}"><i class="bi ${chipIcon} chip-icon"></i>${escapeHtml(data.estado || "—")}</span></td>
       <td data-label="Plazo estimado">${escapeHtml(data.plazo_estimado || "—")}</td>
       <td data-label="Presupuesto">${escapeHtml(data.presupuesto_estimado || "—")}</td>
-      <td class="small" data-label="Respuesta del Ayuntamiento">${escapeHtml(data.respuesta || "—")}</td>
+      <td class="small" data-label="Respuesta del Ayuntamiento">${escapeHtml(data.respuesta || "—")}${anexosHtml}</td>
     `;
     tabla.appendChild(fila);
   });

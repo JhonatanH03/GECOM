@@ -215,6 +215,10 @@
                     <span style="color: var(--gecom-subtext); font-size: 0.85rem; font-weight: 700;">Respuesta Oficial</span>
                     <p id="detalleRespuesta" style="margin: 0.5rem 0 0;"></p>
                   </div>
+                  <div>
+                    <span style="color: var(--gecom-subtext); font-size: 0.85rem; font-weight: 700;">Anexos PDF</span>
+                    <div id="detalleAdjuntosRespuesta" style="margin-top: 0.5rem;"></div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -243,6 +247,12 @@
                   <div class="mb-3">
                     <label class="form-label">Respuesta oficial</label>
                     <textarea id="respuestaTexto" class="form-control" rows="4" placeholder="Describe cómo se atenderá la denuncia" required></textarea>
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label">Anexar PDFs</label>
+                    <input type="file" id="respuestaAdjuntosPdf" class="form-control" accept="application/pdf,.pdf" multiple>
+                    <div class="form-text">Puedes adjuntar uno o varios archivos PDF (max. 10 MB por archivo).</div>
+                    <div id="respuestaAdjuntosPreview" class="mt-2"></div>
                   </div>
                   <button type="submit" class="btn btn-primary w-100">
                     <i class="bi bi-check-circle"></i> Guardar respuesta
@@ -305,7 +315,7 @@
 </script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
-<script type="module" src="js/ver.js?v=2"></script>
+<script type="module" src="js/ver.js?v=11"></script>
 
 <!-- Footer -->
 <div id="footer-container"></div>
