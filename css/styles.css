@@ -1137,7 +1137,7 @@ h3 {
   z-index: 0;
 }
 
-.app-page:not(.dashboard-page) > *:not(.modal):not(.modal-backdrop):not(#appLayoutContainer) {
+.app-page:not(.dashboard-page) > *:not(.modal):not(.modal-backdrop):not(#appLayoutContainer):not(.app-main-content) {
   position: relative;
   z-index: 1;
 }
@@ -1150,7 +1150,6 @@ h3 {
 
 .app-main-content {
   position: relative;
-  z-index: 1;
   margin-left: 0;
   margin-top: 80px;
 }
@@ -1303,7 +1302,7 @@ h3 {
 }
 
 .app-page .container {
-  max-width: 1140px;
+  max-width: 1280px;
   padding-left: 1rem;
   padding-right: 1rem;
 }
@@ -1313,6 +1312,14 @@ h3 {
   border: 1px solid var(--gecom-stroke);
   background: var(--gecom-surface);
   box-shadow: var(--gecom-shadow) !important;
+}
+
+.app-page .card {
+  overflow: visible;
+}
+
+.app-page .card:hover {
+  transform: none;
 }
 
 .app-page .card-title,
@@ -1426,6 +1433,8 @@ h3 {
 .app-page .table thead th {
   font-weight: 700;
   white-space: nowrap;
+  font-size: 0.85rem;
+  padding: 0.8rem 0.75rem;
 }
 
 .app-page .table-responsive .table thead th {
@@ -1726,7 +1735,7 @@ tr.skeleton-row td {
   position: fixed;
   top: 14px;
   right: clamp(14px, 3vw, 22px);
-  z-index: 1090;
+  z-index: 1019;
 }
 
 #perfilMenuWrap.perfil-menu-wrap--in-header {
@@ -2305,16 +2314,21 @@ textarea.form-control:focus {
 }
 
 .table tbody td {
-  padding: 0.9rem 1rem;
+  padding: 0.7rem 0.8rem;
   color: var(--gecom-text);
   vertical-align: middle;
+  font-size: 0.9rem;
 }
 
 .table-responsive {
   border-radius: 12px;
   border: 1px solid var(--gecom-stroke);
-  overflow: hidden;
+  overflow: visible;
   box-shadow: var(--gecom-shadow);
+}
+
+.app-page .table-responsive .table {
+  table-layout: auto;
 }
 
 .app-page .gecom-table-head th {

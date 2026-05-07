@@ -245,9 +245,23 @@
     buildMenu();
   }
 
+  function initWhenReady() {
+    // Si appLayoutContainer existe, esperar a que appLayoutReady se dispare
+    if (document.getElementById("appLayoutContainer")) {
+      if (window.__appLayoutReady) {
+        init();
+      } else {
+        window.addEventListener('appLayoutReady', init, { once: true });
+      }
+    } else {
+      // Si no existe appLayoutContainer, ejecutar inmediatamente
+      init();
+    }
+  }
+
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", init);
+    document.addEventListener("DOMContentLoaded", initWhenReady);
   } else {
-    init();
+    initWhenReady();
   }
 })();

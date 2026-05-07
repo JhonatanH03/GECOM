@@ -1,4 +1,4 @@
-(async function initAppLayout() {
+async function initAppLayout() {
   try {
     const paginasConLayout = [
       'crear.html',
@@ -13,7 +13,14 @@
     const paginaActual = window.location.pathname.split('/').pop() || 'index.html';
     
     if (!paginasConLayout.some(p => paginaActual.includes(p))) {
+      window.__appLayoutReady = true;
+      window.dispatchEvent(new CustomEvent('appLayoutReady'));
       return;
+    }
+
+    // Esperar a que el DOM esté listo
+    if (document.readyState === 'loading') {
+      await new Promise(resolve => document.addEventListener('DOMContentLoaded', resolve, { once: true }));
     }
 
     const response = await fetch('components/app-layout.html', { cache: 'no-store' });
@@ -28,10 +35,24 @@
       const pageName = paginaActual.split('.')[0];
       setActivePage(pageName);
     }
+
+    // Señalar que el layout está listo
+    window.__appLayoutReady = true;
+    window.dispatchEvent(new CustomEvent('appLayoutReady'));
   } catch (error) {
     console.warn('Layout no se pudo cargar:', error);
+    // Señalar que el layout falló pero el resto debe continuar
+    window.__appLayoutReady = true;
+    window.dispatchEvent(new CustomEvent('appLayoutReady'));
   }
-})();
+}
+
+// Ejecutar la inicialización
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initAppLayout, { once: true });
+} else {
+  initAppLayout();
+}
 
 function initLayoutFunctionality() {
   const ROLES = {
