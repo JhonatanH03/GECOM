@@ -291,7 +291,9 @@ window.login = async function () {
       // Guardar sesión
       localStorage.setItem("uid", uid);
       localStorage.setItem("rol", rol);
-      localStorage.setItem("usuario", userDoc.usuario || usuarioNormalizado);
+      // Prioridad: nombre > usuario > usuarioNormalizado
+      const nombreGuardar = userDoc.nombre || userDoc.usuario || usuarioNormalizado || "Usuario";
+      localStorage.setItem("nombre", nombreGuardar);
       localStorage.setItem("primerLogin", userDoc.primerLogin ? "true" : "false");
 
       // limpiar campos
