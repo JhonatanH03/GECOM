@@ -346,9 +346,16 @@ async function cargarJuntas() {
   </tr>`;
   juntasBody.innerHTML = _skRow7.repeat(5);
   try {
-    const snapshot = rolLocal === "admin"
-      ? await db.collection("JuntasDeVecinos").get()
-      : await db.collection("JuntasDeVecinos").where("creada_por", "==", uid).get();
+    let snapshot;
+    if (rolLocal === "admin") {
+      snapshot = await db.collection("JuntasDeVecinos").get();
+    } else if (rolLocal === "ayuntamiento") {
+      snapshot = provinciaAyuntamiento
+        ? await db.collection("JuntasDeVecinos").where("provincia", "==", provinciaAyuntamiento).get()
+        : await db.collection("JuntasDeVecinos").get();
+    } else {
+      snapshot = await db.collection("JuntasDeVecinos").where("creada_por", "==", uid).get();
+    }
     
     if (snapshot.empty) {
       juntasBody.innerHTML = '<tr class="table-feedback-row"><td colspan="7"><div class="empty-state">No hay juntas registradas en tu alcance.</div></td></tr>';
@@ -426,7 +433,82 @@ async function cargarJuntas() {
 }
 
 function showAlert(msg, type = "success") {
-  alertContainer.innerHTML = `<div class="alert alert-${type} alert-dismissible fade show"><strong>${escapeHtml(msg)}</strong><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>`;
+  const credenciales = type === "success" ? extraerCredencialesTemporales(msg) : null;
+
+  if (!credenciales) {
+    alertContainer.innerHTML = `<div class="alert alert-${type} alert-dismissible fade show"><strong>${escapeHtml(msg)}</strong><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>`;
+    return;
+  }
+
+  const idCopiar = `btnCopiarPwd_${Date.now()}`;
+  const idCopiarTodo = `btnCopiarTodo_${Date.now()}`;
+  alertContainer.innerHTML = `
+    <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+      <div class="fw-semibold mb-2">${escapeHtml(msg)}</div>
+      <div class="d-flex gap-2 flex-wrap">
+        <button type="button" id="${idCopiar}" class="btn btn-sm btn-outline-light">Copiar</button>
+        <button type="button" id="${idCopiarTodo}" class="btn btn-sm btn-light">Copiar todo</button>
+      </div>
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+    </div>
+  `;
+
+  const btnCopiar = document.getElementById(idCopiar);
+  const btnCopiarTodo = document.getElementById(idCopiarTodo);
+
+  btnCopiar?.addEventListener("click", async () => {
+    const ok = await copiarTextoPortapapeles(credenciales.contrasena);
+    btnCopiar.textContent = ok ? "Copiado" : "No se pudo copiar";
+  });
+
+  btnCopiarTodo?.addEventListener("click", async () => {
+    const textoCompleto = credenciales.usuario
+      ? `Usuario: ${credenciales.usuario}\nContraseña temporal: ${credenciales.contrasena}`
+      : `Contraseña temporal: ${credenciales.contrasena}`;
+    const ok = await copiarTextoPortapapeles(textoCompleto);
+    btnCopiarTodo.textContent = ok ? "Copiado" : "No se pudo copiar";
+  });
+}
+
+function extraerCredencialesTemporales(message) {
+  const texto = String(message || "");
+  const passMatch = texto.match(/Contrase(?:n|ñ)a temporal:\s*([^,\s]+)/i);
+  if (!passMatch) return null;
+
+  const userMatch = texto.match(/Usuario:\s*([^,]+),/i);
+  return {
+    usuario: userMatch ? userMatch[1].trim() : "",
+    contrasena: passMatch[1].trim()
+  };
+}
+
+async function copiarTextoPortapapeles(texto) {
+  const contenido = String(texto || "");
+  if (!contenido) return false;
+
+  try {
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+      await navigator.clipboard.writeText(contenido);
+      return true;
+    }
+  } catch (_error) {
+    // fallback below
+  }
+
+  try {
+    const temp = document.createElement("textarea");
+    temp.value = contenido;
+    temp.setAttribute("readonly", "");
+    temp.style.position = "fixed";
+    temp.style.opacity = "0";
+    document.body.appendChild(temp);
+    temp.select();
+    const copied = document.execCommand("copy");
+    document.body.removeChild(temp);
+    return copied;
+  } catch (_error) {
+    return false;
+  }
 }
 
 function showModalAlert(msg, type = "danger") {
