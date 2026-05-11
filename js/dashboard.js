@@ -295,7 +295,7 @@ function iniciarSuscripcionNotificaciones() {
     const userLine = document.getElementById("dashboardUserLine");
     if (!userLine) return;
 
-    const usuario = localStorage.getItem("usuario") || "usuario";
+    const usuario = localStorage.getItem("nombre") || "Usuario";
     const saludo = saludoHora();
     const badgeClass = rolBadgeClass(rolLocal);
     const icono = rolIcono(rolLocal);
