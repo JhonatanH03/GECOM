@@ -5,6 +5,8 @@
     "Volver": "Back",
     "Volver al Dashboard": "Back to Dashboard",
     "← Volver al Dashboard": "← Back to Dashboard",
+    "Volver al Panel Principal": "Back to Main Panel",
+    "← Volver al Panel Principal": "← Back to Main Panel",
     "Cerrar": "Close",
     "Menú de usuario": "User menu",
     "Guardar": "Save",

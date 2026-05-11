@@ -444,7 +444,7 @@ window.cambiarContrasena = async function () {
       return;
     }
 
-    mostrarExito("Contraseña cambiada exitosamente. Redirigiendo al dashboard...");
+    mostrarExito("Contraseña cambiada exitosamente. Redirigiendo al panel principal...");
     localStorage.setItem("primerLogin", "false");
     
     setTimeout(() => {
@@ -468,12 +468,31 @@ window.cambiarContrasena = async function () {
 };
 
 // Cerrar sesión
-window.logout = function () {
-  localStorage.removeItem("uid");
-  localStorage.removeItem("rol");
-  localStorage.removeItem("usuario");
-  localStorage.removeItem("primerLogin");
-  window.location.href = "index.html";
+window.logout = async function () {
+  const clearLocalSession = () => {
+    localStorage.removeItem("uid");
+    localStorage.removeItem("rol");
+    localStorage.removeItem("usuario");
+    localStorage.removeItem("primerLogin");
+  };
+
+  try {
+    if (window.firebase && typeof window.firebase.auth === "function") {
+      await window.firebase.auth().signOut();
+    } else {
+      const [{ default: app }, authMod] = await Promise.all([
+        import("./js/firebase.js"),
+        import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js")
+      ]);
+      const auth = authMod.getAuth(app);
+      await authMod.signOut(auth);
+    }
+  } catch (error) {
+    console.warn("No se pudo cerrar sesión en Firebase, se limpiará la sesión local.", error);
+  } finally {
+    clearLocalSession();
+    window.location.href = "index.html";
+  }
 };
 
 // Permitir cambiar contraseña con ENTER desde el campo de confirmación

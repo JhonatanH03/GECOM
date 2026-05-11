@@ -250,10 +250,35 @@ async function cerrarSesion() {
     localStorage.removeItem('primerLogin');
   };
 
-  try {
-    if (window.firebase && window.firebase.auth) {
-      await window.firebase.auth().signOut();
+  const signOutFirebase = async () => {
+    // 1) Intentar primero la API compat si existe y esta inicializada
+    try {
+      if (window.firebase && typeof window.firebase.auth === 'function') {
+        await window.firebase.auth().signOut();
+        return true;
+      }
+    } catch (error) {
+      console.warn('Logout compat fallido, intentando modular:', error);
     }
+
+    // 2) Fallback a SDK modular para pantallas que no usan compat
+    try {
+      const [{ default: app }, authMod] = await Promise.all([
+        import('./firebase.js'),
+        import('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js')
+      ]);
+
+      const auth = authMod.getAuth(app);
+      await authMod.signOut(auth);
+      return true;
+    } catch (error) {
+      console.warn('Logout modular fallido:', error);
+      return false;
+    }
+  };
+
+  try {
+    await signOutFirebase();
   } catch (error) {
     console.error('Error al cerrar sesión en Firebase:', error);
   } finally {

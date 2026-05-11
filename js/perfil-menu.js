@@ -64,14 +64,54 @@
 
   }
 
-  function doLogout() {
+  async function doLogout() {
     if (typeof window.logout === "function") {
-      window.logout();
-    } else {
+      await window.logout();
+      return;
+    }
+
+    if (window.AppLayout && typeof window.AppLayout.cerrarSesion === "function") {
+      await window.AppLayout.cerrarSesion();
+      return;
+    }
+
+    const clearLocalSession = function () {
       localStorage.removeItem("uid");
       localStorage.removeItem("rol");
       localStorage.removeItem("usuario");
       localStorage.removeItem("primerLogin");
+    };
+
+    const signOutFirebase = async function () {
+      try {
+        if (window.firebase && typeof window.firebase.auth === "function") {
+          await window.firebase.auth().signOut();
+          return true;
+        }
+      } catch (error) {
+        console.warn("Logout compat fallido, intentando modular:", error);
+      }
+
+      try {
+        const modules = await Promise.all([
+          import("./firebase.js"),
+          import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js"),
+        ]);
+        const app = modules[0].default;
+        const authMod = modules[1];
+        const auth = authMod.getAuth(app);
+        await authMod.signOut(auth);
+        return true;
+      } catch (error) {
+        console.warn("Logout modular fallido:", error);
+        return false;
+      }
+    };
+
+    try {
+      await signOutFirebase();
+    } finally {
+      clearLocalSession();
       window.location.href = "index.html";
     }
   }
@@ -207,10 +247,10 @@
       });
     });
 
-    wrap.querySelector("#pmItemLogout").addEventListener("click", function (e) {
+    wrap.querySelector("#pmItemLogout").addEventListener("click", async function (e) {
       e.preventDefault();
       dropdown.style.display = "none";
-      doLogout();
+      await doLogout();
     });
   }
 
