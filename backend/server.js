@@ -213,6 +213,24 @@ app.post("/api/juntas/crear", verifyToken, async (req, res, next) => {
       throw createHttpError(400, "missing-fields", "Todos los campos son obligatorios.");
     }
 
+    const provinciaNormalizada = String(provincia || "").trim();
+    const municipioNormalizado = String(municipio || "").trim();
+
+    const ayuntamientoTerritorialSnap = await admin.firestore()
+      .collection("Ayuntamientos")
+      .where("provincia", "==", provinciaNormalizada)
+      .where("municipio", "==", municipioNormalizado)
+      .limit(1)
+      .get();
+
+    if (ayuntamientoTerritorialSnap.empty) {
+      throw createHttpError(
+        400,
+        "missing-ayuntamiento-territorial",
+        "No existe un ayuntamiento registrado para la provincia y municipio seleccionados."
+      );
+    }
+
     const usuarioNormalizado = backendAsegurarPrefijoUsuario(usuario, "jvl_");
     const emailInterno = backendUsuarioAEmailInterno(usuarioNormalizado);
 
@@ -237,9 +255,25 @@ app.post("/api/juntas/crear", verifyToken, async (req, res, next) => {
       });
     } catch (authError) {
       if (authError.code === "auth/email-already-exists") {
-        throw createHttpError(409, "already-exists", "Ya existe una junta con ese nombre de usuario.");
+        const existingAuthUser = await admin.auth().getUserByEmail(emailInterno);
+        const existingJuntaDoc = await admin.firestore().collection("JuntasDeVecinos").doc(existingAuthUser.uid).get();
+
+        if (existingJuntaDoc.exists) {
+          throw createHttpError(409, "already-exists", "Ya existe una junta con ese nombre de usuario.");
+        }
+
+        // Si quedó una cuenta huérfana en Auth sin documento en Firestore,
+        // la limpiamos para permitir recrear la junta con el mismo usuario.
+        await admin.auth().deleteUser(existingAuthUser.uid);
+
+        userRecord = await admin.auth().createUser({
+          email: emailInterno,
+          password: contrasenaTemporal,
+          displayName: String(nombre)
+        });
+      } else {
+        throw authError;
       }
-      throw authError;
     }
 
     const nuevoUid = userRecord.uid;
@@ -250,8 +284,8 @@ app.post("/api/juntas/crear", verifyToken, async (req, res, next) => {
       rol: "junta",
       telefono,
       comunidad,
-      provincia: String(provincia || ""),
-      municipio: String(municipio || ""),
+      provincia: provinciaNormalizada,
+      municipio: municipioNormalizado,
       cedula: String(cedula || ""),
       estado: true,
       fecha_creacion: admin.firestore.FieldValue.serverTimestamp(),

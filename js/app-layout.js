@@ -243,14 +243,23 @@ async function cerrarSesion() {
 
   if (!ok) return;
 
-  firebase.auth().signOut()
-    .then(() => {
-      window.location.href = 'index.html';
-    })
-    .catch(error => {
-      console.error('Error al cerrar sesión:', error);
-      alert('Error al cerrar sesión');
-    });
+  const clearLocalSession = () => {
+    localStorage.removeItem('uid');
+    localStorage.removeItem('rol');
+    localStorage.removeItem('usuario');
+    localStorage.removeItem('primerLogin');
+  };
+
+  try {
+    if (window.firebase && window.firebase.auth) {
+      await window.firebase.auth().signOut();
+    }
+  } catch (error) {
+    console.error('Error al cerrar sesión en Firebase:', error);
+  } finally {
+    clearLocalSession();
+    window.location.href = 'index.html';
+  }
 }
 
 window.AppLayout = {

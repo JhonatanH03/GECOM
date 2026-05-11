@@ -187,6 +187,12 @@ form.addEventListener("submit", async (event) => {
       await setDoc(doc(db, "JuntasDeVecinos", usuarioId), usuarioData, { merge: true });
       showAlert("Junta actualizada correctamente.", "success");
     } else {
+      const tieneAyuntamientoTerritorial = await existeAyuntamientoTerritorial(provincia, municipio);
+      if (!tieneAyuntamientoTerritorial) {
+        showModalAlert("No existe un ayuntamiento registrado para la provincia y municipio seleccionados.", "danger");
+        return;
+      }
+
       const duplicadoSnap = await getDocs(
         query(collection(db, "JuntasDeVecinos"), where("usuario", "==", usuarioNormalizado), limit(1))
       );
@@ -250,6 +256,16 @@ function actualizarMunicipios() {
     option.value = municipio;
     option.textContent = municipio;
     municipioSelect.appendChild(option);
+  });
+}
+
+async function existeAyuntamientoTerritorial(provincia, municipio) {
+  const snap = await getDocs(query(collection(db, "Ayuntamientos"), where("provincia", "==", provincia)));
+  if (snap.empty) return false;
+
+  return snap.docs.some((docSnap) => {
+    const data = docSnap.data() || {};
+    return (data.municipio || "") === municipio;
   });
 }
 
