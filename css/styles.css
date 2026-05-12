@@ -2740,7 +2740,7 @@ textarea.form-control:focus {
 }
 
 .dashboard-footer-modern {
-  background-color: #0c1220;
+  background: color-mix(in srgb, var(--gecom-bg) 86%, transparent);
   width: 100%;
   margin-top: clamp(2rem, 5vw, 3rem);
   display: flex;
@@ -2750,6 +2750,9 @@ textarea.form-control:focus {
 
 .dashboard-footer-surface {
   width: 60rem;
+  background: color-mix(in srgb, var(--gecom-surface) 96%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gecom-stroke) 88%, transparent);
+  box-shadow: var(--gecom-shadow);
   border-radius: 18px;
   overflow: hidden;
 }
@@ -2911,6 +2914,39 @@ textarea.form-control:focus {
 .dashboard-footer-meta--date {
   font-variant-numeric: tabular-nums;
   text-transform: capitalize;
+}
+
+.historial-denuncia-link {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  color: var(--gecom-text);
+  font: inherit;
+  font-weight: 700;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.historial-denuncia-link:hover {
+  color: color-mix(in srgb, var(--gecom-text) 86%, #2f80ed);
+  text-decoration: none;
+}
+
+.historial-denuncia-link:focus-visible {
+  outline: 2px solid color-mix(in srgb, #3b82f6 65%, transparent);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+.historial-row-clickable {
+  cursor: pointer;
+}
+
+.historial-row-clickable:hover {
+  background: color-mix(in srgb, var(--gecom-surface) 90%, var(--gecom-stroke));
 }
 
 

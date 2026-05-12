@@ -71,6 +71,27 @@
             </select>
           </div>
         </div>
+
+        <div class="row g-3 mt-0">
+          <div class="col-12">
+            <label class="form-label">Buscar</label>
+            <div class="input-group">
+              <input
+                type="search"
+                id="filtroPalabras"
+                class="form-control"
+                placeholder="Ej: bache alcantarilla avenida"
+                autocomplete="off"
+              >
+              <button class="btn btn-primary" type="button" id="btnAplicarFiltroPalabras">
+                <i class="bi bi-search"></i> Buscar
+              </button>
+              <button class="btn btn-outline-secondary" type="button" id="btnLimpiarFiltroPalabras">
+                Limpiar
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -300,7 +321,7 @@
 </script>
 <script>
   (function () {
-    function actualizarCamposRechazo() {
+    function actualizarCamposEstado() {
       const estado = document.getElementById("respuestaEstado");
       const wrapPlazo = document.getElementById("wrapPlazo");
       const wrapPresupuesto = document.getElementById("wrapPresupuesto");
@@ -310,17 +331,25 @@
       const moneda = document.getElementById("respuestaMoneda");
       const respuestaTexto = document.getElementById("respuestaTexto");
       if (!estado) return;
-      const esRechazo = estado.value === "Rechazada";
-      wrapPlazo.classList.toggle("d-none", esRechazo);
-      wrapPresupuesto.classList.toggle("d-none", esRechazo);
-      plazo.required = !esRechazo;
-      presupuesto.required = !esRechazo;
-      if (esRechazo) {
+      const estadoActual = estado.value;
+      const ocultarCamposPlaneacion = estadoActual === "Rechazada" || estadoActual === "Resuelta";
+
+      wrapPlazo.classList.toggle("d-none", ocultarCamposPlaneacion);
+      wrapPresupuesto.classList.toggle("d-none", ocultarCamposPlaneacion);
+      plazo.required = !ocultarCamposPlaneacion;
+      presupuesto.required = !ocultarCamposPlaneacion;
+
+      if (ocultarCamposPlaneacion) {
         plazo.value = "";
         if (plazoUnidad) plazoUnidad.value = "dias";
         presupuesto.value = "";
         if (moneda) moneda.value = "RD$";
-        respuestaTexto.placeholder = "Explica el motivo del rechazo";
+
+        if (estadoActual === "Rechazada") {
+          respuestaTexto.placeholder = "Explica el motivo del rechazo";
+        } else {
+          respuestaTexto.placeholder = "Describe cómo se resolvió la denuncia";
+        }
       } else {
         respuestaTexto.placeholder = "Describe cómo se atenderá la denuncia";
       }
@@ -328,7 +357,8 @@
     document.addEventListener("DOMContentLoaded", function () {
       const estadoSelect = document.getElementById("respuestaEstado");
       if (estadoSelect) {
-        estadoSelect.addEventListener("change", actualizarCamposRechazo);
+        estadoSelect.addEventListener("change", actualizarCamposEstado);
+        actualizarCamposEstado();
       }
     });
   })();

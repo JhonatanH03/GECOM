@@ -37,6 +37,21 @@ let todasLasDenuncias = [];
 let paginaActual = 1;
 let catalogoProvincias = [];
 const municipiosPorProvincia = new Map();
+let palabrasClaveFiltro = "";
+
+function normalizarTextoBusqueda(valor) {
+  return String(valor || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+}
+
+function obtenerTerminosBusqueda(valor) {
+  return normalizarTextoBusqueda(valor)
+    .split(/\s+/)
+    .filter(Boolean);
+}
 
 function formatearTamanoArchivo(bytes) {
   const valor = Number(bytes) || 0;
@@ -564,7 +579,6 @@ async function crearEntradaHistorial(denunciaId, denunciaData, actualizacion) {
     plazo_estimado: actualizacion.plazo_estimado || "",
     presupuesto_estimado: actualizacion.presupuesto_estimado || "",
     respuesta: actualizacion.respuesta_ayuntamiento || "",
-    anexos_respuesta_pdf: normalizarAdjuntosRespuesta(actualizacion),
     ayuntamientoId: uid,
     createdAt: serverTimestamp()
   });
@@ -658,7 +672,10 @@ function mostrarDetalleDenuncia(data, id) {
   const responseSection = document.getElementById("ayuntamientoResponseSection");
   if (rol === "ayuntamiento") {
     responseSection.classList.remove("d-none");
-    document.getElementById("respuestaEstado").value = data.estado || "Pendiente";
+    const respuestaEstadoEl = document.getElementById("respuestaEstado");
+    if (respuestaEstadoEl) {
+      respuestaEstadoEl.value = data.estado || "Pendiente";
+    }
     const plazo = parsearPlazoGuardado(data.plazo_estimado || "");
     const selectPlazoUnidad = document.getElementById("respuestaPlazoUnidad");
     const inputPlazo = document.getElementById("respuestaPlazo");
@@ -670,6 +687,9 @@ function mostrarDetalleDenuncia(data, id) {
     if (selectMoneda) selectMoneda.value = presupuesto.moneda;
     if (inputMonto) inputMonto.value = presupuesto.montoFormateado;
     document.getElementById("respuestaTexto").value = data.respuesta_ayuntamiento || "";
+    if (respuestaEstadoEl) {
+      respuestaEstadoEl.dispatchEvent(new Event("change"));
+    }
     limpiarSeleccionAdjuntos();
   } else {
     responseSection.classList.add("d-none");
@@ -799,6 +819,7 @@ function obtenerDenunciasFiltradas() {
   const filtroProvincia = document.getElementById("filtroProvincia")?.value || "Todos";
   const filtroMunicipio = document.getElementById("filtroMunicipio")?.value || "Todos";
   const filtroComunidad = document.getElementById("filtroComunidad")?.value || "Todos";
+  const terminosBusqueda = obtenerTerminosBusqueda(palabrasClaveFiltro);
 
   return todasLasDenuncias.filter(({ data }) => {
     let cumpleEstado;
@@ -813,7 +834,25 @@ function obtenerDenunciasFiltradas() {
     const cumpleProvincia = rol !== "admin" || filtroProvincia === "Todos" || (data.provincia || "") === filtroProvincia;
     const cumpleMunicipio = rol !== "admin" || filtroMunicipio === "Todos" || (data.municipio || "") === filtroMunicipio;
     const cumpleComunidad = rol !== "admin" || filtroComunidad === "Todos" || (data.comunidad || "") === filtroComunidad;
-    return cumpleEstado && cumpleProvincia && cumpleMunicipio && cumpleComunidad;
+
+    let cumplePalabras = true;
+    if (terminosBusqueda.length) {
+      const bolsaTexto = normalizarTextoBusqueda([
+        data.titulo,
+        data.descripcion,
+        data.comunidad,
+        data.sector,
+        data.municipio,
+        data.provincia,
+        data.estado,
+        data.tipo,
+        data.respuesta_ayuntamiento
+      ].join(" "));
+
+      cumplePalabras = terminosBusqueda.every((termino) => bolsaTexto.includes(termino));
+    }
+
+    return cumpleEstado && cumpleProvincia && cumpleMunicipio && cumpleComunidad && cumplePalabras;
   });
 }
 
@@ -1098,10 +1137,14 @@ async function responderDenuncia(event) {
   const presupuesto = obtenerPresupuestoFormateadoParaGuardar();
   const respuesta = document.getElementById("respuestaTexto").value.trim();
   const submitBtn = document.querySelector("#detalleForm button[type='submit']");
+  const estadoSinPlaneacion = estado === "Rechazada" || estado === "Resuelta";
 
-  if (estado === "Rechazada") {
+  if (estadoSinPlaneacion) {
     if (!respuesta) {
-      mostrarModalFeedback("Debes indicar el motivo del rechazo en la respuesta oficial.", "danger");
+      const mensaje = estado === "Rechazada"
+        ? "Debes indicar el motivo del rechazo en la respuesta oficial."
+        : "Debes describir cómo se resolvió la denuncia.";
+      mostrarModalFeedback(mensaje, "danger");
       return;
     }
   } else if (!plazo || !presupuesto || !respuesta) {
@@ -1126,10 +1169,12 @@ async function responderDenuncia(event) {
     }
 
     const anexosRespuesta = [...anexosExistentes, ...anexosNuevos];
+    const plazoFinal = estadoSinPlaneacion ? "" : plazo;
+    const presupuestoFinal = estadoSinPlaneacion ? "" : presupuesto;
     const actualizacion = {
       estado,
-      plazo_estimado: plazo,
-      presupuesto_estimado: presupuesto,
+      plazo_estimado: plazoFinal,
+      presupuesto_estimado: presupuestoFinal,
       respuesta_ayuntamiento: respuesta,
       anexos_respuesta_pdf: anexosRespuesta,
       fecha_respuesta: new Date(),
@@ -1238,6 +1283,38 @@ async function init() {
     paginaActual = 1;
     renderizarPagina();
   }, 300));
+
+  const inputFiltroPalabras = document.getElementById("filtroPalabras");
+  const btnAplicarFiltroPalabras = document.getElementById("btnAplicarFiltroPalabras");
+  const btnLimpiarFiltroPalabras = document.getElementById("btnLimpiarFiltroPalabras");
+
+  const aplicarFiltroPalabras = () => {
+    palabrasClaveFiltro = inputFiltroPalabras?.value || "";
+    paginaActual = 1;
+    renderizarPagina();
+  };
+
+  const aplicarFiltroPalabrasEnTiempoReal = debounce(() => {
+    aplicarFiltroPalabras();
+  }, 180);
+
+  btnAplicarFiltroPalabras?.addEventListener("click", aplicarFiltroPalabras);
+  btnLimpiarFiltroPalabras?.addEventListener("click", () => {
+    if (inputFiltroPalabras) inputFiltroPalabras.value = "";
+    palabrasClaveFiltro = "";
+    paginaActual = 1;
+    renderizarPagina();
+  });
+  inputFiltroPalabras?.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      aplicarFiltroPalabras();
+    }
+  });
+  inputFiltroPalabras?.addEventListener("input", () => {
+    aplicarFiltroPalabrasEnTiempoReal();
+  });
+
   if (rol === "admin") {
     document.getElementById("filtroProvincia")?.addEventListener("change", debounce(() => {
       poblarFiltrosZonaAdmin();
