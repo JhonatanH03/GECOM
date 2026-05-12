@@ -45,6 +45,67 @@ function renderizarFechaFooter() {
   });
 }
 
+  function refrescarNombrePerfilUI(nombre) {
+    const nombreLimpio = String(nombre || "").trim();
+    if (!nombreLimpio) return;
+
+    localStorage.setItem("nombre", nombreLimpio);
+    if (!localStorage.getItem("usuario")) {
+      localStorage.setItem("usuario", nombreLimpio);
+    }
+
+    pintarLineaUsuario();
+
+    const profileName = document.getElementById("profileName") || document.querySelector(".pm-username");
+    if (profileName) {
+      profileName.textContent = nombreLimpio;
+    }
+
+    const profileInitial = document.getElementById("profileInitial") || document.querySelector(".pm-avatar-initial");
+    const inicial = nombreLimpio.charAt(0).toUpperCase();
+    if (profileInitial) {
+      profileInitial.textContent = inicial;
+    }
+
+    const profileInitialLg = document.getElementById("profileInitialLg") || document.querySelector(".pm-avatar-lg span");
+    if (profileInitialLg) {
+      profileInitialLg.textContent = inicial;
+    }
+
+    const profileToggle = document.getElementById("perfilAvatarBtn");
+    if (profileToggle) {
+      profileToggle.setAttribute("title", nombreLimpio);
+    }
+  }
+
+  async function asegurarNombreSesion() {
+    const actual = String(localStorage.getItem("nombre") || "").trim();
+    if (actual && actual.toLowerCase() !== "usuario") return;
+    if (!uid || !rolLocal) return;
+
+    const coleccionPorRol = {
+      admin: "Administradores",
+      ayuntamiento: "Ayuntamientos",
+      junta: "JuntasDeVecinos"
+    };
+
+    const coleccion = coleccionPorRol[rolLocal];
+    if (!coleccion) return;
+
+    try {
+      const perfilSnap = await getDoc(doc(db, coleccion, uid));
+      if (!perfilSnap.exists()) return;
+
+      const perfil = perfilSnap.data() || {};
+      const nombrePerfil = String(perfil.nombre || perfil.usuario || "").trim();
+      if (!nombrePerfil) return;
+
+      refrescarNombrePerfilUI(nombrePerfil);
+    } catch (error) {
+      console.warn("No se pudo recuperar el nombre de sesion:", error);
+    }
+  }
+
 function aplicarTemaDashboard() {
   const html = document.getElementById("htmlRoot");
   const body = document.getElementById("bodyRoot");
@@ -736,6 +797,7 @@ if (!uid || !rolLocal) {
   inicializarSelectorTemaDashboard();
     aplicarEnlacesFooterPorRol();
     pintarLineaUsuario();
+    asegurarNombreSesion();
     cargarResumenKpi();
   inicializarNavegacionKpis();
   inicializarNavegacionAlertas();

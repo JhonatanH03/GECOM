@@ -97,7 +97,7 @@ function initLayoutFunctionality() {
   const profileInitial = document.getElementById('profileInitial');
   const profileInitialLg = document.getElementById('profileInitialLg');
 
-  const usuario = localStorage.getItem('usuario') || 'Usuario';
+  const usuario = localStorage.getItem('nombre') || localStorage.getItem('usuario') || 'Usuario';
   const rol = localStorage.getItem('rol') || '';
 
   const refreshText = () => {
