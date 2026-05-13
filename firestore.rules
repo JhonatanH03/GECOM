@@ -170,6 +170,7 @@ service cloud.firestore {
             "anexos_respuesta_pdf",
             "fecha_respuesta",
             "fecha_en_proceso",
+            "fecha_resuelta",
             "ayuntamiento_id"
           ]) &&
           request.resource.data.ayuntamiento_id == request.auth.uid

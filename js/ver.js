@@ -526,25 +526,55 @@ function convertirAFecha(valorFecha) {
   return Number.isNaN(fecha.getTime()) ? null : fecha;
 }
 
+function calcularDiferenciaDiasEntre(fechaInicio, fechaFin) {
+  if (!fechaInicio || !fechaFin) return null;
+
+  const inicioDia = new Date(fechaInicio.getFullYear(), fechaInicio.getMonth(), fechaInicio.getDate());
+  const finDia = new Date(fechaFin.getFullYear(), fechaFin.getMonth(), fechaFin.getDate());
+  const diferenciaMs = finDia.getTime() - inicioDia.getTime();
+
+  if (diferenciaMs < 0) return 0;
+  return Math.floor(diferenciaMs / 86400000);
+}
+
 function obtenerDiasEnProceso(data) {
   if ((data.estado || ESTADO_DEFAULT) !== ESTADOS.EN_PROCESO) return null;
 
   const fechaInicio = convertirAFecha(data.fecha_en_proceso || data.fecha_respuesta || data.fecha);
-  if (!fechaInicio) return null;
-
-  const inicioDia = new Date(fechaInicio.getFullYear(), fechaInicio.getMonth(), fechaInicio.getDate());
-  const hoy = new Date();
-  const inicioHoy = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
-  const diferenciaMs = inicioHoy.getTime() - inicioDia.getTime();
-
-  if (diferenciaMs < 0) return 0;
-  return Math.floor(diferenciaMs / 86400000);
+  return calcularDiferenciaDiasEntre(fechaInicio, new Date());
 }
 
 function obtenerTextoDiasEnProceso(data) {
   const dias = obtenerDiasEnProceso(data);
   if (dias === null) return "No aplica";
   return dias === 1 ? "1 dia" : `${dias} dias`;
+}
+
+function obtenerDiasResolucion(data) {
+  if ((data.estado || ESTADO_DEFAULT) !== ESTADOS.RESUELTA) return null;
+
+  const fechaInicio = convertirAFecha(data.fecha);
+  const fechaResolucion = convertirAFecha(data.fecha_resuelta || data.fecha_respuesta);
+  return calcularDiferenciaDiasEntre(fechaInicio, fechaResolucion);
+}
+
+function obtenerTextoDiasResolucion(data) {
+  const dias = obtenerDiasResolucion(data);
+  if (dias === null) return "No aplica";
+  if (dias === 0) return "Resuelta el mismo dia";
+  return dias === 1 ? "Se resolvio en 1 dia" : `Se resolvio en ${dias} dias`;
+}
+
+function obtenerTextoDuracionDenuncia(data) {
+  if ((data.estado || ESTADO_DEFAULT) === ESTADOS.RESUELTA) {
+    return obtenerTextoDiasResolucion(data);
+  }
+
+  if ((data.estado || ESTADO_DEFAULT) === ESTADOS.EN_PROCESO) {
+    return obtenerTextoDiasEnProceso(data);
+  }
+
+  return "No aplica";
 }
 
 function construirMensajeNotificacion(data, estado) {
@@ -610,6 +640,7 @@ function mostrarDetalleDenuncia(data, id) {
   document.getElementById("detalleFechaIncidente").textContent = data.fecha_incidente ? new Date(data.fecha_incidente.seconds * 1000).toLocaleDateString() : "No especificado";
   document.getElementById("detalleFechaRegistro").textContent = data.fecha ? new Date(data.fecha.seconds * 1000).toLocaleString() : "No especificado";
   document.getElementById("detalleDiasEnProceso").textContent = obtenerTextoDiasEnProceso(data);
+  document.getElementById("detalleDiasResolucion").textContent = obtenerTextoDiasResolucion(data);
   document.getElementById("detalleDescripcion").textContent = data.descripcion || "Sin descripción";
 
   document.getElementById("detalleEstadoActual").textContent = data.estado || "Pendiente";
@@ -758,7 +789,7 @@ function renderizarPagina() {
         <td data-label="Descripción">${escapeHtml((data.descripcion || "Sin descripción").slice(0, 80))}${data.descripcion && data.descripcion.length > 80 ? "..." : ""}</td>
         <td data-label="Comunidad">${escapeHtml(data.comunidad || "Sin comunidad")}</td>
         <td data-label="Estado"><span class="status-chip ${estadoClass}"><i class="bi ${chipIcon} chip-icon"></i>${escapeHtml(data.estado || "Pendiente")}</span></td>
-        <td data-label="Días en proceso">${escapeHtml(obtenerTextoDiasEnProceso(data))}</td>
+        <td data-label="Duración">${escapeHtml(obtenerTextoDuracionDenuncia(data))}</td>
         <td data-label="Fecha">${data.fecha ? new Date(data.fecha.seconds * 1000).toLocaleDateString() : "Sin fecha"}</td>
         <td data-label="Acciones"><button class="btn btn-sm btn-primary ver-btn" data-id="${id}">Ver detalle</button></td>
       `;
@@ -953,7 +984,7 @@ async function descargarDenunciaSeleccionada() {
       ["Provincia",     data.provincia || "—"],
       ["Municipio",     data.municipio || "—"],
       ["Comunidad",     data.comunidad || "—"],
-      ["Días en proceso", obtenerTextoDiasEnProceso(data)],
+      ["Duración", obtenerTextoDuracionDenuncia(data)],
       ["Fecha",         obtenerFechaTexto(data.fecha)]
     ],
     styles: { fontSize: 10, cellPadding: 3 },
@@ -1176,6 +1207,7 @@ async function responderDenuncia(event) {
     const anexosRespuesta = [...anexosExistentes, ...anexosNuevos];
     const plazoFinal = estadoSinPlaneacion ? "" : plazo;
     const presupuestoFinal = estadoSinPlaneacion ? "" : presupuesto;
+    const estadoAnterior = denunciaActual?.estado || ESTADO_DEFAULT;
     const actualizacion = {
       estado,
       plazo_estimado: plazoFinal,
@@ -1187,11 +1219,19 @@ async function responderDenuncia(event) {
     };
 
     if (estado === "En proceso") {
-      if ((denunciaActual?.estado || "Pendiente") !== "En proceso") {
+      if (estadoAnterior !== "En proceso") {
         actualizacion.fecha_en_proceso = new Date();
       }
     } else {
       actualizacion.fecha_en_proceso = null;
+    }
+
+    if (estado === "Resuelta") {
+      actualizacion.fecha_resuelta = estadoAnterior === "Resuelta"
+        ? (denunciaActual?.fecha_resuelta || denunciaActual?.fecha_respuesta || new Date())
+        : new Date();
+    } else {
+      actualizacion.fecha_resuelta = null;
     }
 
     await updateDoc(doc(db, "denuncias", currentDenunciaId), actualizacion);
