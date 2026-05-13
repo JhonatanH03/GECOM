@@ -592,24 +592,23 @@ function iniciarSuscripcionNotificaciones() {
       ? `${mensajeBase} ${mensajeTiempo}`
       : mensajeBase;
 
-    const mensajeSecundario = rolLocal === "admin"
-      ? "Vista global del sistema actualizada."
-      : (rolLocal === "ayuntamiento"
-        ? "Prioriza casos con impacto municipal esta semana."
-        : "Recuerda responder los reportes para evitar atrasos.");
+    let mensajeSecundario = "";
+    let urlSecundaria = "ver.html";
+    if (rolLocal === "admin") {
+      mensajeSecundario = "Vista global del sistema actualizada.";
+    } else if (rolLocal === "ayuntamiento") {
+      mensajeSecundario = "Prioriza casos con impacto municipal esta semana.";
+      urlSecundaria = "ver.html?estado=En%20proceso";
+    }
 
     const urlPrincipal = acumuladas > 0
       ? "ver.html?estados=Pendiente,En%20proceso"
       : "ver.html";
 
-    const urlSecundaria = rolLocal === "ayuntamiento"
-      ? "ver.html?estado=En%20proceso"
-      : "ver.html";
-
-    lista.innerHTML = `
-      <li class="dashboard-alert-item ${clase} dashboard-alert-link" role="button" tabindex="0" data-target-url="${urlPrincipal}">${mensajePrincipal}</li>
-      <li class="dashboard-alert-item dashboard-alert-item--info dashboard-alert-link" role="button" tabindex="0" data-target-url="${urlSecundaria}">${mensajeSecundario}</li>
-    `;
+    lista.innerHTML = `<li class="dashboard-alert-item ${clase} dashboard-alert-link" role="button" tabindex="0" data-target-url="${urlPrincipal}">${mensajePrincipal}</li>`;
+    if (mensajeSecundario) {
+      lista.innerHTML += `<li class="dashboard-alert-item dashboard-alert-item--info dashboard-alert-link" role="button" tabindex="0" data-target-url="${urlSecundaria}">${mensajeSecundario}</li>`;
+    }
   }
 
   function inicializarNavegacionAlertas() {
