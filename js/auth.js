@@ -303,9 +303,14 @@ window.login = async function () {
       mostrarExito("Inicio de sesión exitoso. Redirigiendo...");
 
       setTimeout(() => {
-        document.documentElement.style.transition = 'opacity 0.16s ease';
-        document.documentElement.style.opacity = '0';
-        setTimeout(() => { window.location.href = "dashboard.html?v=3"; }, 150);
+        try {
+          sessionStorage.setItem("gecomTransition", "login-dashboard");
+        } catch (_) {
+          localStorage.setItem("gecomTransition", "login-dashboard");
+        }
+
+        document.documentElement.classList.add("login-transition-out");
+        setTimeout(() => { window.location.href = "dashboard.html?v=3"; }, 360);
       }, 800);
     } catch (authError) {
       console.error("Error de autenticación:", authError.code);
