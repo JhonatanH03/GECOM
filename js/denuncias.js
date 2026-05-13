@@ -25,7 +25,7 @@ let perfilUsuario = null;
 let evidenciasSeleccionadas = [];
 let evidenciaSecuencia = 0;
 
-const MAX_EVIDENCIA_BYTES = 8 * 1024 * 1024;
+const MAX_EVIDENCIA_BYTES = 12 * 1024 * 1024;
 const UMBRAL_COMPRESION_BYTES = 1.5 * 1024 * 1024;
 const MAX_DIMENSION_EVIDENCIA = 1920;
 const CALIDAD_COMPRESION = 0.82;
