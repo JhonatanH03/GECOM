@@ -25,7 +25,7 @@ let perfilUsuario = null;
 let evidenciasSeleccionadas = [];
 let evidenciaSecuencia = 0;
 
-const MAX_EVIDENCIA_BYTES = 8 * 1024 * 1024;
+const MAX_EVIDENCIA_BYTES = 12 * 1024 * 1024;
 const UMBRAL_COMPRESION_BYTES = 1.5 * 1024 * 1024;
 const MAX_DIMENSION_EVIDENCIA = 1920;
 const CALIDAD_COMPRESION = 0.82;
@@ -212,6 +212,32 @@ function limpiarMensajeFormulario() {
 
   msg.className = "mt-3";
   msg.textContent = "";
+}
+
+async function mostrarAvisoUI({
+  title = "Aviso",
+  message = "",
+  type = "info",
+  confirmText = "Aceptar",
+  cancelText = "Cerrar"
+} = {}) {
+  if (typeof window.gecomConfirm === "function") {
+    await window.gecomConfirm({
+      title,
+      message,
+      confirmText,
+      cancelText,
+      type
+    });
+    return;
+  }
+
+  const mapTipoAlerta = {
+    info: "info",
+    warning: "warning",
+    danger: "danger"
+  };
+  mostrarMensajeFormulario(message || title, mapTipoAlerta[type] || "info");
 }
 
 function habilitarEnvioFormulario(estaHabilitado) {
@@ -509,12 +535,20 @@ window.crearDenuncia = async function () {
 
     // Validar campos obligatorios
     if (!titulo || !tipo || !descripcion || !provincia || !municipio || !sector) {
-      alert("Todos los campos son obligatorios.");
+      await mostrarAvisoUI({
+        title: "Campos incompletos",
+        message: "Todos los campos son obligatorios.",
+        type: "warning"
+      });
       return;
     }
 
     if (document.getElementById("tipo").value === "Otro" && !tipo) {
-      alert("Por favor especifica el tipo de denuncia.");
+      await mostrarAvisoUI({
+        title: "Falta información",
+        message: "Por favor especifica el tipo de denuncia.",
+        type: "warning"
+      });
       return;
     }
 
@@ -522,21 +556,35 @@ window.crearDenuncia = async function () {
 
     // VALIDAR SESIÓN
     if (!uid || !auth.currentUser) {
-      alert("Debes iniciar sesión");
+      await mostrarAvisoUI({
+        title: "Sesión requerida",
+        message: "Debes iniciar sesión.",
+        type: "warning",
+        confirmText: "Ir al inicio"
+      });
       window.location.href = "index.html";
       return;
     }
 
     // Verificar que el UID coincida
     if (auth.currentUser.uid !== uid) {
-      alert("Error de autenticación. Por favor inicia sesión nuevamente");
+      await mostrarAvisoUI({
+        title: "Sesión inválida",
+        message: "Error de autenticación. Por favor inicia sesión nuevamente.",
+        type: "warning",
+        confirmText: "Ir al inicio"
+      });
       window.location.href = "index.html";
       return;
     }
 
     // Solo las juntas pueden registrar denuncias
     if (rol !== "junta") {
-      alert("Solo las juntas de vecinos pueden registrar denuncias.");
+      await mostrarAvisoUI({
+        title: "Sin permisos",
+        message: "Solo las juntas de vecinos pueden registrar denuncias.",
+        type: "danger"
+      });
       window.location.href = "index.html";
       return;
     }
@@ -607,7 +655,14 @@ window.crearDenuncia = async function () {
       comunidad
     });
 
-    alert("Denuncia creada correctamente");
+    await mostrarAvisoUI({
+      title: "Denuncia creada",
+      message: "La denuncia fue registrada correctamente.",
+      type: "info",
+      confirmText: "Entendido",
+      cancelText: "Cerrar"
+    });
+    mostrarMensajeFormulario("Denuncia creada correctamente.", "success");
     document.getElementById("formDenuncia").reset();
     limpiarPreviewEvidencia();
     ocultarProgresoSubida();
@@ -619,7 +674,12 @@ window.crearDenuncia = async function () {
     await cargarUbicacionDesdePerfil();
   } catch (error) {
     console.error("ERROR:", error.message);
-    alert("Error al crear denuncia: " + error.message);
+    await mostrarAvisoUI({
+      title: "Error al crear denuncia",
+      message: error.message || "No se pudo crear la denuncia.",
+      type: "danger"
+    });
+    mostrarMensajeFormulario("Error al crear denuncia: " + error.message, "danger");
   } finally {
     if (submitBtn) {
       submitBtn.disabled = false;

@@ -97,7 +97,7 @@ function initLayoutFunctionality() {
   const profileInitial = document.getElementById('profileInitial');
   const profileInitialLg = document.getElementById('profileInitialLg');
 
-  const usuario = localStorage.getItem('usuario') || 'Usuario';
+  const usuario = localStorage.getItem('nombre') || localStorage.getItem('usuario') || 'Usuario';
   const rol = localStorage.getItem('rol') || '';
 
   const refreshText = () => {
@@ -125,6 +125,28 @@ function initLayoutFunctionality() {
     });
   };
 
+  const aplicarTemaLocal = () => {
+    const html = document.getElementById('htmlRoot');
+    const body = document.getElementById('bodyRoot');
+    if (!html || !body) return;
+
+    const tema = localStorage.getItem('tema') || 'sistema';
+    let temaFinal = tema;
+    if (tema === 'sistema') {
+      temaFinal = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'oscuro' : 'claro';
+    }
+
+    if (temaFinal === 'oscuro') {
+      html.setAttribute('data-bs-theme', 'dark');
+      body.classList.remove('bg-light');
+      body.classList.add('bg-dark');
+    } else {
+      html.setAttribute('data-bs-theme', 'light');
+      body.classList.remove('bg-dark');
+      body.classList.add('bg-light');
+    }
+  };
+
   const closeProfileMenu = () => {
     if (!profileMenu || !profileToggle) return;
     profileMenu.style.display = 'none';
@@ -143,6 +165,7 @@ function initLayoutFunctionality() {
   }
 
   refreshText();
+  aplicarTemaLocal();
   markActiveTheme();
   markActiveLanguage();
 
@@ -177,6 +200,8 @@ function initLayoutFunctionality() {
       localStorage.setItem('tema', item.dataset.tema);
       if (typeof window.initThemeSelector === 'function') {
         window.initThemeSelector();
+      } else {
+        aplicarTemaLocal();
       }
       markActiveTheme();
       closeProfileMenu();

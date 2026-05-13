@@ -42,6 +42,10 @@
     return (usuario || "U").charAt(0).toUpperCase();
   }
 
+  function getStoredDisplayName() {
+    return localStorage.getItem("nombre") || localStorage.getItem("usuario") || "Usuario";
+  }
+
   function aplicarTema(tema) {
     const html = document.getElementById("htmlRoot");
     const body = document.getElementById("bodyRoot");
@@ -78,6 +82,7 @@
     const clearLocalSession = function () {
       localStorage.removeItem("uid");
       localStorage.removeItem("rol");
+      localStorage.removeItem("nombre");
       localStorage.removeItem("usuario");
       localStorage.removeItem("primerLogin");
     };
@@ -117,7 +122,7 @@
   }
 
   function buildMenu() {
-    const usuario = localStorage.getItem("usuario") || "Usuario";
+    const usuario = getStoredDisplayName();
     const rol = localStorage.getItem("rol") || "";
     const tema = localStorage.getItem("tema") || "sistema";
     const lang = getLang();
@@ -257,7 +262,7 @@
   function init() {
     const hasAppLayout = !!document.getElementById("appLayoutContainer");
     if (hasAppLayout) {
-      const usuario = localStorage.getItem("usuario") || "Usuario";
+      const usuario = getStoredDisplayName();
       const rol = localStorage.getItem("rol") || "";
       const lang = getLang();
       const rolLabel = getRolLabel(rol, lang);

@@ -167,8 +167,10 @@ service cloud.firestore {
             "plazo_estimado",
             "presupuesto_estimado",
             "respuesta_ayuntamiento",
+            "anexos_respuesta_pdf",
             "fecha_respuesta",
             "fecha_en_proceso",
+            "fecha_resuelta",
             "ayuntamiento_id"
           ]) &&
           request.resource.data.ayuntamiento_id == request.auth.uid
