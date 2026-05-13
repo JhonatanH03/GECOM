@@ -7,6 +7,19 @@
   const usuario = localStorage.getItem("usuario");
   const showSessionBanner = localStorage.getItem("gecomDebugSessionBanner") === "true";
 
+  let transitionDestino = "";
+  try {
+    transitionDestino = sessionStorage.getItem("gecomTransition") || "";
+    if (transitionDestino) {
+      sessionStorage.removeItem("gecomTransition");
+    }
+  } catch (_) {
+    transitionDestino = localStorage.getItem("gecomTransition") || "";
+    if (transitionDestino) {
+      localStorage.removeItem("gecomTransition");
+    }
+  }
+
   function getIdiomaUI() {
     return (localStorage.getItem("idioma") || "es") === "en" ? "en" : "es";
   }
@@ -61,7 +74,8 @@
   // Si hay autenticación válida, mostrar la página
   if (rol && uid) {
     const esDashboard = window.location.pathname.toLowerCase().includes("dashboard.html");
-    const fadeMs = esDashboard ? 90 : 160;
+    const fadeMs = esDashboard ? 120 : 160;
+    const usarEntradaDashboard = esDashboard && transitionDestino === "login-dashboard";
     document.documentElement.style.display = 'block';
     if (showSessionBanner) {
       if (document.readyState === "loading") {
@@ -77,12 +91,24 @@
     // Fade-in al cargar
     document.documentElement.style.opacity = '0';
     document.documentElement.style.transition = `opacity ${fadeMs}ms ease`;
+    if (usarEntradaDashboard) {
+      document.documentElement.classList.add("dashboard-entrance", "dashboard-entrance--from-login");
+    }
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', () => {
         requestAnimationFrame(() => { document.documentElement.style.opacity = '1'; });
       });
     } else {
       requestAnimationFrame(() => { document.documentElement.style.opacity = '1'; });
+    }
+
+    if (usarEntradaDashboard) {
+      requestAnimationFrame(() => {
+        document.documentElement.classList.add("dashboard-entrance--active");
+      });
+      window.setTimeout(() => {
+        document.documentElement.classList.remove("dashboard-entrance", "dashboard-entrance--from-login", "dashboard-entrance--active");
+      }, 760);
     }
 
     // Fade-out al navegar (links internos y window.location)

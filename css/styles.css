@@ -135,6 +135,46 @@ h3 {
   overflow-x: clip;
 }
 
+html.login-transition-out {
+  overflow: hidden;
+}
+
+html.login-transition-out body {
+  animation: loginSlideOutLeft 360ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.dashboard-entrance {
+  overflow: hidden;
+}
+
+.dashboard-entrance body {
+  opacity: 0;
+  transform: translateX(44px);
+}
+
+.dashboard-entrance.dashboard-entrance--from-login body {
+  animation: dashboardSlideInFromRight 720ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.dashboard-entrance.dashboard-entrance--from-login::before {
+  opacity: 0.95;
+}
+
+.dashboard-entrance.dashboard-entrance--from-login::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(120deg, rgba(255, 255, 255, 0.08), rgba(59, 130, 246, 0.16), rgba(16, 185, 129, 0.08));
+  mix-blend-mode: screen;
+  opacity: 0;
+  transform: translateX(8%);
+}
+
+.dashboard-entrance.dashboard-entrance--from-login.dashboard-entrance--active::after {
+  animation: dashboardEntranceWash 720ms ease-out forwards;
+}
+
 .dashboard-page::before {
   content: "";
   position: fixed;
@@ -146,6 +186,51 @@ h3 {
   mix-blend-mode: multiply;
   opacity: 0.7;
   z-index: 0;
+}
+
+@keyframes loginSlideOutLeft {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+    filter: blur(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-56px);
+    filter: blur(1.5px);
+  }
+}
+
+@keyframes dashboardSlideInFromRight {
+  0% {
+    opacity: 0;
+    transform: translateX(44px);
+    filter: saturate(0.9) blur(1.4px);
+  }
+  60% {
+    opacity: 1;
+    transform: translateX(0);
+    filter: saturate(1) blur(0);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+    filter: none;
+  }
+}
+
+@keyframes dashboardEntranceWash {
+  0% {
+    opacity: 0;
+    transform: translateX(10%);
+  }
+  25% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(0);
+  }
 }
 
 .dashboard-page > *:not(.modal):not(.modal-backdrop) {
