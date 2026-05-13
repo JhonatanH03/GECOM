@@ -333,11 +333,12 @@
       if (!estado) return;
       const estadoActual = estado.value;
       const ocultarCamposPlaneacion = estadoActual === "Rechazada" || estadoActual === "Resuelta";
+      const presupuestoObligatorio = estadoActual === "Pendiente";
 
       wrapPlazo.classList.toggle("d-none", ocultarCamposPlaneacion);
       wrapPresupuesto.classList.toggle("d-none", ocultarCamposPlaneacion);
       plazo.required = !ocultarCamposPlaneacion;
-      presupuesto.required = !ocultarCamposPlaneacion;
+      presupuesto.required = !ocultarCamposPlaneacion && presupuestoObligatorio;
 
       if (ocultarCamposPlaneacion) {
         plazo.value = "";

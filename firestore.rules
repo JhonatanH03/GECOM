@@ -167,6 +167,7 @@ service cloud.firestore {
             "plazo_estimado",
             "presupuesto_estimado",
             "respuesta_ayuntamiento",
+            "anexos_respuesta_pdf",
             "fecha_respuesta",
             "fecha_en_proceso",
             "ayuntamiento_id"

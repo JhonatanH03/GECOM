@@ -1147,6 +1147,11 @@ async function responderDenuncia(event) {
       mostrarModalFeedback(mensaje, "danger");
       return;
     }
+  } else if (estado === "En proceso") {
+    if (!plazo || !respuesta) {
+      mostrarModalFeedback("Para marcar En proceso debes completar tiempo estimado y respuesta oficial.", "danger");
+      return;
+    }
   } else if (!plazo || !presupuesto || !respuesta) {
     mostrarModalFeedback("Todos los campos de respuesta son obligatorios.", "danger");
     return;
