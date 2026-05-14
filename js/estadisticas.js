@@ -22,20 +22,42 @@ let chartTendencias;
 let denuncias = []; // almacenar todas las denuncias
 let usuarios = {}; // uid -> email
 
-// Cargar usuarios
-async function cargarUsuarios() {
+// Cargar usuarios y provincias
+async function cargarUsuariosYProvincias() {
+  // Usuarios
   const snapshot = await getDocs(collection(db, "JuntasDeVecinos"));
+  usuarios = {};
   snapshot.forEach(doc => {
     const data = doc.data();
-    usuarios[doc.id] = data.municipio || data.correo || data.email || doc.id;
+    usuarios[doc.id] = {
+      nombre: data.nombre || data.usuario || doc.id,
+      municipio: data.municipio || "",
+      provincia: data.provincia || ""
+    };
   });
   // Llenar select de usuarios
   const select = document.getElementById("usuarioFiltro");
+  select.innerHTML = '<option value="">Todos</option>';
   Object.keys(usuarios).forEach(uid => {
+    const u = usuarios[uid];
     const option = document.createElement("option");
     option.value = uid;
-    option.text = usuarios[uid];
+    option.text = `${u.nombre}${u.municipio ? " (" + u.municipio + ")" : ""}`;
     select.appendChild(option);
+  });
+
+  // Provincias (de denuncias)
+  const provinciasSet = new Set();
+  denuncias.forEach(d => {
+    if (d.provincia) provinciasSet.add(d.provincia);
+  });
+  const provinciaSelect = document.getElementById("provinciaFiltro");
+  provinciaSelect.innerHTML = '<option value="">Todas</option>';
+  Array.from(provinciasSet).sort().forEach(prov => {
+    const option = document.createElement("option");
+    option.value = prov;
+    option.text = prov;
+    provinciaSelect.appendChild(option);
   });
 }
 
@@ -204,19 +226,23 @@ function iniciarEscucha() {
     snapshot.forEach(doc => {
       denuncias.push({ id: doc.id, ...doc.data() });
     });
+    cargarUsuariosYProvincias(); // recargar provincias y usuarios si cambian
     actualizarEstadisticas();
   });
 }
 
 // Función para aplicar filtros y actualizar estadísticas
+let chartMunicipios = null;
+
 function actualizarEstadisticas() {
   const fechaDesde = document.getElementById("fechaDesde").value;
   const fechaHasta = document.getElementById("fechaHasta").value;
   const usuarioFiltro = document.getElementById("usuarioFiltro").value;
+  const estadoFiltro = document.getElementById("estadoFiltro").value;
+  const provinciaFiltro = document.getElementById("provinciaFiltro").value;
 
   let filtradas = denuncias.filter(d => {
     let incluir = true;
-
     // Filtro fecha
     if (fechaDesde) {
       const desde = new Date(fechaDesde);
@@ -229,10 +255,12 @@ function actualizarEstadisticas() {
       const fechaDenuncia = d.fecha.toDate ? d.fecha.toDate() : new Date(d.fecha);
       if (fechaDenuncia > hasta) incluir = false;
     }
-
     // Filtro usuario
     if (usuarioFiltro && d.uid !== usuarioFiltro) incluir = false;
-
+    // Filtro estado
+    if (estadoFiltro && d.estado !== estadoFiltro) incluir = false;
+    // Filtro provincia
+    if (provinciaFiltro && d.provincia !== provinciaFiltro) incluir = false;
     return incluir;
   });
 
@@ -257,6 +285,7 @@ function actualizarEstadisticas() {
 
   const datos = [pendiente, proceso, resuelta, rechazada];
 
+
   // 🔄 actualizar o crear gráficos
   if (chartBarras && chartPastel) {
     chartBarras.data.datasets[0].data = datos;
@@ -266,6 +295,46 @@ function actualizarEstadisticas() {
     chartPastel.update();
   } else {
     crearGraficos(datos);
+  }
+
+  // Gráfico de denuncias por municipio
+  const municipioConteo = {};
+  filtradas.forEach(d => {
+    if (d.municipio) municipioConteo[d.municipio] = (municipioConteo[d.municipio] || 0) + 1;
+  });
+  const municipios = Object.keys(municipioConteo);
+  const valores = municipios.map(m => municipioConteo[m]);
+  const ctxMunicipios = document.getElementById("graficoMunicipios")?.getContext("2d");
+  if (ctxMunicipios) {
+    if (chartMunicipios) {
+      chartMunicipios.data.labels = municipios;
+      chartMunicipios.data.datasets[0].data = valores;
+      chartMunicipios.update();
+    } else {
+      chartMunicipios = new Chart(ctxMunicipios, {
+        type: "bar",
+        data: {
+          labels: municipios,
+          datasets: [{
+            label: "",
+            data: valores,
+            backgroundColor: "#38bdf8",
+            borderRadius: 10
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { display: false },
+            title: { display: false }
+          },
+          scales: {
+            x: { grid: { display: false }, ticks: { font: { size: 12 } } },
+            y: { beginAtZero: true, ticks: { precision: 0, font: { size: 12 } } }
+          }
+        }
+      });
+    }
   }
 
   // Tendencias
@@ -505,13 +574,36 @@ function exportarPDF() {
 
 // Inicializar
 document.addEventListener("DOMContentLoaded", () => {
-  document.getElementById("aplicarFiltros").addEventListener("click", actualizarEstadisticas);
+  // Filtros en tiempo real
+  document.querySelectorAll('.filtro-tiempo-real').forEach(el => {
+    el.addEventListener('input', actualizarEstadisticas);
+    el.addEventListener('change', actualizarEstadisticas);
+  });
+  document.getElementById("limpiarFiltros").addEventListener("click", () => {
+    document.getElementById("fechaDesde").value = "";
+    document.getElementById("fechaHasta").value = "";
+    document.getElementById("usuarioFiltro").value = "";
+    document.getElementById("estadoFiltro").value = "";
+    document.getElementById("provinciaFiltro").value = "";
+    actualizarEstadisticas();
+  });
   document.getElementById("exportarPDF").addEventListener("click", exportarPDF);
 
   onAuthStateChanged(auth, async (user) => {
     if (user) {
-      await cargarUsuarios();
+      await cargarUsuariosYProvincias();
       iniciarEscucha();
     }
+  });
+
+  // Mejorar visual de filtros y KPIs
+  document.querySelectorAll('.app-main-content .card').forEach(card => {
+    card.classList.add('border-0', 'shadow-sm', 'rounded-4');
+  });
+  document.querySelectorAll('.app-main-content .form-control').forEach(ctrl => {
+    ctrl.classList.add('border-primary', 'rounded-pill', 'fw-semibold');
+  });
+  document.querySelectorAll('.app-main-content label').forEach(lbl => {
+    lbl.classList.add('fw-bold', 'text-primary');
   });
 });
