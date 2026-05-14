@@ -2821,6 +2821,119 @@ textarea.form-control:focus {
   gap: 12px;
 }
 
+/* --- Help page --- */
+.ayuda-search-wrap {
+      position: relative;
+      max-width: 480px;
+    }
+
+    .ayuda-search-wrap .bi-search {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--gecom-subtext);
+      pointer-events: none;
+    }
+
+    #buscadorAyuda {
+      padding-left: 2.4rem;
+      border-radius: 10px;
+    }
+
+    /* Tab pills */
+    .ayuda-tabs .nav-link {
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 0.88rem;
+      padding: 7px 16px;
+      border: 1px solid transparent;
+    }
+    .ayuda-tabs .nav-link.active {
+      background: #0d6efd;
+      color: #fff;
+      border-color: #0d6efd;
+    }
+
+    /* Accordion */
+    .ayuda-accordion .accordion-item {
+      border-radius: 12px !important;
+      margin-bottom: 10px;
+      overflow: hidden;
+    }
+
+    .ayuda-accordion .accordion-button {
+      font-weight: 700;
+      font-size: 0.97rem;
+      border-radius: 12px !important;
+      gap: 10px;
+    }
+
+    .ayuda-accordion .accordion-button:not(.collapsed) {
+      color: #0d6efd;
+      box-shadow: none;
+    }
+
+    .ayuda-accordion .accordion-body {
+      font-size: 0.92rem;
+      line-height: 1.7;
+      padding: 1rem 1.5rem 1.2rem;
+    }
+
+    .step-list {
+      list-style: none;
+      padding: 0;
+      margin: 0.5rem 0 0;
+    }
+
+    .step-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .step-num {
+      min-width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #0d6efd;
+      color: #fff;
+      font-size: 0.75rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      border-radius: 20px;
+      padding: 3px 10px;
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+
+    .badge-pendiente  { background: rgba(255,193,7,.18);  color: #a07800; }
+    .badge-proceso    { background: rgba(13,110,253,.14); color: #0d6efd; }
+    .badge-resuelta   { background: rgba(25,135,84,.14);  color: #198754; }
+    .badge-rechazada  { background: rgba(220,53,69,.14);  color: #dc3545; }
+
+    [data-bs-theme="dark"] .badge-pendiente  { color: #ffc107; }
+    [data-bs-theme="dark"] .badge-proceso    { color: #6ea8fe; }
+    [data-bs-theme="dark"] .badge-resuelta   { color: #75b798; }
+    [data-bs-theme="dark"] .badge-rechazada  { color: #ea868f; }
+
+    .sin-resultados {
+      display: none;
+      text-align: center;
+      padding: 3rem 0;
+    }
+
 
 /* --- Dashboard footer (modern layout) --- */
 .dashboard-footer {
