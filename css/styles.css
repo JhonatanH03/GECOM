@@ -166,7 +166,6 @@ html.login-transition-out body {
   inset: 0;
   pointer-events: none;
   background: linear-gradient(120deg, rgba(255, 255, 255, 0.08), rgba(59, 130, 246, 0.16), rgba(16, 185, 129, 0.08));
-  mix-blend-mode: screen;
   opacity: 0;
   transform: translateX(8%);
 }
@@ -180,9 +179,6 @@ html.login-transition-out body {
   position: fixed;
   inset: 0;
   pointer-events: none;
-  background:
-    linear-gradient(90deg, rgba(7, 20, 39, 0.44) 0%, rgba(7, 20, 39, 0) 22%, rgba(7, 20, 39, 0) 78%, rgba(7, 20, 39, 0.44) 100%),
-    repeating-linear-gradient(120deg, rgba(255, 255, 255, 0.032) 0 1px, transparent 1px 14px);
   mix-blend-mode: multiply;
   opacity: 0.7;
   z-index: 0;
@@ -1301,7 +1297,7 @@ html.login-transition-out body {
   background:
     linear-gradient(90deg, rgba(1, 8, 19, 0.82) 0%, rgba(1, 8, 19, 0) 24%, rgba(1, 8, 19, 0) 76%, rgba(1, 8, 19, 0.82) 100%),
     repeating-linear-gradient(120deg, rgba(255, 255, 255, 0.036) 0 1px, transparent 1px 13px);
-  mix-blend-mode: screen;
+
   opacity: 0.65;
 }
 
@@ -1322,7 +1318,6 @@ html.login-transition-out body {
   background:
     linear-gradient(90deg, rgba(1, 8, 19, 0.82) 0%, rgba(1, 8, 19, 0) 24%, rgba(1, 8, 19, 0) 76%, rgba(1, 8, 19, 0.82) 100%),
     repeating-linear-gradient(120deg, rgba(255, 255, 255, 0.036) 0 1px, transparent 1px 13px);
-  mix-blend-mode: screen;
   opacity: 0.65;
 }
 
@@ -2825,7 +2820,6 @@ textarea.form-control:focus {
 }
 
 .dashboard-footer-modern {
-  background: color-mix(in srgb, var(--gecom-bg) 86%, transparent);
   width: 100%;
   margin-top: clamp(2rem, 5vw, 3rem);
   display: flex;
@@ -2834,7 +2828,7 @@ textarea.form-control:focus {
 }
 
 .dashboard-footer-surface {
-  width: 60rem;
+  width: 78rem;
   background: color-mix(in srgb, var(--gecom-surface) 96%, transparent);
   border: 1px solid color-mix(in srgb, var(--gecom-stroke) 88%, transparent);
   box-shadow: var(--gecom-shadow);
@@ -3086,5 +3080,3 @@ textarea.form-control:focus {
 
   
 }
-
-
