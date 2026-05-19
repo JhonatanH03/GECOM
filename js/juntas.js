@@ -25,10 +25,21 @@ const juntaIdInput = document.getElementById("juntaId");
 const passwordField = document.getElementById("passwordField");
 const usuarioInput = document.getElementById("usuario");
 const JUNTA_USUARIO_PREFIX = "jvl_";
+const actionModalElement = document.getElementById("modalAccionesJunta");
+const actionModal = actionModalElement ? new bootstrap.Modal(actionModalElement) : null;
+const actionJuntaIdInput = document.getElementById("actionJuntaId");
+const actionJuntaNombre = document.getElementById("actionJuntaNombre");
 let provinciaAyuntamiento = null;
 let municipioAyuntamiento = null;
 const municipiosSelect = document.getElementById("municipio");
 const provinciaSelect = document.getElementById("provincia");
+
+function openActionModal(id, nombre) {
+  if (!actionModal || !actionJuntaIdInput || !actionJuntaNombre) return;
+  actionJuntaIdInput.value = id || "";
+  actionJuntaNombre.textContent = nombre || "-";
+  actionModal.show();
+}
 
 function usuarioAEmailInterno(usuario) {
   return String(usuario || "").trim().toLowerCase().replace(/[^a-z0-9_]/g, "") + "@gecom.internal";
@@ -216,6 +227,14 @@ window.addEventListener("DOMContentLoaded", async () => {
   });
 
   protegerPrefijoUsuario();
+
+  juntasBody.addEventListener("click", (event) => {
+    const btn = event.target.closest(".gecom-open-actions-btn");
+    if (!btn || rolLocal !== "ayuntamiento") return;
+    const id = btn.dataset.id || "";
+    const nombre = decodeURIComponent(btn.dataset.nombre || "");
+    openActionModal(id, nombre);
+  });
 });
 
 form.addEventListener("submit", async (event) => {
@@ -327,9 +346,16 @@ async function cargarJuntas() {
   </tr>`;
   juntasBody.innerHTML = _skRow7.repeat(5);
   try {
-    const snapshot = rolLocal === "admin"
-      ? await db.collection("JuntasDeVecinos").get()
-      : await db.collection("JuntasDeVecinos").where("creada_por", "==", uid).get();
+    let snapshot;
+    if (rolLocal === "admin") {
+      snapshot = await db.collection("JuntasDeVecinos").get();
+    } else if (rolLocal === "ayuntamiento") {
+      snapshot = provinciaAyuntamiento
+        ? await db.collection("JuntasDeVecinos").where("provincia", "==", provinciaAyuntamiento).get()
+        : await db.collection("JuntasDeVecinos").get();
+    } else {
+      snapshot = await db.collection("JuntasDeVecinos").where("creada_por", "==", uid).get();
+    }
     
     if (snapshot.empty) {
       juntasBody.innerHTML = '<tr class="table-feedback-row"><td colspan="7"><div class="empty-state">No hay juntas registradas en tu alcance.</div></td></tr>';
@@ -356,15 +382,15 @@ async function cargarJuntas() {
       const label = data.estado ? "Activa" : "Inactiva";
       const estadoClass = data.estado ? "status-resuelta" : "status-pendiente";
       const chipIcon = data.estado ? "bi-check-circle-fill" : "bi-x-circle-fill";
-      juntasBody.innerHTML += `<tr>
-        <td data-label="Nombre">${escapeHtml(data.nombre)}</td>
-        <td data-label="Usuario">${escapeHtml(data.usuario || "")}</td>
-        <td data-label="Teléfono">${escapeHtml(data.telefono || "")}</td>
-        <td data-label="Ubicación">${escapeHtml((data.provincia || "") + " / " + (data.municipio || ""))}</td>
-        <td data-label="Comunidad">${escapeHtml(data.comunidad || "")}</td>
-        <td data-label="Estado"><span class="status-chip ${estadoClass}"><i class="bi ${chipIcon} chip-icon"></i>${escapeHtml(label)}</span></td>
-        <td class="text-center" data-label="Acciones">
-          <div class="dropdown">
+      const accionesHtml = rolLocal === "ayuntamiento"
+        ? `<button
+              class="btn btn-sm gecom-action-menu-btn gecom-open-actions-btn"
+              type="button"
+              data-id="${escapeHtml(data.id)}"
+              data-nombre="${encodeURIComponent(data.nombre || "")}">
+              <i class="bi bi-three-dots-vertical"></i>
+            </button>`
+        : `<div class="dropdown">
             <button class="btn btn-sm gecom-action-menu-btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
               <i class="bi bi-three-dots-vertical"></i>
             </button>
@@ -386,7 +412,17 @@ async function cargarJuntas() {
                 </button>
               </li>
             </ul>
-          </div>
+          </div>`;
+
+      juntasBody.innerHTML += `<tr>
+        <td data-label="Nombre">${escapeHtml(data.nombre)}</td>
+        <td data-label="Usuario">${escapeHtml(data.usuario || "")}</td>
+        <td data-label="Teléfono">${escapeHtml(data.telefono || "")}</td>
+        <td data-label="Ubicación">${escapeHtml((data.provincia || "") + " / " + (data.municipio || ""))}</td>
+        <td data-label="Comunidad">${escapeHtml(data.comunidad || "")}</td>
+        <td data-label="Estado"><span class="status-chip ${estadoClass}"><i class="bi ${chipIcon} chip-icon"></i>${escapeHtml(label)}</span></td>
+        <td class="text-center" data-label="Acciones">
+          ${accionesHtml}
         </td>
       </tr>`;
     });
@@ -397,7 +433,82 @@ async function cargarJuntas() {
 }
 
 function showAlert(msg, type = "success") {
-  alertContainer.innerHTML = `<div class="alert alert-${type} alert-dismissible fade show"><strong>${escapeHtml(msg)}</strong><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>`;
+  const credenciales = type === "success" ? extraerCredencialesTemporales(msg) : null;
+
+  if (!credenciales) {
+    alertContainer.innerHTML = `<div class="alert alert-${type} alert-dismissible fade show"><strong>${escapeHtml(msg)}</strong><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>`;
+    return;
+  }
+
+  const idCopiar = `btnCopiarPwd_${Date.now()}`;
+  const idCopiarTodo = `btnCopiarTodo_${Date.now()}`;
+  alertContainer.innerHTML = `
+    <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+      <div class="fw-semibold mb-2">${escapeHtml(msg)}</div>
+      <div class="d-flex gap-2 flex-wrap">
+        <button type="button" id="${idCopiar}" class="btn btn-sm btn-outline-light">Copiar</button>
+        <button type="button" id="${idCopiarTodo}" class="btn btn-sm btn-light">Copiar todo</button>
+      </div>
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+    </div>
+  `;
+
+  const btnCopiar = document.getElementById(idCopiar);
+  const btnCopiarTodo = document.getElementById(idCopiarTodo);
+
+  btnCopiar?.addEventListener("click", async () => {
+    const ok = await copiarTextoPortapapeles(credenciales.contrasena);
+    btnCopiar.textContent = ok ? "Copiado" : "No se pudo copiar";
+  });
+
+  btnCopiarTodo?.addEventListener("click", async () => {
+    const textoCompleto = credenciales.usuario
+      ? `Usuario: ${credenciales.usuario}\nContraseña temporal: ${credenciales.contrasena}`
+      : `Contraseña temporal: ${credenciales.contrasena}`;
+    const ok = await copiarTextoPortapapeles(textoCompleto);
+    btnCopiarTodo.textContent = ok ? "Copiado" : "No se pudo copiar";
+  });
+}
+
+function extraerCredencialesTemporales(message) {
+  const texto = String(message || "");
+  const passMatch = texto.match(/Contrase(?:n|ñ)a temporal:\s*([^,\s]+)/i);
+  if (!passMatch) return null;
+
+  const userMatch = texto.match(/Usuario:\s*([^,]+),/i);
+  return {
+    usuario: userMatch ? userMatch[1].trim() : "",
+    contrasena: passMatch[1].trim()
+  };
+}
+
+async function copiarTextoPortapapeles(texto) {
+  const contenido = String(texto || "");
+  if (!contenido) return false;
+
+  try {
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+      await navigator.clipboard.writeText(contenido);
+      return true;
+    }
+  } catch (_error) {
+    // fallback below
+  }
+
+  try {
+    const temp = document.createElement("textarea");
+    temp.value = contenido;
+    temp.setAttribute("readonly", "");
+    temp.style.position = "fixed";
+    temp.style.opacity = "0";
+    document.body.appendChild(temp);
+    temp.select();
+    const copied = document.execCommand("copy");
+    document.body.removeChild(temp);
+    return copied;
+  } catch (_error) {
+    return false;
+  }
 }
 
 function showModalAlert(msg, type = "danger") {
@@ -438,7 +549,11 @@ window.editarJunta = async function(id) {
     modal.show();
   } catch (error) {
     console.error("Error:", error);
-    showAlert("Error al cargar junta.", "danger");
+    if (error && error.code === "permission-denied") {
+      showAlert("No tienes permisos para editar esta junta.", "danger");
+    } else {
+      showAlert("Error al cargar junta.", "danger");
+    }
   }
 };
 
@@ -456,6 +571,29 @@ window.abrirModalResetContrasenaJunta = function(id, nombre) {
   document.getElementById('resetTargetUid').value = id;
   document.getElementById('resetTargetNombre').textContent = nombre;
   resetModalJunta.show();
+};
+
+window.accionEditarJunta = function() {
+  const id = actionJuntaIdInput ? actionJuntaIdInput.value : "";
+  if (!id) return;
+  if (actionModal) actionModal.hide();
+  editarJunta(id);
+};
+
+window.accionRestablecerJunta = function() {
+  const id = actionJuntaIdInput ? actionJuntaIdInput.value : "";
+  const nombre = actionJuntaNombre ? actionJuntaNombre.textContent : "";
+  if (!id) return;
+  if (actionModal) actionModal.hide();
+  abrirModalResetContrasenaJunta(id, nombre || "");
+};
+
+window.accionEliminarJunta = function() {
+  const id = actionJuntaIdInput ? actionJuntaIdInput.value : "";
+  const nombre = actionJuntaNombre ? actionJuntaNombre.textContent : "";
+  if (!id) return;
+  if (actionModal) actionModal.hide();
+  eliminarJunta(id, nombre || "");
 };
 
 window.confirmarResetContrasenaJunta = async function() {
@@ -529,7 +667,11 @@ window.eliminarJunta = async function(id, nombre) {
     await cargarJuntas();
   } catch (error) {
     console.error("Error:", error);
-    showAlert("Error al eliminar.", "danger");
+    if (error && error.code === "permission-denied") {
+      showAlert("No tienes permisos para eliminar esta junta.", "danger");
+    } else {
+      showAlert("Error al eliminar.", "danger");
+    }
   }
 };
 

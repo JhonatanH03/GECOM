@@ -1,11 +1,9 @@
 (function () {
-  // Roles legibles por idioma
   const ROLES = {
     es: { admin: "Administrador", ayuntamiento: "Ayuntamiento", junta: "Junta de Vecinos" },
     en: { admin: "Administrator", ayuntamiento: "City Hall", junta: "Neighborhood Board" },
   };
 
-  // Traducciones básicas ES/EN
   const I18N = {
     es: {
       perfil: "Perfil",
@@ -15,7 +13,6 @@
       claro: "Claro",
       oscuro: "Oscuro",
       sistema: "Sistema",
-      cambiarContrasena: "Cambiar contraseña",
     },
     en: {
       perfil: "Profile",
@@ -25,7 +22,6 @@
       claro: "Light",
       oscuro: "Dark",
       sistema: "System",
-      cambiarContrasena: "Change password",
     },
   };
 
@@ -44,6 +40,10 @@
 
   function getInitial(usuario) {
     return (usuario || "U").charAt(0).toUpperCase();
+  }
+
+  function getStoredDisplayName() {
+    return localStorage.getItem("nombre") || localStorage.getItem("usuario") || "Usuario";
   }
 
   function aplicarTema(tema) {
@@ -66,27 +66,63 @@
     }
     localStorage.setItem("tema", tema);
 
-    // Actualizar botones de tema en el menú
-    const btns = document.querySelectorAll(".pm-tema-btn");
-    btns.forEach(function (b) {
-      b.classList.toggle("pm-tema-btn--active", b.dataset.tema === tema);
-    });
   }
 
-  function doLogout() {
+  async function doLogout() {
     if (typeof window.logout === "function") {
-      window.logout();
-    } else {
+      await window.logout();
+      return;
+    }
+
+    if (window.AppLayout && typeof window.AppLayout.cerrarSesion === "function") {
+      await window.AppLayout.cerrarSesion();
+      return;
+    }
+
+    const clearLocalSession = function () {
       localStorage.removeItem("uid");
       localStorage.removeItem("rol");
+      localStorage.removeItem("nombre");
       localStorage.removeItem("usuario");
       localStorage.removeItem("primerLogin");
+    };
+
+    const signOutFirebase = async function () {
+      try {
+        if (window.firebase && typeof window.firebase.auth === "function") {
+          await window.firebase.auth().signOut();
+          return true;
+        }
+      } catch (error) {
+        console.warn("Logout compat fallido, intentando modular:", error);
+      }
+
+      try {
+        const modules = await Promise.all([
+          import("./firebase.js"),
+          import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js"),
+        ]);
+        const app = modules[0].default;
+        const authMod = modules[1];
+        const auth = authMod.getAuth(app);
+        await authMod.signOut(auth);
+        return true;
+      } catch (error) {
+        console.warn("Logout modular fallido:", error);
+        return false;
+      }
+    };
+
+    try {
+      await signOutFirebase();
+    } finally {
+      clearLocalSession();
       window.location.href = "index.html";
     }
   }
 
   function buildMenu() {
-    const usuario = localStorage.getItem("usuario") || "Usuario";
+    const usuario = getStoredDisplayName();
     const rol = localStorage.getItem("rol") || "";
     const tema = localStorage.getItem("tema") || "sistema";
     const lang = getLang();
@@ -168,21 +204,18 @@
     const avatarBtn = wrap.querySelector("#perfilAvatarBtn");
     const dropdown = wrap.querySelector("#perfilDropdown");
 
-    // Toggle dropdown
     avatarBtn.addEventListener("click", function (e) {
       e.stopPropagation();
       const visible = dropdown.style.display !== "none";
       dropdown.style.display = visible ? "none" : "block";
     });
 
-    // Cerrar al hacer click fuera
     document.addEventListener("click", function (e) {
       if (!wrap.contains(e.target)) {
         dropdown.style.display = "none";
       }
     });
 
-    // Botones de tema (submenú flotante)
     wrap.querySelectorAll(".pm-sub-opt[data-tema]").forEach(function (btn) {
       btn.addEventListener("click", function (e) {
         e.preventDefault();
@@ -194,7 +227,6 @@
       });
     });
 
-    // Botones de idioma (submenú flotante)
     wrap.querySelectorAll(".pm-sub-opt[data-lang]").forEach(function (btn) {
       btn.addEventListener("click", function (e) {
         e.preventDefault();
@@ -202,11 +234,9 @@
         localStorage.setItem("idioma", btn.dataset.lang);
         if (typeof window.applyI18n === "function") window.applyI18n(btn.dataset.lang);
         window.dispatchEvent(new CustomEvent("gecom:language-changed", { detail: { lang: btn.dataset.lang } }));
-        // Actualizar activo visualmente
         wrap.querySelectorAll(".pm-sub-opt[data-lang]").forEach(function (b) {
           b.classList.toggle("pm-sub-opt--active", b.dataset.lang === btn.dataset.lang);
         });
-        // Reconstruir etiquetas del menú con nuevo idioma
         var pmItemLabel = wrap.querySelectorAll(".pm-item-sub-trigger span");
         var keys = ["diseno", "idioma"];
         pmItemLabel.forEach(function(el, i){ el.textContent = t(keys[i]); });
@@ -222,19 +252,35 @@
       });
     });
 
-    // Cerrar sesión
-    wrap.querySelector("#pmItemLogout").addEventListener("click", function (e) {
+    wrap.querySelector("#pmItemLogout").addEventListener("click", async function (e) {
       e.preventDefault();
       dropdown.style.display = "none";
-      doLogout();
+      await doLogout();
     });
   }
 
   function init() {
-    // Aplicar tema guardado al arrancar
+    const hasAppLayout = !!document.getElementById("appLayoutContainer");
+    if (hasAppLayout) {
+      const usuario = getStoredDisplayName();
+      const rol = localStorage.getItem("rol") || "";
+      const lang = getLang();
+      const rolLabel = getRolLabel(rol, lang);
+
+      const bindHeaderProfile = function () {
+        const profileName = document.getElementById("profileName");
+        if (profileName) {
+          profileName.textContent = `${usuario} ${rolLabel ? `(${rolLabel})` : ""}`.trim();
+        }
+      };
+
+      bindHeaderProfile();
+      setTimeout(bindHeaderProfile, 250);
+      return;
+    }
+
     aplicarTema(localStorage.getItem("tema") || "sistema");
 
-    // Ocultar controles viejos de tema si existen en la página
     var viejoBtnTema = document.getElementById("btnPaletaTema");
     if (viejoBtnTema) {
       var wrapViejo = viejoBtnTema.closest(".dropdown");
@@ -244,9 +290,23 @@
     buildMenu();
   }
 
+  function initWhenReady() {
+    // Si appLayoutContainer existe, esperar a que appLayoutReady se dispare
+    if (document.getElementById("appLayoutContainer")) {
+      if (window.__appLayoutReady) {
+        init();
+      } else {
+        window.addEventListener('appLayoutReady', init, { once: true });
+      }
+    } else {
+      // Si no existe appLayoutContainer, ejecutar inmediatamente
+      init();
+    }
+  }
+
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", init);
+    document.addEventListener("DOMContentLoaded", initWhenReady);
   } else {
-    init();
+    initWhenReady();
   }
 })();

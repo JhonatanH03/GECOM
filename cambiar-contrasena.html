@@ -60,20 +60,16 @@
       margin-top: 0.2rem;
     }
   </style>
+
+  <script src="js/guard.js"></script>
+  <script src="js/app-layout.js?v=4"></script>
+  <script src="js/perfil-menu.js?v=2"></script>
+
 </head>
 
 <body id="bodyRoot" class="bg-light app-page">
 
-<div class="dropdown position-absolute" style="top: 20px; right: 20px; z-index: 1050;">
-  <button id="btnPaletaTema" class="btn btn-outline-dark btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Elegir tema">
-    🎨
-  </button>
-  <ul class="dropdown-menu dropdown-menu-end" id="menuTema">
-    <li><a class="dropdown-item" href="#" data-tema="claro">Claro</a></li>
-    <li><a class="dropdown-item" href="#" data-tema="oscuro">Oscuro</a></li>
-    <li><a class="dropdown-item" href="#" data-tema="sistema">Sistema</a></li>
-  </ul>
-</div>
+<div id="appLayoutContainer"></div>
 
 <div class="container py-5">
   <div id="alertContainer" class="mb-3"></div>
@@ -444,7 +440,7 @@ window.cambiarContrasena = async function () {
       return;
     }
 
-    mostrarExito("Contraseña cambiada exitosamente. Redirigiendo al dashboard...");
+    mostrarExito("Contraseña cambiada exitosamente. Redirigiendo al panel principal...");
     localStorage.setItem("primerLogin", "false");
     
     setTimeout(() => {
@@ -468,12 +464,31 @@ window.cambiarContrasena = async function () {
 };
 
 // Cerrar sesión
-window.logout = function () {
-  localStorage.removeItem("uid");
-  localStorage.removeItem("rol");
-  localStorage.removeItem("usuario");
-  localStorage.removeItem("primerLogin");
-  window.location.href = "index.html";
+window.logout = async function () {
+  const clearLocalSession = () => {
+    localStorage.removeItem("uid");
+    localStorage.removeItem("rol");
+    localStorage.removeItem("usuario");
+    localStorage.removeItem("primerLogin");
+  };
+
+  try {
+    if (window.firebase && typeof window.firebase.auth === "function") {
+      await window.firebase.auth().signOut();
+    } else {
+      const [{ default: app }, authMod] = await Promise.all([
+        import("./js/firebase.js"),
+        import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js")
+      ]);
+      const auth = authMod.getAuth(app);
+      await authMod.signOut(auth);
+    }
+  } catch (error) {
+    console.warn("No se pudo cerrar sesión en Firebase, se limpiará la sesión local.", error);
+  } finally {
+    clearLocalSession();
+    window.location.href = "index.html";
+  }
 };
 
 // Permitir cambiar contraseña con ENTER desde el campo de confirmación
@@ -490,7 +505,7 @@ document.addEventListener("DOMContentLoaded", function () {
 </script>
 <script src="js/password-toggle.js"></script>
 <script src="js/i18n.js"></script>
-<script src="js/perfil-menu.js"></script>
+<script src="js/perfil-menu.js?v=2"></script>
 
 <!-- Footer -->
 <div id="footer-container"></div>

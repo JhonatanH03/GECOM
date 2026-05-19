@@ -124,6 +124,13 @@ window.addEventListener("DOMContentLoaded", async () => {
   document.getElementById("telefono").addEventListener("input", formatearTelefono);
   document.getElementById("cedula").addEventListener("input", formatearCedula);
   provinciaSelect.addEventListener("change", actualizarMunicipios);
+
+  document.getElementById('modalResetContrasenaUsuario').addEventListener('hidden.bs.modal', () => {
+    document.getElementById('resetUsuarioCallerPassword').value = '';
+    document.getElementById('resetUsuarioModalAlert').innerHTML = '';
+    document.getElementById('btnConfirmarResetUsuario').disabled = false;
+    document.getElementById('btnConfirmarResetUsuario').textContent = 'Restablecer';
+  });
 });
 
 form.addEventListener("submit", async (event) => {
@@ -180,6 +187,12 @@ form.addEventListener("submit", async (event) => {
       await setDoc(doc(db, "JuntasDeVecinos", usuarioId), usuarioData, { merge: true });
       showAlert("Junta actualizada correctamente.", "success");
     } else {
+      const tieneAyuntamientoTerritorial = await existeAyuntamientoTerritorial(provincia, municipio);
+      if (!tieneAyuntamientoTerritorial) {
+        showModalAlert("No existe un ayuntamiento registrado para la provincia y municipio seleccionados.", "danger");
+        return;
+      }
+
       const duplicadoSnap = await getDocs(
         query(collection(db, "JuntasDeVecinos"), where("usuario", "==", usuarioNormalizado), limit(1))
       );
@@ -246,6 +259,16 @@ function actualizarMunicipios() {
   });
 }
 
+async function existeAyuntamientoTerritorial(provincia, municipio) {
+  const snap = await getDocs(query(collection(db, "Ayuntamientos"), where("provincia", "==", provincia)));
+  if (snap.empty) return false;
+
+  return snap.docs.some((docSnap) => {
+    const data = docSnap.data() || {};
+    return (data.municipio || "") === municipio;
+  });
+}
+
 async function cargarUsuarios() {
   const _skRow9 = `<tr class="skeleton-row">
     <td><span class="skeleton-cell skeleton-wide"></span></td>
@@ -298,6 +321,11 @@ async function cargarUsuarios() {
                   <i class="bi bi-pencil-fill gecom-action-icon gecom-action-icon--edit"></i>Editar
                 </button>
               </li>
+              <li>
+                <button class="dropdown-item" type="button" onclick="abrirModalResetUsuario('${data.id}', '${escapeHtml(data.nombre)}')">
+                  <i class="bi bi-key-fill gecom-action-icon gecom-action-icon--key"></i>Restablecer contraseña
+                </button>
+              </li>
               <li><hr class="dropdown-divider"></li>
               <li>
                 <button class="dropdown-item gecom-action-item--danger" type="button" onclick="eliminarUsuario('${data.id}', '${escapeHtml(data.nombre)}')">
@@ -343,6 +371,55 @@ window.editarUsuario = async function editarUsuario(id) {
   } catch (error) {
     console.error("Error al cargar usuario:", error);
     showAlert("Error al cargar usuario.", "danger");
+  }
+};
+
+window.abrirModalResetUsuario = function(id, nombre) {
+  document.getElementById('resetUsuarioTargetUid').value = id;
+  document.getElementById('resetUsuarioTargetNombre').textContent = nombre;
+  const resetModal = new bootstrap.Modal(document.getElementById('modalResetContrasenaUsuario'));
+  resetModal.show();
+};
+
+window.confirmarResetContrasenaUsuario = async function() {
+  const targetUid = document.getElementById('resetUsuarioTargetUid').value;
+  const callerPassword = document.getElementById('resetUsuarioCallerPassword').value;
+  const alertEl = document.getElementById('resetUsuarioModalAlert');
+  const btn = document.getElementById('btnConfirmarResetUsuario');
+
+  function showResetError(msg) {
+    alertEl.innerHTML = `<div class="alert alert-danger py-2">${msg}</div>`;
+  }
+
+  if (!callerPassword) return showResetError('Debes ingresar tu contraseña actual.');
+
+  btn.disabled = true;
+  btn.textContent = 'Restableciendo...';
+  alertEl.innerHTML = '';
+
+  try {
+    const result = await window.gecomResetManagedUserPassword({
+      auth,
+      callerPassword,
+      targetUid,
+      targetRole: 'junta'
+    });
+    bootstrap.Modal.getInstance(document.getElementById('modalResetContrasenaUsuario')).hide();
+    showAlert(`Contraseña restablecida correctamente. Contraseña temporal: ${result.temporaryPassword}`, 'success');
+  } catch (error) {
+    let msg = 'Error al restablecer la contraseña.';
+    if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+      msg = 'Tu contraseña actual es incorrecta.';
+    } else if (error.code === 'auth/too-many-requests') {
+      msg = 'Demasiados intentos fallidos. Intenta más tarde.';
+    } else if (error.name === 'TypeError' || error.code === 'request-failed') {
+      msg = 'No se pudo conectar con el backend. Verifica que esté ejecutándose.';
+    } else if (error.message) {
+      msg = error.message;
+    }
+    showResetError(msg);
+    btn.disabled = false;
+    btn.textContent = 'Restablecer';
   }
 };
 

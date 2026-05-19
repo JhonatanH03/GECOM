@@ -1,4 +1,8 @@
 import app from "./firebase.js";
+import {
+  CLOUDINARY_CLOUD_NAME,
+  CLOUDINARY_UPLOAD_PRESET
+} from "./cloudinary.js";
 import { ESTADOS, ESTADO_DEFAULT, debounce, escapeHtml } from "./constants.js";
 import {
   getFirestore,
@@ -23,13 +27,366 @@ const rol = localStorage.getItem("rol");
 const uid = localStorage.getItem("uid");
 let ayuntamientoMunicipio = null;
 let currentDenunciaId = null;
+let estadosFiltroUrl = null;
+let archivosRespuestaSeleccionados = [];
 const detalleModal = new bootstrap.Modal(document.getElementById("detalleModal"));
 
 const ITEMS_POR_PAGINA = 15;
+const MAX_PDF_SIZE_BYTES = 10 * 1024 * 1024;
 let todasLasDenuncias = [];
 let paginaActual = 1;
 let catalogoProvincias = [];
 const municipiosPorProvincia = new Map();
+let palabrasClaveFiltro = "";
+
+function normalizarTextoBusqueda(valor) {
+  return String(valor || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+}
+
+function obtenerTerminosBusqueda(valor) {
+  return normalizarTextoBusqueda(valor)
+    .split(/\s+/)
+    .filter(Boolean);
+}
+
+function formatearTamanoArchivo(bytes) {
+  const valor = Number(bytes) || 0;
+  if (valor < 1024) return `${valor} B`;
+  const kb = valor / 1024;
+  if (kb < 1024) return `${kb.toFixed(1)} KB`;
+  return `${(kb / 1024).toFixed(2)} MB`;
+}
+
+function formatearMontoMiles(valor) {
+  const soloDigitos = String(valor || "").replace(/\D/g, "");
+  if (!soloDigitos) return "";
+  return soloDigitos.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+const UNIDADES_PLAZO = {
+  horas: { singular: "hora", plural: "horas" },
+  dias: { singular: "dia", plural: "dias" },
+  semanas: { singular: "semana", plural: "semanas" },
+  meses: { singular: "mes", plural: "meses" },
+  anos: { singular: "año", plural: "años" }
+};
+
+function detectarUnidadPlazo(texto) {
+  const base = String(texto || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+
+  if (base.includes("hora")) return "horas";
+  if (base.includes("semana")) return "semanas";
+  if (base.includes("mes")) return "meses";
+  if (base.includes("ano") || base.includes("anos")) return "anos";
+  return "dias";
+}
+
+function parsearPlazoGuardado(valor) {
+  const texto = String(valor || "").trim();
+  if (!texto) {
+    return { unidad: "dias", monto: "", montoFormateado: "" };
+  }
+
+  const unidad = detectarUnidadPlazo(texto);
+  const monto = texto.replace(/\D/g, "");
+  return {
+    unidad,
+    monto,
+    montoFormateado: formatearMontoMiles(monto)
+  };
+}
+
+function obtenerPlazoFormateadoParaGuardar() {
+  const inputMonto = document.getElementById("respuestaPlazo");
+  const selectUnidad = document.getElementById("respuestaPlazoUnidad");
+
+  const monto = String(inputMonto?.value || "").replace(/\D/g, "");
+  if (!monto) {
+    if (inputMonto) inputMonto.value = "";
+    return "";
+  }
+
+  const montoFormateado = formatearMontoMiles(monto);
+  if (inputMonto) inputMonto.value = montoFormateado;
+
+  const unidadKey = UNIDADES_PLAZO[selectUnidad?.value] ? selectUnidad.value : "dias";
+  const unidadTexto = Number(monto) === 1
+    ? UNIDADES_PLAZO[unidadKey].singular
+    : UNIDADES_PLAZO[unidadKey].plural;
+
+  return `${montoFormateado} ${unidadTexto}`;
+}
+
+function inicializarCampoPlazo() {
+  const inputMonto = document.getElementById("respuestaPlazo");
+  const selectUnidad = document.getElementById("respuestaPlazoUnidad");
+  if (!inputMonto || !selectUnidad) return;
+
+  const formatearEnCampo = () => {
+    inputMonto.value = formatearMontoMiles(inputMonto.value);
+  };
+
+  inputMonto.addEventListener("input", formatearEnCampo);
+  inputMonto.addEventListener("blur", formatearEnCampo);
+  inputMonto.addEventListener("paste", () => {
+    setTimeout(formatearEnCampo, 0);
+  });
+}
+
+function parsearPresupuestoGuardado(valor) {
+  const texto = String(valor || "").trim();
+  if (!texto) {
+    return { moneda: "RD$", monto: "", montoFormateado: "" };
+  }
+
+  const moneda = /\bUS\$|\bUSD|\bUS\b/i.test(texto) ? "US$" : "RD$";
+  const monto = texto.replace(/\D/g, "");
+  return {
+    moneda,
+    monto,
+    montoFormateado: formatearMontoMiles(monto)
+  };
+}
+
+function obtenerPresupuestoFormateadoParaGuardar() {
+  const inputMonto = document.getElementById("respuestaPresupuesto");
+  const selectMoneda = document.getElementById("respuestaMoneda");
+
+  const monto = String(inputMonto?.value || "").replace(/\D/g, "");
+  if (!monto) {
+    if (inputMonto) inputMonto.value = "";
+    return "";
+  }
+
+  const montoFormateado = formatearMontoMiles(monto);
+  if (inputMonto) inputMonto.value = montoFormateado;
+
+  const moneda = selectMoneda?.value === "US$" ? "US$" : "RD$";
+  return `${moneda} ${montoFormateado}`;
+}
+
+function inicializarCampoPresupuesto() {
+  const inputMonto = document.getElementById("respuestaPresupuesto");
+  const selectMoneda = document.getElementById("respuestaMoneda");
+  if (!inputMonto || !selectMoneda) return;
+
+  const formatearEnCampo = () => {
+    inputMonto.value = formatearMontoMiles(inputMonto.value);
+  };
+
+  inputMonto.addEventListener("input", formatearEnCampo);
+  inputMonto.addEventListener("blur", formatearEnCampo);
+  inputMonto.addEventListener("paste", () => {
+    setTimeout(formatearEnCampo, 0);
+  });
+}
+
+function normalizarNombreArchivo(nombre = "") {
+  return String(nombre)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9._-]/g, "_");
+}
+
+function limpiarSeleccionAdjuntos() {
+  archivosRespuestaSeleccionados = [];
+  const input = document.getElementById("respuestaAdjuntosPdf");
+  if (input) input.value = "";
+  renderAdjuntosSeleccionados();
+}
+
+function normalizarAdjuntosRespuesta(data) {
+  const raw = data?.anexos_respuesta_pdf;
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((item) => {
+      if (!item) return null;
+      if (typeof item === "string") {
+        return {
+          nombre: "Adjunto PDF",
+          url: item,
+          ruta_storage: "",
+          tamano: 0,
+          creado_en: null
+        };
+      }
+      return {
+        nombre: item.nombre || "Adjunto PDF",
+        url: item.url || "",
+        ruta_storage: item.ruta_storage || "",
+        tamano: Number(item.tamano) || 0,
+        creado_en: item.creado_en || null
+      };
+    })
+    .filter((item) => item && item.url);
+}
+
+function renderAdjuntosRespuestaExistentes(data) {
+  const container = document.getElementById("detalleAdjuntosRespuesta");
+  if (!container) return;
+
+  const anexos = normalizarAdjuntosRespuesta(data);
+  if (!anexos.length) {
+    container.innerHTML = '<p class="text-muted mb-0">Sin anexos PDF.</p>';
+    return;
+  }
+
+  container.innerHTML = anexos
+    .map((anexo, index) => {
+      const nombre = escapeHtml(anexo.nombre || `Adjunto ${index + 1}`);
+      const url = escapeHtml(anexo.url);
+      const tamano = anexo.tamano ? ` <span class="text-muted">(${escapeHtml(formatearTamanoArchivo(anexo.tamano))})</span>` : "";
+      return `
+        <div class="py-2 border-bottom" style="border-color: var(--gecom-stroke) !important;">
+          <div class="small text-break mb-2" style="line-height: 1.3;">
+            <i class="bi bi-file-earmark-pdf-fill text-danger me-1"></i>${nombre}${tamano}
+          </div>
+          <div class="d-flex gap-1 flex-wrap">
+            <a class="btn btn-sm btn-outline-primary" href="${url}" target="_blank" rel="noopener">Descargar</a>
+          </div>
+        </div>
+      `;
+    })
+    .join("");
+}
+
+async function descargarAdjuntoPdf(url, nombreArchivo = "adjunto.pdf") {
+  try {
+    const response = await fetch(url, { mode: "cors" });
+    if (!response.ok) {
+      throw new Error("No se pudo descargar el archivo.");
+    }
+
+    const blob = await response.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    const enlace = document.createElement("a");
+    enlace.href = objectUrl;
+    enlace.download = nombreArchivo || "adjunto.pdf";
+    document.body.appendChild(enlace);
+    enlace.click();
+    document.body.removeChild(enlace);
+    URL.revokeObjectURL(objectUrl);
+  } catch (error) {
+    console.warn("Fallo descarga directa, se abrira el PDF en una nueva pestana:", error);
+    window.open(url, "_blank", "noopener");
+  }
+}
+
+function renderAdjuntosSeleccionados() {
+  const container = document.getElementById("respuestaAdjuntosPreview");
+  if (!container) return;
+
+  if (!archivosRespuestaSeleccionados.length) {
+    container.innerHTML = '<p class="text-muted mb-0">No has seleccionado PDFs.</p>';
+    return;
+  }
+
+  container.innerHTML = archivosRespuestaSeleccionados
+    .map((item) => {
+      const nombre = escapeHtml(item.archivo.name || "archivo.pdf");
+      const tamano = escapeHtml(formatearTamanoArchivo(item.archivo.size));
+      return `
+        <div class="d-flex justify-content-between align-items-center gap-2 py-1 border-bottom" style="border-color: var(--gecom-stroke) !important;">
+          <span class="text-truncate"><i class="bi bi-file-earmark-pdf-fill text-danger me-1"></i>${nombre} <span class="text-muted">(${tamano})</span></span>
+          <button type="button" class="btn btn-sm btn-outline-danger" data-remove-pdf-id="${item.id}">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+      `;
+    })
+    .join("");
+}
+
+function agregarArchivosPdfAdjuntos(fileList) {
+  const archivos = Array.from(fileList || []);
+  if (!archivos.length) return;
+
+  const errores = [];
+  const existentes = new Set(
+    archivosRespuestaSeleccionados.map((item) => `${item.archivo.name}__${item.archivo.size}__${item.archivo.lastModified}`)
+  );
+
+  archivos.forEach((archivo) => {
+    const esPdfMime = String(archivo.type || "").toLowerCase() === "application/pdf";
+    const esPdfExt = String(archivo.name || "").toLowerCase().endsWith(".pdf");
+    if (!esPdfMime && !esPdfExt) {
+      errores.push(`${archivo.name}: formato no permitido.`);
+      return;
+    }
+    if ((archivo.size || 0) > MAX_PDF_SIZE_BYTES) {
+      errores.push(`${archivo.name}: supera 10 MB.`);
+      return;
+    }
+    const clave = `${archivo.name}__${archivo.size}__${archivo.lastModified}`;
+    if (existentes.has(clave)) return;
+    existentes.add(clave);
+    archivosRespuestaSeleccionados.push({
+      id: `${Date.now()}_${Math.random().toString(16).slice(2)}`,
+      archivo
+    });
+  });
+
+  renderAdjuntosSeleccionados();
+  if (errores.length) {
+    mostrarModalFeedback(errores.join(" "), "warning");
+  }
+}
+
+async function subirPdfRespuesta(archivo, denunciaId) {
+  if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_UPLOAD_PRESET) {
+    throw new Error("Cloudinary no esta configurado.");
+  }
+
+  const timestamp = Date.now();
+  const nombreSeguro = normalizarNombreArchivo(archivo.name || `adjunto_${timestamp}.pdf`);
+  const endpoint = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`;
+
+  const formData = new FormData();
+  formData.append("file", archivo);
+  formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
+  formData.append("folder", `denuncias/${denunciaId}/respuestas`);
+  formData.append("public_id", `${timestamp}_${nombreSeguro}`);
+
+  const url = await new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", endpoint);
+    xhr.timeout = 45000;
+
+    xhr.addEventListener("load", () => {
+      try {
+        const data = JSON.parse(xhr.responseText || "{}");
+        if (xhr.status < 200 || xhr.status >= 300 || !data.secure_url) {
+          reject(new Error(data?.error?.message || "No se pudo subir el PDF."));
+          return;
+        }
+        resolve(data.secure_url);
+      } catch {
+        reject(new Error("Respuesta inesperada al subir PDF."));
+      }
+    });
+
+    xhr.addEventListener("error", () => reject(new Error("Error de red al subir PDF.")));
+    xhr.addEventListener("timeout", () => reject(new Error("Tiempo de espera agotado al subir PDF.")));
+    xhr.addEventListener("abort", () => reject(new Error("Subida de PDF cancelada.")));
+
+    xhr.send(formData);
+  });
+
+  return {
+    nombre: archivo.name || "Adjunto PDF",
+    url,
+    ruta_storage: "",
+    tamano: archivo.size || 0,
+    creado_en: new Date().toISOString()
+  };
+}
 
 function ordenarEs(lista) {
   return lista.sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }));
@@ -169,25 +526,55 @@ function convertirAFecha(valorFecha) {
   return Number.isNaN(fecha.getTime()) ? null : fecha;
 }
 
+function calcularDiferenciaDiasEntre(fechaInicio, fechaFin) {
+  if (!fechaInicio || !fechaFin) return null;
+
+  const inicioDia = new Date(fechaInicio.getFullYear(), fechaInicio.getMonth(), fechaInicio.getDate());
+  const finDia = new Date(fechaFin.getFullYear(), fechaFin.getMonth(), fechaFin.getDate());
+  const diferenciaMs = finDia.getTime() - inicioDia.getTime();
+
+  if (diferenciaMs < 0) return 0;
+  return Math.floor(diferenciaMs / 86400000);
+}
+
 function obtenerDiasEnProceso(data) {
   if ((data.estado || ESTADO_DEFAULT) !== ESTADOS.EN_PROCESO) return null;
 
   const fechaInicio = convertirAFecha(data.fecha_en_proceso || data.fecha_respuesta || data.fecha);
-  if (!fechaInicio) return null;
-
-  const inicioDia = new Date(fechaInicio.getFullYear(), fechaInicio.getMonth(), fechaInicio.getDate());
-  const hoy = new Date();
-  const inicioHoy = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
-  const diferenciaMs = inicioHoy.getTime() - inicioDia.getTime();
-
-  if (diferenciaMs < 0) return 0;
-  return Math.floor(diferenciaMs / 86400000);
+  return calcularDiferenciaDiasEntre(fechaInicio, new Date());
 }
 
 function obtenerTextoDiasEnProceso(data) {
   const dias = obtenerDiasEnProceso(data);
   if (dias === null) return "No aplica";
   return dias === 1 ? "1 dia" : `${dias} dias`;
+}
+
+function obtenerDiasResolucion(data) {
+  if ((data.estado || ESTADO_DEFAULT) !== ESTADOS.RESUELTA) return null;
+
+  const fechaInicio = convertirAFecha(data.fecha);
+  const fechaResolucion = convertirAFecha(data.fecha_resuelta || data.fecha_respuesta);
+  return calcularDiferenciaDiasEntre(fechaInicio, fechaResolucion);
+}
+
+function obtenerTextoDiasResolucion(data) {
+  const dias = obtenerDiasResolucion(data);
+  if (dias === null) return "No aplica";
+  if (dias === 0) return "Resuelta el mismo dia";
+  return dias === 1 ? "Se resolvio en 1 dia" : `Se resolvio en ${dias} dias`;
+}
+
+function obtenerTextoDuracionDenuncia(data) {
+  if ((data.estado || ESTADO_DEFAULT) === ESTADOS.RESUELTA) {
+    return obtenerTextoDiasResolucion(data);
+  }
+
+  if ((data.estado || ESTADO_DEFAULT) === ESTADOS.EN_PROCESO) {
+    return obtenerTextoDiasEnProceso(data);
+  }
+
+  return "No aplica";
 }
 
 function construirMensajeNotificacion(data, estado) {
@@ -229,11 +616,16 @@ async function crearEntradaHistorial(denunciaId, denunciaData, actualizacion) {
 
 function hubosCambiosEnRespuesta(denunciaActual, actualizacion) {
   if (!denunciaActual) return true;
+
+  const anexosActuales = normalizarAdjuntosRespuesta(denunciaActual);
+  const anexosNuevos = normalizarAdjuntosRespuesta(actualizacion);
+
   return (
     (denunciaActual.estado || ESTADO_DEFAULT) !== actualizacion.estado ||
     (denunciaActual.respuesta_ayuntamiento || "") !== actualizacion.respuesta_ayuntamiento ||
     (denunciaActual.plazo_estimado || "") !== actualizacion.plazo_estimado ||
-    (denunciaActual.presupuesto_estimado || "") !== actualizacion.presupuesto_estimado
+    (denunciaActual.presupuesto_estimado || "") !== actualizacion.presupuesto_estimado ||
+    anexosActuales.length !== anexosNuevos.length
   );
 }
 
@@ -248,30 +640,60 @@ function mostrarDetalleDenuncia(data, id) {
   document.getElementById("detalleFechaIncidente").textContent = data.fecha_incidente ? new Date(data.fecha_incidente.seconds * 1000).toLocaleDateString() : "No especificado";
   document.getElementById("detalleFechaRegistro").textContent = data.fecha ? new Date(data.fecha.seconds * 1000).toLocaleString() : "No especificado";
   document.getElementById("detalleDiasEnProceso").textContent = obtenerTextoDiasEnProceso(data);
+  document.getElementById("detalleDiasResolucion").textContent = obtenerTextoDiasResolucion(data);
   document.getElementById("detalleDescripcion").textContent = data.descripcion || "Sin descripción";
 
   document.getElementById("detalleEstadoActual").textContent = data.estado || "Pendiente";
   document.getElementById("detallePlazo").textContent = data.plazo_estimado || "No asignado";
   document.getElementById("detallePresupuesto").textContent = data.presupuesto_estimado || "No asignado";
   document.getElementById("detalleRespuesta").textContent = data.respuesta_ayuntamiento || "Sin respuesta oficial aún";
+  renderAdjuntosRespuestaExistentes(data);
 
   const evidenciaContainer = document.getElementById("detalleEvidencia");
   evidenciaContainer.innerHTML = "";
 
-  if (data.evidencia) {
+  const evidencias = Array.isArray(data.evidencias) && data.evidencias.length
+    ? data.evidencias.filter(Boolean)
+    : (data.evidencia ? [data.evidencia] : []);
+
+  if (evidencias.length === 1) {
+    const url = escapeHtml(evidencias[0]);
     evidenciaContainer.innerHTML = `
       <img
-        src="${escapeHtml(data.evidencia)}"
+        src="${url}"
         alt="Evidencia de la denuncia"
         class="img-fluid rounded shadow-sm mb-2"
         style="max-height:320px; object-fit:contain; cursor:pointer;"
-        onclick="window.open('${escapeHtml(data.evidencia)}', '_blank')"
+        onclick="window.open('${url}', '_blank')"
         title="Clic para ver en tamaño completo"
       />
       <div>
-        <a href="${escapeHtml(data.evidencia)}" target="_blank" class="btn btn-sm btn-outline-primary mt-1">
+        <a href="${url}" target="_blank" class="btn btn-sm btn-outline-primary mt-1">
           Ver imagen completa
         </a>
+      </div>
+    `;
+  } else if (evidencias.length > 1) {
+    const galeria = evidencias.map((url, index) => {
+      const safeUrl = escapeHtml(url);
+      return `
+        <div class="text-center" style="width: 180px;">
+          <img
+            src="${safeUrl}"
+            alt="Evidencia ${index + 1}"
+            class="img-fluid rounded shadow-sm mb-2"
+            style="height:130px; width:180px; object-fit:cover; cursor:pointer;"
+            onclick="window.open('${safeUrl}', '_blank')"
+            title="Clic para ver en tamaño completo"
+          />
+          <a href="${safeUrl}" target="_blank" class="btn btn-sm btn-outline-primary w-100">Abrir</a>
+        </div>
+      `;
+    }).join("");
+
+    evidenciaContainer.innerHTML = `
+      <div class="d-flex flex-wrap gap-2 justify-content-start">
+        ${galeria}
       </div>
     `;
   } else {
@@ -281,10 +703,25 @@ function mostrarDetalleDenuncia(data, id) {
   const responseSection = document.getElementById("ayuntamientoResponseSection");
   if (rol === "ayuntamiento") {
     responseSection.classList.remove("d-none");
-    document.getElementById("respuestaEstado").value = data.estado || "Pendiente";
-    document.getElementById("respuestaPlazo").value = data.plazo_estimado || "";
-    document.getElementById("respuestaPresupuesto").value = data.presupuesto_estimado || "";
+    const respuestaEstadoEl = document.getElementById("respuestaEstado");
+    if (respuestaEstadoEl) {
+      respuestaEstadoEl.value = data.estado || "Pendiente";
+    }
+    const plazo = parsearPlazoGuardado(data.plazo_estimado || "");
+    const selectPlazoUnidad = document.getElementById("respuestaPlazoUnidad");
+    const inputPlazo = document.getElementById("respuestaPlazo");
+    if (selectPlazoUnidad) selectPlazoUnidad.value = plazo.unidad;
+    if (inputPlazo) inputPlazo.value = plazo.montoFormateado;
+    const presupuesto = parsearPresupuestoGuardado(data.presupuesto_estimado || "");
+    const selectMoneda = document.getElementById("respuestaMoneda");
+    const inputMonto = document.getElementById("respuestaPresupuesto");
+    if (selectMoneda) selectMoneda.value = presupuesto.moneda;
+    if (inputMonto) inputMonto.value = presupuesto.montoFormateado;
     document.getElementById("respuestaTexto").value = data.respuesta_ayuntamiento || "";
+    if (respuestaEstadoEl) {
+      respuestaEstadoEl.dispatchEvent(new Event("change"));
+    }
+    limpiarSeleccionAdjuntos();
   } else {
     responseSection.classList.add("d-none");
   }
@@ -335,11 +772,11 @@ function renderizarPagina() {
       }[data.estado || "Pendiente"] || "status-pendiente";
 
       const chipIcon = {
-        Pendiente: "bi-hourglass-split",
+        Pendiente: "bi-record-circle",
         "En proceso": "bi-arrow-repeat",
-        Resuelta: "bi-check-circle-fill",
-        Rechazada: "bi-x-circle-fill"
-      }[data.estado || "Pendiente"] || "bi-hourglass-split";
+        Resuelta: "bi-check2",
+        Rechazada: "bi-x-lg"
+      }[data.estado || "Pendiente"] || "bi-record-circle";
 
       const tieneRespuesta = !!data.respuesta_ayuntamiento;
 
@@ -352,7 +789,7 @@ function renderizarPagina() {
         <td data-label="Descripción">${escapeHtml((data.descripcion || "Sin descripción").slice(0, 80))}${data.descripcion && data.descripcion.length > 80 ? "..." : ""}</td>
         <td data-label="Comunidad">${escapeHtml(data.comunidad || "Sin comunidad")}</td>
         <td data-label="Estado"><span class="status-chip ${estadoClass}"><i class="bi ${chipIcon} chip-icon"></i>${escapeHtml(data.estado || "Pendiente")}</span></td>
-        <td data-label="Días en proceso">${escapeHtml(obtenerTextoDiasEnProceso(data))}</td>
+        <td data-label="Duración">${escapeHtml(obtenerTextoDuracionDenuncia(data))}</td>
         <td data-label="Fecha">${data.fecha ? new Date(data.fecha.seconds * 1000).toLocaleDateString() : "Sin fecha"}</td>
         <td data-label="Acciones"><button class="btn btn-sm btn-primary ver-btn" data-id="${id}">Ver detalle</button></td>
       `;
@@ -413,16 +850,40 @@ function obtenerDenunciasFiltradas() {
   const filtroProvincia = document.getElementById("filtroProvincia")?.value || "Todos";
   const filtroMunicipio = document.getElementById("filtroMunicipio")?.value || "Todos";
   const filtroComunidad = document.getElementById("filtroComunidad")?.value || "Todos";
+  const terminosBusqueda = obtenerTerminosBusqueda(palabrasClaveFiltro);
 
   return todasLasDenuncias.filter(({ data }) => {
     let cumpleEstado;
-    if (filtro === "Todos") cumpleEstado = true;
-    else cumpleEstado = data.estado === filtro;
+    if (estadosFiltroUrl && estadosFiltroUrl.size > 0) {
+      cumpleEstado = estadosFiltroUrl.has(data.estado || ESTADO_DEFAULT);
+    } else if (filtro === "Todos") {
+      cumpleEstado = true;
+    } else {
+      cumpleEstado = data.estado === filtro;
+    }
 
     const cumpleProvincia = rol !== "admin" || filtroProvincia === "Todos" || (data.provincia || "") === filtroProvincia;
     const cumpleMunicipio = rol !== "admin" || filtroMunicipio === "Todos" || (data.municipio || "") === filtroMunicipio;
     const cumpleComunidad = rol !== "admin" || filtroComunidad === "Todos" || (data.comunidad || "") === filtroComunidad;
-    return cumpleEstado && cumpleProvincia && cumpleMunicipio && cumpleComunidad;
+
+    let cumplePalabras = true;
+    if (terminosBusqueda.length) {
+      const bolsaTexto = normalizarTextoBusqueda([
+        data.titulo,
+        data.descripcion,
+        data.comunidad,
+        data.sector,
+        data.municipio,
+        data.provincia,
+        data.estado,
+        data.tipo,
+        data.respuesta_ayuntamiento
+      ].join(" "));
+
+      cumplePalabras = terminosBusqueda.every((termino) => bolsaTexto.includes(termino));
+    }
+
+    return cumpleEstado && cumpleProvincia && cumpleMunicipio && cumpleComunidad && cumplePalabras;
   });
 }
 
@@ -452,7 +913,46 @@ async function descargarDenunciaSeleccionada() {
   const { jsPDF } = window.jspdf;
   const docPdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   const pageW = docPdf.internal.pageSize.getWidth();
+  const pageH = docPdf.internal.pageSize.getHeight();
+  const margenX = 14;
+  const margenInferior = 12;
   const fechaHoy = new Date().toLocaleDateString("es-DO", { year: "numeric", month: "long", day: "numeric" });
+
+  const agregarPieEnTodasLasPaginas = () => {
+    const totalPaginas = docPdf.getNumberOfPages();
+    for (let i = 1; i <= totalPaginas; i += 1) {
+      docPdf.setPage(i);
+      docPdf.setFont("helvetica", "normal");
+      docPdf.setFontSize(8);
+      docPdf.setTextColor(160, 160, 160);
+      docPdf.text("GECOM - Gestion Comunitaria", margenX, pageH - 8);
+      docPdf.text(fechaHoy, pageW - margenX, pageH - 8, { align: "right" });
+    }
+  };
+
+  const cargarImagenParaPdf = async (url) => {
+    try {
+      const response = await fetch(url, { mode: "cors" });
+      if (!response.ok) return null;
+      const blob = await response.blob();
+
+      const dataUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error("No se pudo leer la imagen."));
+        reader.readAsDataURL(blob);
+      });
+
+      const mime = String(blob.type || "").toLowerCase();
+      let formato = "JPEG";
+      if (mime.includes("png")) formato = "PNG";
+      else if (mime.includes("webp")) formato = "WEBP";
+
+      return { dataUrl, formato };
+    } catch {
+      return null;
+    }
+  };
 
   // ── Cabecera ──
   docPdf.setFillColor(18, 48, 74);
@@ -484,7 +984,7 @@ async function descargarDenunciaSeleccionada() {
       ["Provincia",     data.provincia || "—"],
       ["Municipio",     data.municipio || "—"],
       ["Comunidad",     data.comunidad || "—"],
-      ["Días en proceso", obtenerTextoDiasEnProceso(data)],
+      ["Duración", obtenerTextoDuracionDenuncia(data)],
       ["Fecha",         obtenerFechaTexto(data.fecha)]
     ],
     styles: { fontSize: 10, cellPadding: 3 },
@@ -502,15 +1002,81 @@ async function descargarDenunciaSeleccionada() {
   docPdf.text("Descripción", 14, afterTable);
   docPdf.setFont("helvetica", "normal");
   docPdf.setFontSize(9.5);
-  const desc = docPdf.splitTextToSize(data.descripcion || "Sin descripción.", pageW - 28);
+  const desc = docPdf.splitTextToSize(data.descripcion || "Sin descripcion.", pageW - 28);
   docPdf.text(desc, 14, afterTable + 6);
 
+  let cursorY = afterTable + 6 + (desc.length * 4.2) + 6;
+
+  const evidencias = Array.isArray(data.evidencias) && data.evidencias.length
+    ? data.evidencias.filter(Boolean)
+    : (data.evidencia ? [data.evidencia] : []);
+
+  if (evidencias.length) {
+    if (cursorY > pageH - 70) {
+      docPdf.addPage();
+      cursorY = 20;
+    }
+
+    docPdf.setFont("helvetica", "bold");
+    docPdf.setFontSize(10);
+    docPdf.setTextColor(30, 30, 30);
+    docPdf.text("Evidencias fotograficas", margenX, cursorY);
+    cursorY += 6;
+
+    for (let i = 0; i < evidencias.length; i += 1) {
+      const url = String(evidencias[i] || "").trim();
+      if (!url) continue;
+
+      const imagen = await cargarImagenParaPdf(url);
+      if (!imagen) {
+        docPdf.setFont("helvetica", "normal");
+        docPdf.setFontSize(9);
+        docPdf.setTextColor(120, 120, 120);
+        docPdf.text(`Evidencia ${i + 1}: no se pudo incrustar la imagen.`, margenX, cursorY);
+        cursorY += 6;
+        continue;
+      }
+
+      if (cursorY > pageH - 95) {
+        docPdf.addPage();
+        cursorY = 20;
+      }
+
+      docPdf.setFont("helvetica", "normal");
+      docPdf.setFontSize(9);
+      docPdf.setTextColor(80, 80, 80);
+      docPdf.text(`Evidencia ${i + 1}`, margenX, cursorY);
+      cursorY += 3;
+
+      const maxW = pageW - (margenX * 2);
+      const maxH = 78;
+
+      try {
+        const props = docPdf.getImageProperties(imagen.dataUrl);
+        const escala = Math.min(maxW / props.width, maxH / props.height);
+        const drawW = props.width * escala;
+        const drawH = props.height * escala;
+        const x = (pageW - drawW) / 2;
+
+        docPdf.addImage(imagen.dataUrl, imagen.formato, x, cursorY, drawW, drawH);
+        cursorY += drawH + 8;
+      } catch {
+        docPdf.setFont("helvetica", "normal");
+        docPdf.setFontSize(9);
+        docPdf.setTextColor(120, 120, 120);
+        docPdf.text(`Evidencia ${i + 1}: formato no compatible para PDF.`, margenX, cursorY + 4);
+        cursorY += 10;
+      }
+
+      if (cursorY > pageH - margenInferior) {
+        docPdf.addPage();
+        cursorY = 20;
+      }
+    }
+  }
+
   // ── Pie de página ──
-  docPdf.setFont("helvetica", "normal");
-  docPdf.setFontSize(8);
-  docPdf.setTextColor(160, 160, 160);
-  docPdf.text("GECOM — Gestión Comunitaria", 14, docPdf.internal.pageSize.getHeight() - 8);
-  docPdf.text(fechaHoy, pageW - 14, docPdf.internal.pageSize.getHeight() - 8, { align: "right" });
+  agregarPieEnTodasLasPaginas();
 
   // Abrir PDF en nueva pestaña (evita problema de modales apilados con Bootstrap)
   const blobUrl = docPdf.output("bloburl");
@@ -598,13 +1164,23 @@ async function responderDenuncia(event) {
   }
 
   const estado = document.getElementById("respuestaEstado").value;
-  const plazo = document.getElementById("respuestaPlazo").value.trim();
-  const presupuesto = document.getElementById("respuestaPresupuesto").value.trim();
+  const plazo = obtenerPlazoFormateadoParaGuardar();
+  const presupuesto = obtenerPresupuestoFormateadoParaGuardar();
   const respuesta = document.getElementById("respuestaTexto").value.trim();
+  const submitBtn = document.querySelector("#detalleForm button[type='submit']");
+  const estadoSinPlaneacion = estado === "Rechazada" || estado === "Resuelta";
 
-  if (estado === "Rechazada") {
+  if (estadoSinPlaneacion) {
     if (!respuesta) {
-      mostrarModalFeedback("Debes indicar el motivo del rechazo en la respuesta oficial.", "danger");
+      const mensaje = estado === "Rechazada"
+        ? "Debes indicar el motivo del rechazo en la respuesta oficial."
+        : "Debes describir cómo se resolvió la denuncia.";
+      mostrarModalFeedback(mensaje, "danger");
+      return;
+    }
+  } else if (estado === "En proceso") {
+    if (!plazo || !respuesta) {
+      mostrarModalFeedback("Para marcar En proceso debes completar tiempo estimado y respuesta oficial.", "danger");
       return;
     }
   } else if (!plazo || !presupuesto || !respuesta) {
@@ -614,21 +1190,48 @@ async function responderDenuncia(event) {
 
   try {
     const denunciaActual = todasLasDenuncias.find((item) => item.id === currentDenunciaId)?.data;
+    const anexosExistentes = normalizarAdjuntosRespuesta(denunciaActual);
+    let anexosNuevos = [];
+
+    if (archivosRespuestaSeleccionados.length) {
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Subiendo PDFs...';
+      }
+      for (const item of archivosRespuestaSeleccionados) {
+        const anexo = await subirPdfRespuesta(item.archivo, currentDenunciaId);
+        anexosNuevos.push(anexo);
+      }
+    }
+
+    const anexosRespuesta = [...anexosExistentes, ...anexosNuevos];
+    const plazoFinal = estadoSinPlaneacion ? "" : plazo;
+    const presupuestoFinal = estadoSinPlaneacion ? "" : presupuesto;
+    const estadoAnterior = denunciaActual?.estado || ESTADO_DEFAULT;
     const actualizacion = {
       estado,
-      plazo_estimado: plazo,
-      presupuesto_estimado: presupuesto,
+      plazo_estimado: plazoFinal,
+      presupuesto_estimado: presupuestoFinal,
       respuesta_ayuntamiento: respuesta,
+      anexos_respuesta_pdf: anexosRespuesta,
       fecha_respuesta: new Date(),
       ayuntamiento_id: uid
     };
 
     if (estado === "En proceso") {
-      if ((denunciaActual?.estado || "Pendiente") !== "En proceso") {
+      if (estadoAnterior !== "En proceso") {
         actualizacion.fecha_en_proceso = new Date();
       }
     } else {
       actualizacion.fecha_en_proceso = null;
+    }
+
+    if (estado === "Resuelta") {
+      actualizacion.fecha_resuelta = estadoAnterior === "Resuelta"
+        ? (denunciaActual?.fecha_resuelta || denunciaActual?.fecha_respuesta || new Date())
+        : new Date();
+    } else {
+      actualizacion.fecha_resuelta = null;
     }
 
     await updateDoc(doc(db, "denuncias", currentDenunciaId), actualizacion);
@@ -646,6 +1249,7 @@ async function responderDenuncia(event) {
       }
     }
     mostrarModalFeedback("Respuesta guardada correctamente.", "success");
+    limpiarSeleccionAdjuntos();
     detalleModal.hide();
     await cargarDenuncias();
     const paginaFeedback = document.getElementById("paginaFeedback");
@@ -659,6 +1263,11 @@ async function responderDenuncia(event) {
   } catch (error) {
     console.error("Error guardando respuesta:", error);
     mostrarModalFeedback("No se pudo guardar la respuesta. Intenta nuevamente.", "danger");
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = '<i class="bi bi-check-circle"></i> Guardar respuesta';
+    }
   }
 }
 
@@ -670,15 +1279,87 @@ function validarSesion() {
   return true;
 }
 
+function aplicarFiltroEstadoDesdeUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const estadosParam = String(params.get("estados") || "").trim();
+  const estadoParam = String(params.get("estado") || "").trim();
+
+  const filtroEstado = document.getElementById("filtroEstado");
+  if (!filtroEstado) return;
+
+  const opcionesValidas = new Set(["Todos", "Pendiente", "En proceso", "Resuelta", "Rechazada"]);
+
+  if (estadosParam) {
+    const estados = estadosParam
+      .split(",")
+      .map((item) => item.trim())
+      .filter((item) => opcionesValidas.has(item) && item !== "Todos");
+
+    if (estados.length > 1) {
+      estadosFiltroUrl = new Set(estados);
+      filtroEstado.value = "Todos";
+      return;
+    }
+
+    if (estados.length === 1) {
+      estadosFiltroUrl = null;
+      filtroEstado.value = estados[0];
+      return;
+    }
+  }
+
+  if (!estadoParam) return;
+  if (!opcionesValidas.has(estadoParam)) return;
+
+  estadosFiltroUrl = null;
+  filtroEstado.value = estadoParam;
+}
+
 async function init() {
   if (!validarSesion()) return;
   await cargarCatalogoProvincias();
   await obtenerMunicipioAyuntamiento();
   await cargarDenuncias();
+  aplicarFiltroEstadoDesdeUrl();
+  paginaActual = 1;
+  renderizarPagina();
   document.getElementById("filtroEstado").addEventListener("change", debounce(() => {
+    estadosFiltroUrl = null;
     paginaActual = 1;
     renderizarPagina();
   }, 300));
+
+  const inputFiltroPalabras = document.getElementById("filtroPalabras");
+  const btnAplicarFiltroPalabras = document.getElementById("btnAplicarFiltroPalabras");
+  const btnLimpiarFiltroPalabras = document.getElementById("btnLimpiarFiltroPalabras");
+
+  const aplicarFiltroPalabras = () => {
+    palabrasClaveFiltro = inputFiltroPalabras?.value || "";
+    paginaActual = 1;
+    renderizarPagina();
+  };
+
+  const aplicarFiltroPalabrasEnTiempoReal = debounce(() => {
+    aplicarFiltroPalabras();
+  }, 180);
+
+  btnAplicarFiltroPalabras?.addEventListener("click", aplicarFiltroPalabras);
+  btnLimpiarFiltroPalabras?.addEventListener("click", () => {
+    if (inputFiltroPalabras) inputFiltroPalabras.value = "";
+    palabrasClaveFiltro = "";
+    paginaActual = 1;
+    renderizarPagina();
+  });
+  inputFiltroPalabras?.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      aplicarFiltroPalabras();
+    }
+  });
+  inputFiltroPalabras?.addEventListener("input", () => {
+    aplicarFiltroPalabrasEnTiempoReal();
+  });
+
   if (rol === "admin") {
     document.getElementById("filtroProvincia")?.addEventListener("change", debounce(() => {
       poblarFiltrosZonaAdmin();
@@ -696,7 +1377,29 @@ async function init() {
     }, 300));
   }
   document.getElementById("detalleForm").addEventListener("submit", responderDenuncia);
+  document.getElementById("respuestaAdjuntosPdf")?.addEventListener("change", (event) => {
+    agregarArchivosPdfAdjuntos(event.target.files);
+    event.target.value = "";
+  });
+  document.getElementById("respuestaAdjuntosPreview")?.addEventListener("click", (event) => {
+    const btn = event.target.closest("[data-remove-pdf-id]");
+    if (!btn) return;
+    const id = String(btn.getAttribute("data-remove-pdf-id") || "");
+    archivosRespuestaSeleccionados = archivosRespuestaSeleccionados.filter((item) => String(item.id) !== id);
+    renderAdjuntosSeleccionados();
+  });
+  document.getElementById("detalleAdjuntosRespuesta")?.addEventListener("click", (event) => {
+    const btn = event.target.closest("[data-pdf-download-url]");
+    if (!btn) return;
+    const url = String(btn.getAttribute("data-pdf-download-url") || "").trim();
+    const nombre = String(btn.getAttribute("data-pdf-download-name") || "adjunto.pdf").trim();
+    if (!url) return;
+    descargarAdjuntoPdf(url, nombre);
+  });
+  renderAdjuntosSeleccionados();
   document.getElementById("btnDescargarDetalle")?.addEventListener("click", descargarDenunciaSeleccionada);
+  inicializarCampoPlazo();
+  inicializarCampoPresupuesto();
 
   const params = new URLSearchParams(window.location.search);
   const denunciaIdParam = params.get("denuncia");

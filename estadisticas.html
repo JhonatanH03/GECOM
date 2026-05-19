@@ -14,15 +14,19 @@
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="js/guard.js"></script>
+  <script src="js/app-layout.js?v=4"></script>
 </head>
 
 <body id="bodyRoot" class="bg-light app-page">
 
+<div id="appLayoutContainer"></div>
+
+<main class="app-main-content">
 <div class="container mt-5">
 
   <div class="mb-3">
     <a href="dashboard.html" class="btn btn-secondary">
-      <i class="bi bi-arrow-left"></i> Volver al Dashboard
+      <i class="bi bi-arrow-left"></i> Volver al Panel Principal
     </a>
   </div>
 
@@ -30,22 +34,48 @@
 
   <!-- � FILTROS -->
   <div class="row mb-4">
-    <div class="col-md-3">
+    <div class="col-md-2 " type="date">
       <label for="fechaDesde">Fecha desde:</label>
-      <input type="date" id="fechaDesde" class="form-control">
+      <input type="date" id="fechaDesde" class="form-control filtro-tiempo-real">
     </div>
-    <div class="col-md-3">
+    <div class="col-md-2">
       <label for="fechaHasta">Fecha hasta:</label>
-      <input type="date" id="fechaHasta" class="form-control">
+      <input type="date" id="fechaHasta" class="form-control filtro-tiempo-real">
     </div>
-    <div class="col-md-3">
+    <div class="col-md-2">
       <label for="usuarioFiltro">Usuario:</label>
-      <select id="usuarioFiltro" class="form-control">
+      <select id="usuarioFiltro" class="form-control filtro-tiempo-real">
         <option value="">Todos</option>
       </select>
     </div>
-    <div class="col-md-3 d-flex align-items-end">
-      <button id="aplicarFiltros" class="btn btn-primary w-100">Aplicar Filtros</button>
+    <div class="col-md-2">
+      <label for="estadoFiltro">Estado:</label>
+      <select id="estadoFiltro" class="form-control filtro-tiempo-real">
+        <option value="">Todos</option>
+        <option value="Pendiente">Pendiente</option>
+        <option value="En proceso">En proceso</option>
+        <option value="Resuelta">Resuelta</option>
+        <option value="Rechazada">Rechazada</option>
+      </select>
+    </div>
+    <div class="col-md-2">
+      <label for="provinciaFiltro">Provincia:</label>
+      <select id="provinciaFiltro" class="form-control filtro-tiempo-real">
+        <option value="">Todas</option>
+      </select>
+    </div>
+    <div class="col-md-2 d-flex align-items-end">
+      <button id="limpiarFiltros" class="btn btn-secondary w-100"><i class="bi bi-x-circle"></i> Limpiar Filtros</button>
+    </div>
+  </div>
+
+  <!-- 📊 Gráfico por municipio -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card p-4 shadow" style="min-height:340px;">
+        <h5 class="text-center mb-3"><i class="bi bi-geo-alt-fill text-info"></i> Denuncias por Municipio</h5>
+        <canvas id="graficoMunicipios" height="180" style="max-height:320px;"></canvas>
+      </div>
     </div>
   </div>
 
@@ -121,6 +151,7 @@
   </div>
 
 </div>
+</main>
 
 <!-- Modal vista previa PDF -->
 <div class="modal fade" id="modalPreviaPDF" tabindex="-1" aria-labelledby="modalPreviaPDFLabel" aria-hidden="true">
@@ -153,7 +184,7 @@
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
 <script src="js/i18n.js"></script>
-<script src="js/perfil-menu.js"></script>
+<script src="js/perfil-menu.js?v=2"></script>
 <script type="module" src="js/estadisticas.js"></script>
 
 <!-- Footer -->
