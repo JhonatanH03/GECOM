@@ -7,7 +7,9 @@ async function initAppLayout() {
       'juntas.html',
       'ayuntamientos.html',
       'estadisticas.html',
-      'historial.html'
+      'historial.html',
+      'cambiar-contrasena.html',
+      'ayuda.html'
     ];
     
     const paginaActual = window.location.pathname.split('/').pop() || 'index.html';
@@ -249,7 +251,9 @@ function setActivePage(page) {
       'juntas': 'Juntas de Vecinos',
       'ayuntamientos': 'Ayuntamientos',
       'estadisticas': 'Estadísticas',
-      'historial': 'Historial'
+      'historial': 'Historial',
+      'cambiar-contrasena':'Perfil',
+      'ayuda':'Ayuda'
     };
     breadcrumb.textContent = pageTitles[page] || 'Página';
   }
