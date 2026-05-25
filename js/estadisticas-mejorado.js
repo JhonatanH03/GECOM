@@ -27,7 +27,8 @@ let filtroActual = {
   usuarioFiltro: "",
   estadoFiltro: "",
   provinciaFiltro: "",
-  municipioFiltro: ""
+  municipioFiltro: "",
+  busquedaTexto: ""
 };
 
 // Cargar usuarios y provincias
@@ -235,22 +236,20 @@ function crearGraficos(datos) {
   });
 }
 
-// 🔥 TIEMPO REAL (se inicia solo tras autenticarse)
 let unsubscribeDenuncias = null;
 
 function iniciarEscucha() {
-  if (unsubscribeDenuncias) return; // ya activo
+  if (unsubscribeDenuncias) return;
   unsubscribeDenuncias = onSnapshot(collection(db, "denuncias"), (snapshot) => {
     denuncias = [];
     snapshot.forEach(doc => {
       denuncias.push({ id: doc.id, ...doc.data() });
     });
-    cargarUsuariosYProvincias(); // recargar provincias y usuarios si cambian
+    cargarUsuariosYProvincias();
     actualizarEstadisticas();
   });
 }
 
-// Función para aplicar filtros y actualizar estadísticas
 let chartMunicipios = null;
 
 function actualizarEstadisticas() {
@@ -260,6 +259,7 @@ function actualizarEstadisticas() {
   const estadoFiltro = document.getElementById("estadoFiltro").value;
   const provinciaFiltro = document.getElementById("provinciaFiltro").value;
   const municipioFiltro = document.getElementById("municipioFiltro").value;
+  const busquedaTexto = document.getElementById("busquedaTexto").value.toLowerCase();
 
   filtroActual = {
     fechaDesde,
@@ -267,35 +267,42 @@ function actualizarEstadisticas() {
     usuarioFiltro,
     estadoFiltro,
     provinciaFiltro,
-    municipioFiltro
+    municipioFiltro,
+    busquedaTexto
   };
 
   let filtradas = denuncias.filter(d => {
     let incluir = true;
-    // Filtro fecha
+    
     if (fechaDesde) {
       const desde = new Date(fechaDesde);
       const fechaDenuncia = d.fecha.toDate ? d.fecha.toDate() : new Date(d.fecha);
       if (fechaDenuncia < desde) incluir = false;
     }
+    
     if (fechaHasta) {
       const hasta = new Date(fechaHasta);
       hasta.setHours(23, 59, 59, 999);
       const fechaDenuncia = d.fecha.toDate ? d.fecha.toDate() : new Date(d.fecha);
       if (fechaDenuncia > hasta) incluir = false;
     }
-    // Filtro usuario
+    
     if (usuarioFiltro && d.uid !== usuarioFiltro) incluir = false;
-    // Filtro estado
     if (estadoFiltro && d.estado !== estadoFiltro) incluir = false;
-    // Filtro provincia
     if (provinciaFiltro && d.provincia !== provinciaFiltro) incluir = false;
-    // Filtro municipio
     if (municipioFiltro && d.municipio !== municipioFiltro) incluir = false;
+    
+    if (busquedaTexto) {
+      const titulo = (d.titulo || "").toLowerCase();
+      const descripcion = (d.descripcion || "").toLowerCase();
+      if (!titulo.includes(busquedaTexto) && !descripcion.includes(busquedaTexto)) {
+        incluir = false;
+      }
+    }
+    
     return incluir;
   });
 
-  // Calcular KPIs
   let pendiente = 0;
   let proceso = 0;
   let resuelta = 0;
@@ -308,7 +315,6 @@ function actualizarEstadisticas() {
     else if (d.estado === ESTADOS.RECHAZADA) rechazada++;
   });
 
-  // KPIs
   document.getElementById("pendiente").innerText = pendiente;
   document.getElementById("proceso").innerText = proceso;
   document.getElementById("resuelta").innerText = resuelta;
@@ -316,7 +322,6 @@ function actualizarEstadisticas() {
 
   const datos = [pendiente, proceso, resuelta, rechazada];
 
-  // Actualizar o crear gráficos
   if (chartBarras && chartPastel) {
     chartBarras.data.datasets[0].data = datos;
     chartBarras.update();
@@ -327,7 +332,6 @@ function actualizarEstadisticas() {
     crearGraficos(datos);
   }
 
-  // Gráfico de denuncias por municipio
   const municipioConteo = {};
   filtradas.forEach(d => {
     if (d.municipio) municipioConteo[d.municipio] = (municipioConteo[d.municipio] || 0) + 1;
@@ -367,7 +371,6 @@ function actualizarEstadisticas() {
     }
   }
 
-  // Tendencias
   actualizarTendencias(filtradas);
   actualizarIndicadoresFiltros();
 }
@@ -384,6 +387,7 @@ function actualizarIndicadoresFiltros() {
     const usuario = usuarios[filtroActual.usuarioFiltro];
     filtrosActivos.push(`Usuario: ${usuario?.nombre || filtroActual.usuarioFiltro}`);
   }
+  if (filtroActual.busquedaTexto) filtrosActivos.push(`Búsqueda: "${filtroActual.busquedaTexto}"`);
 
   const chipsContainer = document.getElementById("filtrosActivosChips");
   const badgeContainer = document.getElementById("filtrosActivos");
@@ -405,9 +409,41 @@ function actualizarIndicadoresFiltros() {
   }
 }
 
-// Función para actualizar gráfico de tendencias
+// Presets de fechas
+document.querySelectorAll(".preset-btn").forEach(btn => {
+  btn.addEventListener("click", (e) => {
+    const preset = e.target.dataset.preset;
+    const hoy = new Date();
+    let desde, hasta;
+
+    switch(preset) {
+      case "hoy":
+        desde = new Date(hoy);
+        hasta = new Date(hoy);
+        break;
+      case "semana":
+        desde = new Date(hoy);
+        desde.setDate(hoy.getDate() - hoy.getDay());
+        hasta = new Date(hoy);
+        break;
+      case "mes":
+        desde = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+        hasta = new Date(hoy);
+        break;
+      case "30dias":
+        desde = new Date(hoy);
+        desde.setDate(hoy.getDate() - 30);
+        hasta = new Date(hoy);
+        break;
+    }
+
+    document.getElementById("fechaDesde").value = desde.toISOString().split("T")[0];
+    document.getElementById("fechaHasta").value = hasta.toISOString().split("T")[0];
+    actualizarEstadisticas();
+  });
+});
+
 function actualizarTendencias(filtradas) {
-  // Agrupar por fecha (día)
   const agrupadas = {};
   filtradas.forEach((d) => {
     const fecha = d.fecha.toDate ? d.fecha.toDate() : new Date(d.fecha);
@@ -416,7 +452,6 @@ function actualizarTendencias(filtradas) {
     agrupadas[dia]++;
   });
 
-  // Últimos 30 días
   const hoy = new Date();
   const fechas = [];
   const datos = [];
@@ -428,7 +463,6 @@ function actualizarTendencias(filtradas) {
     datos.push(agrupadas[dia] || 0);
   }
 
-  // Crear o actualizar gráfico
   const ctx = document.getElementById("graficoTendencias").getContext("2d");
   const gradiente = ctx.createLinearGradient(0, 0, 0, 280);
   gradiente.addColorStop(0, "rgba(14, 165, 233, 0.28)");
@@ -503,26 +537,21 @@ function actualizarTendencias(filtradas) {
   }
 }
 
-// Exportar reporte PDF institucional
 function exportarPDF() {
-  const fechaDesde = document.getElementById("fechaDesde").value;
-  const fechaHasta = document.getElementById("fechaHasta").value;
-  const usuarioFiltro = document.getElementById("usuarioFiltro").value;
-
   let filtradas = denuncias.filter(d => {
     let incluir = true;
-    if (fechaDesde) {
-      const desde = new Date(fechaDesde);
+    if (filtroActual.fechaDesde) {
+      const desde = new Date(filtroActual.fechaDesde);
       const fechaDenuncia = d.fecha?.toDate ? d.fecha.toDate() : new Date(d.fecha);
       if (fechaDenuncia < desde) incluir = false;
     }
-    if (fechaHasta) {
-      const hasta = new Date(fechaHasta);
+    if (filtroActual.fechaHasta) {
+      const hasta = new Date(filtroActual.fechaHasta);
       hasta.setHours(23, 59, 59, 999);
       const fechaDenuncia = d.fecha?.toDate ? d.fecha.toDate() : new Date(d.fecha);
       if (fechaDenuncia > hasta) incluir = false;
     }
-    if (usuarioFiltro && d.uid !== usuarioFiltro) incluir = false;
+    if (filtroActual.usuarioFiltro && d.uid !== filtroActual.usuarioFiltro) incluir = false;
     return incluir;
   });
 
@@ -531,7 +560,6 @@ function exportarPDF() {
   const pageW = doc.internal.pageSize.getWidth();
   const fechaHoy = new Date().toLocaleDateString("es-DO", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
 
-  // ── Cabecera ──
   doc.setFillColor(18, 48, 74);
   doc.rect(0, 0, pageW, 28, "F");
   doc.setTextColor(255, 255, 255);
@@ -543,7 +571,6 @@ function exportarPDF() {
   doc.text("Gestión Comunitaria — Reporte de Denuncias", 14, 20);
   doc.text(fechaHoy, pageW - 14, 20, { align: "right" });
 
-  // ── KPIs resumen ──
   let pendiente = 0, proceso = 0, resuelta = 0, rechazada = 0;
   filtradas.forEach(d => {
     if (d.estado === "Pendiente") pendiente++;
@@ -572,11 +599,10 @@ function exportarPDF() {
     margin: { left: 14, right: 14 }
   });
 
-  // ── Filtros aplicados ──
   const filtroTexto = [
-    fechaDesde ? `Desde: ${fechaDesde}` : null,
-    fechaHasta ? `Hasta: ${fechaHasta}` : null,
-    usuarioFiltro ? `Usuario: ${usuarios[usuarioFiltro] || usuarioFiltro}` : null
+    filtroActual.fechaDesde ? `Desde: ${filtroActual.fechaDesde}` : null,
+    filtroActual.fechaHasta ? `Hasta: ${filtroActual.fechaHasta}` : null,
+    filtroActual.usuarioFiltro ? `Usuario: ${usuarios[filtroActual.usuarioFiltro]?.nombre || filtroActual.usuarioFiltro}` : null
   ].filter(Boolean).join("   |   ") || "Sin filtros aplicados";
 
   const afterKpi = doc.lastAutoTable.finalY + 6;
@@ -585,7 +611,6 @@ function exportarPDF() {
   doc.setTextColor(100, 100, 100);
   doc.text(`Filtros: ${filtroTexto}`, 14, afterKpi);
 
-  // ── Tabla de denuncias ──
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
   doc.setTextColor(30, 30, 30);
@@ -612,7 +637,6 @@ function exportarPDF() {
     columnStyles: { 0: { cellWidth: 70 } },
     margin: { left: 14, right: 14 },
     didDrawPage(data) {
-      // Pie de página
       const pageCount = doc.internal.getNumberOfPages();
       doc.setFont("helvetica", "normal");
       doc.setFontSize(8);
@@ -624,105 +648,15 @@ function exportarPDF() {
 
   const nombreArchivo = `reporte_denuncias_${new Date().toISOString().split("T")[0]}.pdf`;
 
-  // Vista previa
   const blobUrl = doc.output("bloburl");
   const iframe = document.getElementById("iframePreviaPDF");
   const btnDescargar = document.getElementById("btnConfirmarDescargaPDF");
   iframe.src = blobUrl;
-  // Reemplazar listener para evitar duplicados
   const btnClone = btnDescargar.cloneNode(true);
   btnDescargar.parentNode.replaceChild(btnClone, btnDescargar);
   btnClone.addEventListener("click", () => { doc.save(nombreArchivo); });
   bootstrap.Modal.getOrCreateInstance(document.getElementById("modalPreviaPDF")).show();
 }
-
-// Inicializar
-document.addEventListener("DOMContentLoaded", () => {
-  const debouncedActualizar = debounce(actualizarEstadisticas, 300);
-
-  // Filtros en tiempo real
-  document.querySelectorAll('.filtro-tiempo-real').forEach(el => {
-    el.addEventListener('input', debouncedActualizar);
-    el.addEventListener('change', debouncedActualizar);
-  });
-
-  document.getElementById("limpiarFiltros").addEventListener("click", () => {
-    document.getElementById("fechaDesde").value = "";
-    document.getElementById("fechaHasta").value = "";
-    document.getElementById("usuarioFiltro").value = "";
-    document.getElementById("estadoFiltro").value = "";
-    document.getElementById("provinciaFiltro").value = "";
-    document.getElementById("municipioFiltro").value = "";
-    actualizarEstadisticas();
-  });
-
-  document.getElementById("limpiarFechas").addEventListener("click", () => {
-    document.getElementById("fechaDesde").value = "";
-    document.getElementById("fechaHasta").value = "";
-    actualizarEstadisticas();
-  });
-
-  document.getElementById("exportarPDF").addEventListener("click", exportarPDF);
-
-  onAuthStateChanged(auth, async (user) => {
-    if (user) {
-      await cargarUsuariosYProvincias();
-      iniciarEscucha();
-    }
-  });
-
-  // Mejorar visual de filtros y KPIs
-  document.querySelectorAll('.app-main-content .card').forEach(card => {
-    card.classList.add('border-0', 'shadow-sm', 'rounded-4');
-  });
-  document.querySelectorAll('.app-main-content .form-control').forEach(ctrl => {
-    ctrl.classList.add('border-primary', 'rounded-pill', 'fw-semibold');
-  });
-  document.querySelectorAll('.app-main-content .form-select').forEach(ctrl => {
-    ctrl.classList.add('border-primary', 'rounded-2', 'fw-semibold');
-  });
-  document.querySelectorAll('.app-main-content label').forEach(lbl => {
-    lbl.classList.add('fw-bold', 'text-primary');
-  });
-});
-
-// Presets de fechas
-document.addEventListener("DOMContentLoaded", () => {
-  setTimeout(() => {
-    document.querySelectorAll(".preset-btn").forEach(btn => {
-      btn.addEventListener("click", (e) => {
-        const preset = e.target.dataset.preset;
-        const hoy = new Date();
-        let desde, hasta;
-
-        switch(preset) {
-          case "hoy":
-            desde = new Date(hoy);
-            hasta = new Date(hoy);
-            break;
-          case "semana":
-            desde = new Date(hoy);
-            desde.setDate(hoy.getDate() - hoy.getDay());
-            hasta = new Date(hoy);
-            break;
-          case "mes":
-            desde = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
-            hasta = new Date(hoy);
-            break;
-          case "30dias":
-            desde = new Date(hoy);
-            desde.setDate(hoy.getDate() - 30);
-            hasta = new Date(hoy);
-            break;
-        }
-
-        document.getElementById("fechaDesde").value = desde.toISOString().split("T")[0];
-        document.getElementById("fechaHasta").value = hasta.toISOString().split("T")[0];
-        actualizarEstadisticas();
-      });
-    });
-  }, 100);
-});
 
 window.limpiarFiltroIndividual = function(idx) {
   const filtrosActivos = [];
@@ -732,6 +666,7 @@ window.limpiarFiltroIndividual = function(idx) {
   if (filtroActual.municipioFiltro) filtrosActivos.push('municipio');
   if (filtroActual.estadoFiltro) filtrosActivos.push('estado');
   if (filtroActual.usuarioFiltro) filtrosActivos.push('usuario');
+  if (filtroActual.busquedaTexto) filtrosActivos.push('busqueda');
 
   const tipoFiltro = filtrosActivos[idx];
   
@@ -754,7 +689,64 @@ window.limpiarFiltroIndividual = function(idx) {
     case 'usuario':
       document.getElementById("usuarioFiltro").value = "";
       break;
+    case 'busqueda':
+      document.getElementById("busquedaTexto").value = "";
+      break;
   }
   
   actualizarEstadisticas();
 };
+
+// Inicializar
+document.addEventListener("DOMContentLoaded", () => {
+  const debouncedActualizar = debounce(actualizarEstadisticas, 300);
+
+  document.querySelectorAll('.filtro-tiempo-real').forEach(el => {
+    el.addEventListener('input', debouncedActualizar);
+    el.addEventListener('change', debouncedActualizar);
+  });
+
+  document.getElementById("limpiarFiltros").addEventListener("click", () => {
+    document.getElementById("fechaDesde").value = "";
+    document.getElementById("fechaHasta").value = "";
+    document.getElementById("usuarioFiltro").value = "";
+    document.getElementById("estadoFiltro").value = "";
+    document.getElementById("provinciaFiltro").value = "";
+    document.getElementById("municipioFiltro").value = "";
+    document.getElementById("busquedaTexto").value = "";
+    actualizarEstadisticas();
+  });
+
+  document.getElementById("limpiarFechas").addEventListener("click", () => {
+    document.getElementById("fechaDesde").value = "";
+    document.getElementById("fechaHasta").value = "";
+    actualizarEstadisticas();
+  });
+
+  document.getElementById("limpiarBusqueda").addEventListener("click", () => {
+    document.getElementById("busquedaTexto").value = "";
+    actualizarEstadisticas();
+  });
+
+  document.getElementById("exportarPDF").addEventListener("click", exportarPDF);
+
+  onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      await cargarUsuariosYProvincias();
+      iniciarEscucha();
+    }
+  });
+
+  document.querySelectorAll('.app-main-content .card').forEach(card => {
+    card.classList.add('border-0', 'shadow-sm', 'rounded-4');
+  });
+  document.querySelectorAll('.app-main-content .form-control').forEach(ctrl => {
+    ctrl.classList.add('border-primary', 'rounded-pill', 'fw-semibold');
+  });
+  document.querySelectorAll('.app-main-content .form-select').forEach(ctrl => {
+    ctrl.classList.add('border-primary', 'rounded-2', 'fw-semibold');
+  });
+  document.querySelectorAll('.app-main-content label').forEach(lbl => {
+    lbl.classList.add('fw-bold', 'text-primary');
+  });
+});
