@@ -60,20 +60,16 @@
       margin-top: 0.2rem;
     }
   </style>
+
+  <script src="js/guard.js"></script>
+  <script src="js/app-layout.js?v=4"></script>
+  <script src="js/perfil-menu.js?v=2"></script>
+
 </head>
 
 <body id="bodyRoot" class="bg-light app-page">
 
-<div class="dropdown position-absolute" style="top: 20px; right: 20px; z-index: 1050;">
-  <button id="btnPaletaTema" class="btn btn-outline-dark btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Elegir tema">
-    🎨
-  </button>
-  <ul class="dropdown-menu dropdown-menu-end" id="menuTema">
-    <li><a class="dropdown-item" href="#" data-tema="claro">Claro</a></li>
-    <li><a class="dropdown-item" href="#" data-tema="oscuro">Oscuro</a></li>
-    <li><a class="dropdown-item" href="#" data-tema="sistema">Sistema</a></li>
-  </ul>
-</div>
+<div id="appLayoutContainer"></div>
 
 <div class="container py-5">
   <div id="alertContainer" class="mb-3"></div>

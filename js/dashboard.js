@@ -421,7 +421,7 @@ function iniciarSuscripcionNotificaciones() {
   }
 
   function etiquetaEstadoLateral(estado) {
-    if (estado === ESTADOS.EN_PROCESO) return "En proceso";
+    if (estado === ESTADOS.EN_PROCESO) return "Proceso";
     if (estado === ESTADOS.RESUELTA) return "Resuelta";
     if (estado === ESTADOS.RECHAZADA) return "Rechazada";
     return "Pendiente";
