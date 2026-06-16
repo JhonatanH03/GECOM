@@ -77,6 +77,12 @@
     const fadeMs = esDashboard ? 120 : 160;
     const usarEntradaDashboard = esDashboard && transitionDestino === "login-dashboard";
     document.documentElement.style.display = 'block';
+    window.addEventListener('pageshow', (event) => {
+      if (event.persisted) {
+        document.documentElement.style.display = 'block';
+        document.documentElement.style.opacity = '1';
+      }
+    });
     if (showSessionBanner) {
       if (document.readyState === "loading") {
         document.addEventListener("DOMContentLoaded", insertarBannerSesion);
