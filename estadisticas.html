@@ -33,39 +33,123 @@
   <h2 class="text-center mb-4">Estadísticas de Denuncias</h2>
 
   <!-- � FILTROS -->
-  <div class="row mb-4">
-    <div class="col-md-2 " type="date">
-      <label for="fechaDesde">Fecha desde:</label>
-      <input type="date" id="fechaDesde" class="form-control filtro-tiempo-real">
+  <!-- FILTROS MEJORADOS -->
+  <div class="card p-4 shadow mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h5 class="mb-0"><i class="bi bi-funnel-fill me-2"></i> Filtros Avanzados</h5>
+      <div>
+        <span id="filtrosActivos" class="badge bg-info me-2" style="display: none;">
+          <i class="bi bi-check-circle me-1"></i><span id="conteoFiltros">0</span> filtros activos
+        </span>
+        <button id="limpiarFiltros" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-x-circle me-1"></i> Limpiar todos
+        </button>
+      </div>
     </div>
-    <div class="col-md-2">
-      <label for="fechaHasta">Fecha hasta:</label>
-      <input type="date" id="fechaHasta" class="form-control filtro-tiempo-real">
+
+    <!-- Filtros activos mostrados como chips -->
+    <div id="filtrosActivosChips" class="mb-3" style="display: none;">
+      <!-- Los chips se generan dinámicamente -->
     </div>
-    <div class="col-md-2">
-      <label for="usuarioFiltro">Usuario:</label>
-      <select id="usuarioFiltro" class="form-control filtro-tiempo-real">
-        <option value="">Todos</option>
-      </select>
-    </div>
-    <div class="col-md-2">
-      <label for="estadoFiltro">Estado:</label>
-      <select id="estadoFiltro" class="form-control filtro-tiempo-real">
-        <option value="">Todos</option>
-        <option value="Pendiente">Pendiente</option>
-        <option value="En proceso">En proceso</option>
-        <option value="Resuelta">Resuelta</option>
-        <option value="Rechazada">Rechazada</option>
-      </select>
-    </div>
-    <div class="col-md-2">
-      <label for="provinciaFiltro">Provincia:</label>
-      <select id="provinciaFiltro" class="form-control filtro-tiempo-real">
-        <option value="">Todas</option>
-      </select>
-    </div>
-    <div class="col-md-2 d-flex align-items-end">
-      <button id="limpiarFiltros" class="btn btn-secondary w-100"><i class="bi bi-x-circle"></i> Limpiar Filtros</button>
+
+    <!-- Accordion con grupos de filtros -->
+    <div class="accordion" id="accordionFiltros">
+      
+      <!-- Grupo 1: Fechas -->
+      <div class="accordion-item">
+        <h2 class="accordion-header">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseDate" aria-expanded="false">
+            <i class="bi bi-calendar-event me-2 text-primary"></i> Período de tiempo
+          </button>
+        </h2>
+        <div id="collapseDate" class="accordion-collapse collapse" data-bs-parent="#accordionFiltros">
+          <div class="accordion-body">
+            <div class="row g-3">
+              <div class="col-md-3">
+                <label class="form-label">Presets:</label>
+                <div id="presetsDate" class="d-grid gap-2">
+                  <button type="button" class="btn btn-sm btn-outline-primary preset-btn" data-preset="hoy">Hoy</button>
+                  <button type="button" class="btn btn-sm btn-outline-primary preset-btn" data-preset="semana">Esta semana</button>
+                  <button type="button" class="btn btn-sm btn-outline-primary preset-btn" data-preset="mes">Este mes</button>
+                  <button type="button" class="btn btn-sm btn-outline-primary preset-btn" data-preset="30dias">Últimos 30 días</button>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <label for="fechaDesde" class="form-label">Desde:</label>
+                <input type="date" id="fechaDesde" class="form-control form-control-sm filtro-tiempo-real">
+              </div>
+              <div class="col-md-3">
+                <label for="fechaHasta" class="form-label">Hasta:</label>
+                <input type="date" id="fechaHasta" class="form-control form-control-sm filtro-tiempo-real">
+              </div>
+              <div class="col-md-3 d-flex align-items-end">
+                <button id="limpiarFechas" class="btn btn-sm btn-outline-danger w-100">
+                  <i class="bi bi-x me-1"></i> Limpiar fechas
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Grupo 2: Ubicación -->
+      <div class="accordion-item">
+        <h2 class="accordion-header">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseLocation" aria-expanded="false">
+            <i class="bi bi-geo-alt me-2 text-success"></i> Ubicación
+          </button>
+        </h2>
+        <div id="collapseLocation" class="accordion-collapse collapse" data-bs-parent="#accordionFiltros">
+          <div class="accordion-body">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label for="provinciaFiltro" class="form-label">Provincia:</label>
+                <select id="provinciaFiltro" class="form-select form-select-sm filtro-tiempo-real">
+                  <option value="">Todas</option>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label for="municipioFiltro" class="form-label">Municipio:</label>
+                <select id="municipioFiltro" class="form-select form-select-sm filtro-tiempo-real">
+                  <option value="">Todos</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Grupo 3: Estado y Usuario -->
+      <div class="accordion-item">
+        <h2 class="accordion-header">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseStatus" aria-expanded="false">
+            <i class="bi bi-tags me-2 text-warning"></i> Estado y Usuario
+          </button>
+        </h2>
+        <div id="collapseStatus" class="accordion-collapse collapse" data-bs-parent="#accordionFiltros">
+          <div class="accordion-body">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label for="estadoFiltro" class="form-label">Estado:</label>
+                <select id="estadoFiltro" class="form-select form-select-sm filtro-tiempo-real">
+                  <option value="">Todos</option>
+                  <option value="Pendiente">Pendiente</option>
+                  <option value="En proceso">En proceso</option>
+                  <option value="Resuelta">Resuelta</option>
+                  <option value="Rechazada">Rechazada</option>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label for="usuarioFiltro" class="form-label">Junta / Usuario:</label>
+                <select id="usuarioFiltro" class="form-select form-select-sm filtro-tiempo-real">
+                  <option value="">Todos</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 
