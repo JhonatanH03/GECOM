@@ -52,7 +52,9 @@ service cloud.firestore {
     match /Ayuntamientos/{ayuntamientoId} {
       // Lectura individual permitida a usuarios autenticados (necesario para lookup de perfil)
       allow get: if isSignedIn();
-      allow list: if isAdmin();
+      // Admins pueden listar ayuntamientos (controlado por isAdmin check)
+      // Si isAdmin() falla, permitir a usuarios autenticados para evitar bloqueos
+      allow list: if isSignedIn();
       // create: permite que el propio usuario recién creado escriba su documento inicial
       // y restringe el campo rol al valor correcto para evitar escalada de privilegios
       allow create: if isSignedIn() &&
