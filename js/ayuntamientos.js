@@ -420,12 +420,24 @@ window.eliminarAyuntamiento = async function(id, nombre) {
   });
   if (!ok) return;
   try {
-    await db.collection("Ayuntamientos").doc(id).delete();
+    await window.gecomDeleteManagedUserAccount({
+      auth,
+      targetUid: id,
+      targetRole: "ayuntamiento"
+    });
     showAlert("Ayuntamiento eliminado.", "success");
     await cargarAyuntamientos();
   } catch (error) {
     console.error("Error:", error);
-    showAlert("Error al eliminar.", "danger");
+    if (error.code === "permission-denied") {
+      showAlert("No tienes permisos para eliminar este ayuntamiento.", "danger");
+      return;
+    }
+    if (error.name === "TypeError" || error.code === "request-failed") {
+      showAlert("No se pudo conectar con el backend de eliminación.", "danger");
+      return;
+    }
+    showAlert(error.message || "Error al eliminar.", "danger");
   }
 };
 

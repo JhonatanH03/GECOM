@@ -113,6 +113,28 @@ async function authorizeReset(callerUid, callerRole, targetUid, targetRole) {
   return { targetRef };
 }
 
+function canDeleteManagedUser(callerProfile, targetRole, targetData, callerUid) {
+  if (callerProfile.role === "admin") {
+    return true;
+  }
+
+  if (targetRole === "junta" && callerProfile.role === "ayuntamiento") {
+    const targetCreator = String(targetData.creada_por || "").trim();
+    const targetProvincia = String(targetData.provincia || "").trim();
+    const targetMunicipio = String(targetData.municipio || "").trim();
+    const callerProvincia = String(callerProfile.data.provincia || "").trim();
+    const callerMunicipio = String(callerProfile.data.municipio || "").trim();
+
+    return (
+      targetCreator === callerUid &&
+      targetProvincia === callerProvincia &&
+      targetMunicipio === callerMunicipio
+    );
+  }
+
+  return false;
+}
+
 async function verifyCaller(req, _res, next) {
   try {
     const authorization = String(req.headers.authorization || "");
@@ -376,6 +398,68 @@ app.post("/api/password-resets/generic", verifyCaller, async (req, res, next) =>
       ok: true,
       temporaryPassword: DEFAULT_RESET_PASSWORD,
       targetRole: normalizedTargetRole
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/managed-users/delete", verifyToken, async (req, res, next) => {
+  try {
+    const callerUid = req.auth.uid;
+    const callerProfile = await resolveCallerProfile(callerUid);
+    const { targetUid, targetRole } = req.body || {};
+
+    const normalizedTargetUid = String(targetUid || "").trim();
+    const normalizedTargetRole = String(targetRole || "").trim().toLowerCase();
+
+    if (!normalizedTargetUid || !normalizedTargetRole) {
+      throw createHttpError(400, "invalid-argument", "Debes indicar el usuario y rol de destino.");
+    }
+
+    const collectionName = getCollectionNameByRole(normalizedTargetRole);
+    if (!collectionName || normalizedTargetRole === "admin") {
+      throw createHttpError(400, "invalid-target", "El rol de destino no es válido para eliminación.");
+    }
+
+    const targetRef = admin.firestore().collection(collectionName).doc(normalizedTargetUid);
+    const targetSnap = await targetRef.get();
+
+    if (!targetSnap.exists) {
+      throw createHttpError(404, "not-found", "Usuario objetivo no encontrado.");
+    }
+
+    const targetData = targetSnap.data() || {};
+
+    if (!canDeleteManagedUser(callerProfile, normalizedTargetRole, targetData, callerUid)) {
+      throw createHttpError(403, "permission-denied", "No tienes permiso para eliminar esta cuenta.");
+    }
+
+    try {
+      await admin.auth().deleteUser(normalizedTargetUid);
+    } catch (authError) {
+      if (authError.code !== "auth/user-not-found") {
+        throw createHttpError(500, "auth-delete-failed", "No se pudo eliminar el correo interno de Firebase Auth.");
+      }
+    }
+
+    const loginIndexSnap = await admin.firestore()
+      .collection("loginIndex")
+      .where("uid", "==", normalizedTargetUid)
+      .get();
+
+    const batch = admin.firestore().batch();
+    batch.delete(targetRef);
+    loginIndexSnap.forEach((docSnap) => {
+      batch.delete(docSnap.ref);
+    });
+    await batch.commit();
+
+    res.json({
+      ok: true,
+      deletedUid: normalizedTargetUid,
+      deletedRole: normalizedTargetRole,
+      loginIndexDeleted: loginIndexSnap.size
     });
   } catch (error) {
     next(error);

@@ -1,7 +1,7 @@
 import app from "./firebase.js";
 import { escapeHtml } from "./constants.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, doc, setDoc, getDoc, collection, getDocs, query, where, limit, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, doc, setDoc, getDoc, collection, getDocs, query, where, limit } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const auth = getAuth(app);
 const db = getFirestore(app);
@@ -436,14 +436,24 @@ window.eliminarUsuario = async function eliminarUsuario(id, nombre) {
   if (!ok) return;
 
   try {
-    const docSnap = await getDoc(doc(db, "JuntasDeVecinos", id));
-    const data = docSnap.exists() ? (docSnap.data() || {}) : {};
-    await deleteDoc(doc(db, "JuntasDeVecinos", id));
+    await window.gecomDeleteManagedUserAccount({
+      auth,
+      targetUid: id,
+      targetRole: "junta"
+    });
     showAlert("Junta eliminada correctamente.", "success");
     await cargarUsuarios();
   } catch (error) {
     console.error("Error al eliminar usuario:", error);
-    showAlert("Error al eliminar usuario.", "danger");
+    if (error.code === "permission-denied") {
+      showAlert("No tienes permisos para eliminar esta junta.", "danger");
+      return;
+    }
+    if (error.name === "TypeError" || error.code === "request-failed") {
+      showAlert("No se pudo conectar con el backend de eliminación.", "danger");
+      return;
+    }
+    showAlert(error.message || "Error al eliminar usuario.", "danger");
   }
 };
 

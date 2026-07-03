@@ -49,3 +49,41 @@ window.gecomResetManagedUserPassword = async function({ auth, callerPassword, ta
 
   return payload;
 };
+
+window.gecomDeleteManagedUserAccount = async function({ auth, targetUid, targetRole }) {
+  const user = auth.currentUser;
+  if (!user) {
+    const error = new Error("Sesión no válida.");
+    error.code = "auth/session-invalid";
+    throw error;
+  }
+
+  const idToken = await user.getIdToken(true);
+  const response = await fetch(window.gecomBuildBackendUrl("/api/managed-users/delete"), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${idToken}`
+    },
+    body: JSON.stringify({ targetUid, targetRole })
+  });
+
+  let payload = {};
+  try {
+    payload = await response.json();
+  } catch (_error) {
+    payload = {};
+  }
+
+  if (!response.ok) {
+    const error = new Error(
+      payload.error && payload.error.message
+        ? payload.error.message
+        : "No se pudo eliminar la cuenta."
+    );
+    error.code = payload.error && payload.error.code ? payload.error.code : "request-failed";
+    throw error;
+  }
+
+  return payload;
+};

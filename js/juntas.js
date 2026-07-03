@@ -658,15 +658,21 @@ window.eliminarJunta = async function(id, nombre) {
       showAlert("No puedes eliminar juntas fuera de tu municipio.", "danger");
       return;
     }
-    await db.collection("JuntasDeVecinos").doc(id).delete();
+    await window.gecomDeleteManagedUserAccount({
+      auth,
+      targetUid: id,
+      targetRole: "junta"
+    });
     showAlert("Junta eliminada.", "success");
     await cargarJuntas();
   } catch (error) {
     console.error("Error:", error);
     if (error && error.code === "permission-denied") {
       showAlert("No tienes permisos para eliminar esta junta.", "danger");
+    } else if (error.name === "TypeError" || error.code === "request-failed") {
+      showAlert("No se pudo conectar con el backend de eliminación.", "danger");
     } else {
-      showAlert("Error al eliminar.", "danger");
+      showAlert(error.message || "Error al eliminar.", "danger");
     }
   }
 };
