@@ -494,12 +494,87 @@ function formatearTelefono(event) {
 }
 
 function showAlert(message, type = "success") {
+  const credenciales = type === "success" ? extraerCredencialesTemporales(message) : null;
+
+  if (!credenciales) {
+    alertContainer.innerHTML = `
+      <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+        ${escapeHtml(message)}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+      </div>
+    `;
+    return;
+  }
+
+  const idCopiar = `btnCopiarPwd_${Date.now()}`;
+  const idCopiarTodo = `btnCopiarTodo_${Date.now()}`;
   alertContainer.innerHTML = `
     <div class="alert alert-${type} alert-dismissible fade show" role="alert">
-      ${escapeHtml(message)}
+      <div class="fw-semibold mb-2">${escapeHtml(message)}</div>
+      <div class="d-flex gap-2 flex-wrap">
+        <button type="button" id="${idCopiar}" class="btn btn-sm btn-outline-light">Copiar</button>
+        <button type="button" id="${idCopiarTodo}" class="btn btn-sm btn-light">Copiar todo</button>
+      </div>
       <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
     </div>
   `;
+
+  const btnCopiar = document.getElementById(idCopiar);
+  const btnCopiarTodo = document.getElementById(idCopiarTodo);
+
+  btnCopiar?.addEventListener("click", async () => {
+    const ok = await copiarTextoPortapapeles(credenciales.contrasena);
+    btnCopiar.textContent = ok ? "Copiado" : "No se pudo copiar";
+  });
+
+  btnCopiarTodo?.addEventListener("click", async () => {
+    const textoCompleto = credenciales.usuario
+      ? `Usuario: ${credenciales.usuario}\nContraseña temporal: ${credenciales.contrasena}`
+      : `Contraseña temporal: ${credenciales.contrasena}`;
+    const ok = await copiarTextoPortapapeles(textoCompleto);
+    btnCopiarTodo.textContent = ok ? "Copiado" : "No se pudo copiar";
+  });
+}
+
+function extraerCredencialesTemporales(message) {
+  const texto = String(message || "");
+  const passMatch = texto.match(/Contrase(?:n|ñ)a temporal:\s*([^,\s]+)/i);
+  if (!passMatch) return null;
+
+  const userMatch = texto.match(/Usuario:\s*([^,]+),/i);
+  return {
+    usuario: userMatch ? userMatch[1].trim() : "",
+    contrasena: passMatch[1].trim()
+  };
+}
+
+async function copiarTextoPortapapeles(texto) {
+  const contenido = String(texto || "");
+  if (!contenido) return false;
+
+  try {
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+      await navigator.clipboard.writeText(contenido);
+      return true;
+    }
+  } catch (_error) {
+    // fallback below
+  }
+
+  try {
+    const temp = document.createElement("textarea");
+    temp.value = contenido;
+    temp.setAttribute("readonly", "");
+    temp.style.position = "fixed";
+    temp.style.opacity = "0";
+    document.body.appendChild(temp);
+    temp.select();
+    const copied = document.execCommand("copy");
+    document.body.removeChild(temp);
+    return copied;
+  } catch (_error) {
+    return false;
+  }
 }
 
 function showModalAlert(message, type = "danger") {
