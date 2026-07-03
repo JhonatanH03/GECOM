@@ -1,0 +1,6 @@
+[build]
+  publish = "."
+  command = ""
+
+# Netlify deploys this repo as a static site from the repo root.
+# No build step is required because the frontend usa HTML/CSS/JS estático.

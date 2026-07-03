@@ -79,7 +79,7 @@
       <div class="card p-4 shadow-sm h-100 perfil-card">
         <div class="d-flex justify-content-between align-items-center mb-3">
           <h3 class="mb-0" id="perfilTitulo">Mi Perfil</h3>
-          <button onclick="history.back()" class="btn p-0" id="btnVolver" style="font-size: 1.5rem; color: var(--bs-primary); transition: transform 0.2s ease;" onmouseover="this.style.transform='translateX(-4px)'" onmouseout="this.style.transform='translateX(0)'">
+          <button onclick="goBackSafe()" class="btn p-0" id="btnVolver" style="font-size: 1.5rem; color: var(--bs-primary); transition: transform 0.2s ease;" onmouseover="this.style.transform='translateX(-4px)'" onmouseout="this.style.transform='translateX(0)'">
             <i class="bi bi-chevron-left"></i>
           </button>
         </div>
@@ -462,6 +462,14 @@ window.cambiarContrasena = async function () {
     mostrarError(mensaje);
   }
 };
+
+function goBackSafe() {
+  if (window.history.length > 1) {
+    window.history.back();
+  } else {
+    window.location.href = "dashboard.html";
+  }
+}
 
 // Cerrar sesión
 window.logout = async function () {
