@@ -11,20 +11,29 @@ const firebaseConfig = {
 const app = firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth(app);
 const db = firebase.firestore(app);
+const AYUNTAMIENTO_CREATOR_APP_NAME = "gecom-ayuntamiento-creator";
+const ayuntamientoCreatorApp = firebase.apps.find((appInstance) => appInstance.name === AYUNTAMIENTO_CREATOR_APP_NAME)
+  || firebase.initializeApp(firebaseConfig, AYUNTAMIENTO_CREATOR_APP_NAME);
+const ayuntamientoCreatorAuth = firebase.auth(ayuntamientoCreatorApp);
+const ayuntamientoCreatorDb = firebase.firestore(ayuntamientoCreatorApp);
 const uid = localStorage.getItem("uid");
 const rolLocal = localStorage.getItem("rol");
 const alertContainer = document.getElementById("alertContainer");
 const modalAlertContainer = document.getElementById("modalAlertContainer");
 const ayuntamientosBody = document.getElementById("ayuntamientosBody");
+const provinciaSelect = document.getElementById("provincia");
+const municipioSelect = document.getElementById("municipio");
 const form = document.getElementById("formCrearAyuntamiento");
 const modalElement = document.getElementById("modalCrearAyuntamiento");
 const modal = new bootstrap.Modal(modalElement);
 const modalTitle = document.getElementById("modalCrearAyuntamientoLabel");
 const submitBtn = document.getElementById("submitBtn");
 const ayuntamientoIdInput = document.getElementById("ayuntamientoId");
-const passwordField = document.getElementById("passwordField");
 const usuarioInput = document.getElementById("usuario");
 const AYUNTAMIENTO_USUARIO_PREFIX = "ayto_";
+let ayuntamientosRegistrados = [];
+
+window.ayuntamientosRegistrados = ayuntamientosRegistrados;
 
 function usuarioAEmailInterno(usuario) {
   return String(usuario || "").trim().toLowerCase().replace(/[^a-z0-9_]/g, "") + "@gecom.internal";
@@ -85,6 +94,58 @@ function generarContrasenaTemporal(length = 12) {
   return Array.from({ length }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
 }
 
+function normalizarTexto(valor) {
+  return String(valor || "").trim();
+}
+
+function obtenerMunicipiosDisponibles(provincia) {
+  const provinciaNormalizada = normalizarTexto(provincia);
+  const provinciaData = window.provinciasData || [];
+  const provinciaSeleccionada = provinciaData.find((item) => normalizarTexto(item.nombre) === provinciaNormalizada);
+  if (!provinciaSeleccionada || !Array.isArray(provinciaSeleccionada.municipios)) {
+    return [];
+  }
+
+  const ayuntamientoEnEdicion = normalizarTexto(ayuntamientoIdInput.value);
+  const municipiosOcupados = new Set(
+    ayuntamientosRegistrados
+      .filter((item) => normalizarTexto(item.provincia) === provinciaNormalizada && normalizarTexto(item.id) !== ayuntamientoEnEdicion)
+      .map((item) => normalizarTexto(item.municipio))
+      .filter(Boolean)
+  );
+
+  return provinciaSeleccionada.municipios.filter((municipio) => !municipiosOcupados.has(normalizarTexto(municipio)));
+}
+
+function renderMunicipiosAyuntamiento() {
+  if (!municipioSelect || !provinciaSelect) return;
+
+  const provincia = provinciaSelect.value;
+  municipioSelect.innerHTML = '<option value="" selected>Seleccionar municipio</option>';
+
+  if (!provincia) {
+    municipioSelect.disabled = false;
+    return;
+  }
+
+  const municipiosDisponibles = obtenerMunicipiosDisponibles(provincia);
+  if (!municipiosDisponibles.length) {
+    municipioSelect.innerHTML = '<option value="" selected>Sin municipios disponibles</option>';
+    municipioSelect.disabled = true;
+    return;
+  }
+
+  municipioSelect.disabled = false;
+  municipioSelect.innerHTML += municipiosDisponibles.map((municipio) => `<option value="${municipio}">${municipio}</option>`).join("");
+
+  const municipioActual = normalizarTexto(municipioSelect.dataset.selectedMunicipio || "");
+  if (municipioActual) {
+    municipioSelect.value = municipioActual;
+  }
+}
+
+window.actualizarMunicipiosAyuntamiento = renderMunicipiosAyuntamiento;
+
 window.addEventListener("DOMContentLoaded", async () => {
   if (!uid || !rolLocal) {
     window.location.href = "index.html";
@@ -106,14 +167,23 @@ window.addEventListener("DOMContentLoaded", async () => {
     ayuntamientoIdInput.value = "";
     modalTitle.textContent = "Crear Ayuntamiento";
     submitBtn.textContent = "Guardar";
-    passwordField.style.display = "block";
     inicializarUsuarioConPrefijo();
     clearModalAlert();
   });
 
   modalElement.addEventListener("show.bs.modal", () => {
     inicializarUsuarioConPrefijo();
+    renderMunicipiosAyuntamiento();
   });
+
+  if (provinciaSelect) {
+    provinciaSelect.addEventListener("change", () => {
+      if (municipioSelect) {
+        municipioSelect.dataset.selectedMunicipio = ayuntamientoIdInput.value ? normalizarTexto(municipioSelect.value) : "";
+      }
+      renderMunicipiosAyuntamiento();
+    });
+  }
 
   protegerPrefijoUsuario();
 });
@@ -174,7 +244,7 @@ form.addEventListener("submit", async (event) => {
 
       // Crear nuevo ayuntamiento con contraseña temporal aleatoria de primer uso.
       const contrasenaTemporal = generarContrasenaTemporal();
-      const credential = await auth.createUserWithEmailAndPassword(emailInterno, contrasenaTemporal);
+      const credential = await ayuntamientoCreatorAuth.createUserWithEmailAndPassword(emailInterno, contrasenaTemporal);
       const nuevoUid = credential.user.uid;
       
       const ayuntamientoData = {
@@ -191,13 +261,14 @@ form.addEventListener("submit", async (event) => {
         primerLogin: true
       };
       
-      await db.collection("Ayuntamientos").doc(nuevoUid).set(ayuntamientoData);
-      await db.collection("loginIndex").doc(usuarioNormalizado).set({
+      await ayuntamientoCreatorDb.collection("Ayuntamientos").doc(nuevoUid).set(ayuntamientoData);
+      await ayuntamientoCreatorDb.collection("loginIndex").doc(usuarioNormalizado).set({
         uid: nuevoUid,
         email: emailInterno,
         rol: "ayuntamiento",
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       });
+      await ayuntamientoCreatorAuth.signOut();
       showAlert(`Ayuntamiento creado correctamente. Usuario: ${usuario}, Contraseña temporal: ${contrasenaTemporal}`, "success");
     }
     
@@ -229,23 +300,25 @@ async function cargarAyuntamientos() {
   ayuntamientosBody.innerHTML = _skRow8.repeat(5);
   try {
     const snapshot = await db.collection("Ayuntamientos").get();
+    ayuntamientosRegistrados = [];
+    window.ayuntamientosRegistrados = ayuntamientosRegistrados;
     
     if (snapshot.empty) {
       ayuntamientosBody.innerHTML = '<tr class="table-feedback-row"><td colspan="8"><div class="empty-state">No hay ayuntamientos registrados.</div></td></tr>';
+      renderMunicipiosAyuntamiento();
       return;
     }
     
-    const ayuntamientos = [];
     snapshot.forEach((docSnap) => {
       const data = docSnap.data();
       data.id = docSnap.id;
-      ayuntamientos.push(data);
+      ayuntamientosRegistrados.push(data);
     });
     
-    ayuntamientos.sort((a, b) => (a.nombre || "").toLowerCase().localeCompare((b.nombre || "").toLowerCase()));
+    ayuntamientosRegistrados.sort((a, b) => (a.nombre || "").toLowerCase().localeCompare((b.nombre || "").toLowerCase()));
 
     ayuntamientosBody.innerHTML = "";
-    ayuntamientos.forEach((data) => {
+    ayuntamientosRegistrados.forEach((data) => {
       const label = data.estado ? "Activo" : "Inactivo";
       const estadoClass = data.estado ? "status-resuelta" : "status-pendiente";
       const chipIcon = data.estado ? "bi-check-circle-fill" : "bi-x-circle-fill";
@@ -286,6 +359,7 @@ async function cargarAyuntamientos() {
         </td>
       </tr>`;
     });
+    renderMunicipiosAyuntamiento();
   } catch (error) {
     console.error("Error al cargar ayuntamientos:", error);
     ayuntamientosBody.innerHTML = '<tr class="table-feedback-row"><td colspan="8"><div class="empty-state text-danger">Error al cargar ayuntamientos.</div></td></tr>';
@@ -319,15 +393,16 @@ window.editarAyuntamiento = async function(id) {
     document.getElementById("telefono").value = data.telefono || "";
     document.getElementById("direccion").value = data.direccion || "";
     document.getElementById("provincia").value = data.provincia || "";
+    document.getElementById("municipio").dataset.selectedMunicipio = data.municipio || "";
     document.getElementById("provincia").dispatchEvent(new Event("change"));
     
     setTimeout(() => {
       document.getElementById("municipio").value = data.municipio || "";
+      document.getElementById("municipio").dataset.selectedMunicipio = data.municipio || "";
     }, 100);
     
     modalTitle.textContent = "Editar Ayuntamiento";
     submitBtn.textContent = "Actualizar";
-    passwordField.style.display = "none";
     modal.show();
   } catch (error) {
     console.error("Error:", error);
@@ -345,12 +420,24 @@ window.eliminarAyuntamiento = async function(id, nombre) {
   });
   if (!ok) return;
   try {
-    await db.collection("Ayuntamientos").doc(id).delete();
+    await window.gecomDeleteManagedUserAccount({
+      auth,
+      targetUid: id,
+      targetRole: "ayuntamiento"
+    });
     showAlert("Ayuntamiento eliminado.", "success");
     await cargarAyuntamientos();
   } catch (error) {
     console.error("Error:", error);
-    showAlert("Error al eliminar.", "danger");
+    if (error.code === "permission-denied") {
+      showAlert("No tienes permisos para eliminar este ayuntamiento.", "danger");
+      return;
+    }
+    if (error.name === "TypeError" || error.code === "request-failed") {
+      showAlert("No se pudo conectar con el backend de eliminación.", "danger");
+      return;
+    }
+    showAlert(error.message || "Error al eliminar.", "danger");
   }
 };
 

@@ -346,34 +346,30 @@ async function cargarJuntas() {
   </tr>`;
   juntasBody.innerHTML = _skRow7.repeat(5);
   try {
-    let snapshot;
-    if (rolLocal === "admin") {
-      snapshot = await db.collection("JuntasDeVecinos").get();
-    } else if (rolLocal === "ayuntamiento") {
-      snapshot = provinciaAyuntamiento
-        ? await db.collection("JuntasDeVecinos").where("provincia", "==", provinciaAyuntamiento).get()
-        : await db.collection("JuntasDeVecinos").get();
-    } else {
-      snapshot = await db.collection("JuntasDeVecinos").where("creada_por", "==", uid).get();
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      throw new Error("Sesión no válida.");
     }
-    
-    if (snapshot.empty) {
-      juntasBody.innerHTML = '<tr class="table-feedback-row"><td colspan="7"><div class="empty-state">No hay juntas registradas en tu alcance.</div></td></tr>';
-      return;
-    }
-    
-    const juntas = [];
-    snapshot.forEach((docSnap) => {
-      const data = docSnap.data();
-      if (!esMismaUbicacion(data)) return;
-      data.id = docSnap.id;
-      juntas.push(data);
+
+    const idToken = await currentUser.getIdToken(true);
+    const response = await fetch(window.gecomBuildBackendUrl("/api/juntas/listar"), {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${idToken}`
+      }
     });
-    
-    juntas.sort((a, b) => (a.nombre || "").toLowerCase().localeCompare((b.nombre || "").toLowerCase()));
+
+    const responseData = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const error = new Error(responseData.error?.message || "No se pudo cargar la lista.");
+      error.code = responseData.error?.code || "request-failed";
+      throw error;
+    }
+
+    const juntas = Array.isArray(responseData.juntas) ? responseData.juntas : [];
 
     if (!juntas.length) {
-      juntasBody.innerHTML = '<tr class="table-feedback-row"><td colspan="7"><div class="empty-state">No hay juntas en tu territorio.</div></td></tr>';
+      juntasBody.innerHTML = '<tr class="table-feedback-row"><td colspan="7"><div class="empty-state">No hay juntas registradas en tu alcance.</div></td></tr>';
       return;
     }
 
@@ -662,15 +658,21 @@ window.eliminarJunta = async function(id, nombre) {
       showAlert("No puedes eliminar juntas fuera de tu municipio.", "danger");
       return;
     }
-    await db.collection("JuntasDeVecinos").doc(id).delete();
+    await window.gecomDeleteManagedUserAccount({
+      auth,
+      targetUid: id,
+      targetRole: "junta"
+    });
     showAlert("Junta eliminada.", "success");
     await cargarJuntas();
   } catch (error) {
     console.error("Error:", error);
     if (error && error.code === "permission-denied") {
       showAlert("No tienes permisos para eliminar esta junta.", "danger");
+    } else if (error.name === "TypeError" || error.code === "request-failed") {
+      showAlert("No se pudo conectar con el backend de eliminación.", "danger");
     } else {
-      showAlert("Error al eliminar.", "danger");
+      showAlert(error.message || "Error al eliminar.", "danger");
     }
   }
 };

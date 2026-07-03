@@ -106,11 +106,6 @@
                 <option value="" selected>Seleccionar municipio</option>
               </select>
             </div>
-            <div class="col-md-12" id="passwordField">
-              <label class="form-label">Contraseña Temporal</label>
-              <input type="text" class="form-control" id="contrasenaTemporal" value="Inicial123" readonly>
-              <small class="text-muted">Esta contraseña es de un solo uso. El ayuntamiento debe cambiarla al iniciar sesión por primera vez.</small>
-            </div>
           </div>
         </div>
         <div class="modal-footer">
@@ -134,24 +129,17 @@
 </script>
 <script>
 // Provincias y municipios
-let provinciasData = [];
+window.provinciasData = [];
 fetch('js/provincias.json')
   .then(res => res.json())
   .then(data => {
-    provinciasData = data;
+    window.provinciasData = data;
     const provinciaSelect = document.getElementById('provincia');
     provinciaSelect.innerHTML = '<option value="">Seleccionar provincia</option>' +
       data.map(p => `<option value="${p.nombre}">${p.nombre}</option>`).join('');
-    provinciaSelect.addEventListener('change', () => {
-      const provincia = provinciaSelect.value;
-      const municipioSelect = document.getElementById('municipio');
-      municipioSelect.innerHTML = '<option value="">Seleccionar municipio</option>';
-      if (!provincia) return;
-      const prov = provinciasData.find(p => p.nombre === provincia);
-      if (prov && prov.municipios) {
-        municipioSelect.innerHTML += prov.municipios.map(m => `<option value="${m}">${m}</option>`).join('');
-      }
-    });
+    if (window.actualizarMunicipiosAyuntamiento) {
+      window.actualizarMunicipiosAyuntamiento();
+    }
   });
 </script>
 <!-- Modal Restablecer Contraseña Ayuntamiento -->
