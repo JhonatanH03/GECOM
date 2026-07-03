@@ -299,6 +299,47 @@ app.post("/api/juntas/crear", verifyToken, async (req, res, next) => {
   }
 });
 
+app.get("/api/juntas/listar", verifyToken, async (req, res, next) => {
+  try {
+    const callerUid = req.auth.uid;
+    const callerProfile = await resolveCallerProfile(callerUid);
+    const juntasRef = admin.firestore().collection("JuntasDeVecinos");
+
+    let snapshot;
+    if (callerProfile.role === "admin") {
+      snapshot = await juntasRef.get();
+    } else if (callerProfile.role === "ayuntamiento") {
+      const provincia = String(callerProfile.data.provincia || "").trim();
+      const municipio = String(callerProfile.data.municipio || "").trim();
+
+      if (!provincia || !municipio) {
+        throw createHttpError(403, "permission-denied", "No se pudo validar el territorio del ayuntamiento.");
+      }
+
+      const provinciaSnap = await juntasRef.where("provincia", "==", provincia).get();
+      const juntasFiltradas = provinciaSnap.docs
+        .map((docSnap) => ({ id: docSnap.id, ...(docSnap.data() || {}) }))
+        .filter((item) => String(item.municipio || "").trim() === municipio)
+        .sort((a, b) => String(a.nombre || "").localeCompare(String(b.nombre || ""), "es", { sensitivity: "base" }));
+
+      res.json({ juntas: juntasFiltradas });
+      return;
+    } else if (callerProfile.role === "junta") {
+      snapshot = await juntasRef.where("creada_por", "==", callerUid).get();
+    } else {
+      throw createHttpError(403, "permission-denied", "No tienes permiso para listar juntas.");
+    }
+
+    const juntas = snapshot.docs
+      .map((docSnap) => ({ id: docSnap.id, ...(docSnap.data() || {}) }))
+      .sort((a, b) => String(a.nombre || "").localeCompare(String(b.nombre || ""), "es", { sensitivity: "base" }));
+
+    res.json({ juntas });
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.post("/api/password-resets/generic", verifyCaller, async (req, res, next) => {
   try {
     const { targetUid, targetRole } = req.body || {};

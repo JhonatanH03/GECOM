@@ -1,7 +1,7 @@
 import app from "./firebase.js";
 import { escapeHtml } from "./constants.js";
-import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, doc, setDoc, getDoc, collection, getDocs, query, where, limit, serverTimestamp, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, doc, setDoc, getDoc, collection, getDocs, query, where, limit, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const auth = getAuth(app);
 const db = getFirestore(app);
@@ -22,10 +22,6 @@ const JUNTA_USUARIO_PREFIX = "jvl_";
 const provinciaSelect = document.getElementById("provincia");
 const municipioSelect = document.getElementById("municipio");
 const provincias = {};
-
-function usuarioAEmailInterno(usuario) {
-  return String(usuario || "").trim().toLowerCase().replace(/[^a-z0-9_]/g, "") + "@gecom.internal";
-}
 
 function asegurarPrefijoUsuario(usuario, prefijo) {
   const normalizado = String(usuario || "").trim().toLowerCase();
@@ -69,17 +65,6 @@ function protegerPrefijoUsuario() {
     if (usuarioIdInput.value) return;
     inicializarUsuarioConPrefijo();
   });
-}
-
-function generarContrasenaTemporal(length = 12) {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%";
-  const cryptoApi = window.crypto || window.msCrypto;
-  if (cryptoApi && typeof cryptoApi.getRandomValues === "function") {
-    const values = new Uint32Array(length);
-    cryptoApi.getRandomValues(values);
-    return Array.from(values, (v) => chars[v % chars.length]).join("");
-  }
-  return Array.from({ length }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
 }
 
 window.addEventListener("DOMContentLoaded", async () => {
@@ -143,7 +128,6 @@ form.addEventListener("submit", async (event) => {
   const usuario = usuarioId
     ? usuarioIngresado
     : asegurarPrefijoUsuario(usuarioIngresado, JUNTA_USUARIO_PREFIX);
-  const emailInterno = usuarioAEmailInterno(usuario);
   const telefono = document.getElementById("telefono").value.trim();
   const nombreEncargado = document.getElementById("nombreEncargado").value.trim();
   const cedula = document.getElementById("cedula").value.trim();
@@ -201,21 +185,39 @@ form.addEventListener("submit", async (event) => {
         return;
       }
 
-      // Crear nueva junta con contraseña temporal aleatoria.
-      const contrasenaTemporal = generarContrasenaTemporal();
-      const credential = await createUserWithEmailAndPassword(auth, emailInterno, contrasenaTemporal);
-      const nuevoUid = credential.user.uid;
-      await setDoc(doc(db, "JuntasDeVecinos", nuevoUid), {
-        ...usuarioData,
-        fecha_creacion: serverTimestamp(),
-        primerLogin: true
+      // Crear nueva junta via backend (Admin SDK, sin cambiar la sesión activa).
+      if (!auth.currentUser) {
+        throw new Error("Sesión no válida.");
+      }
+      const token = await auth.currentUser.getIdToken();
+      const response = await fetch(window.gecomBuildBackendUrl("/api/juntas/crear"), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          nombre,
+          usuario: usuarioNormalizado,
+          telefono,
+          comunidad: sector,
+          provincia,
+          municipio,
+          cedula
+        })
       });
-      await setDoc(doc(db, "loginIndex", usuarioNormalizado), {
-        uid: nuevoUid,
-        email: emailInterno,
-        rol: "junta",
-        updatedAt: serverTimestamp()
-      });
+
+      const responseData = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        if (responseData.error?.code === "already-exists") {
+          showModalAlert("Ya existe un usuario con ese nombre y ese rol.", "danger");
+          return;
+        }
+        throw new Error(responseData.error?.message || "Error al crear la junta.");
+      }
+
+      const { contrasenaTemporal } = responseData;
       showAlert(`Junta creada correctamente. Usuario: ${usuario}, Contraseña temporal: ${contrasenaTemporal}`, "success");
     }
 
